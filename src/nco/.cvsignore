@@ -1,0 +1,11 @@
+*.lo
+.deps
+.libs
+lex.yy.c
+libnco.la
+ncap_yacc.c
+ncap_yacc.h
+ncap_lex.c
+ncap ncatted ncbo ncdiff ncecat ncea ncwa ncfling ncks ncpdq ncrename ncra ncrcat ncwa
+Makefile
+y.tab.c

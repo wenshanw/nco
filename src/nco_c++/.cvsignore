@@ -1,0 +1,12 @@
+*.lo
+*.la
+.deps
+.libs
+core core.*
+foo foo.*
+ii_files
+in.nc
+Makefile
+SunWS_cache
+tst
+

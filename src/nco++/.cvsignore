@@ -1,0 +1,8 @@
+Makefile
+*.hpp
+ncoParserTokenTypes.txt
+*.cpp
+ncap2
+.libs
+.deps
+.cvsignore

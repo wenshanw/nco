@@ -1,0 +1,16 @@
+*.aux *.bbl *.blg *.brf *.dvi *.glo *.idx *.ilg *.ind *.lof *.log *.lot *.out *.png *.toc *.tpt
+*.cp *.cps *.fn *.ky *.pg *.tp *.vr
+*.foo
+*.info *.info-*
+*.mod
+*.hdf *.nc
+*.pdf *.ps
+*.tmp
+.btmp .itmp
+.inslog2 tca.log tca.map
+core.*
+foo foo.*
+ii_files so_locations
+config.h config.guess config.sub config.status libtool Makefile stamp-h*
+work.pc work.pcl
+bin
