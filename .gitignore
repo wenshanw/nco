@@ -45,3 +45,5 @@ nco.configure.*.foo
 nco.libtool.*.foo
 nco.make.*.foo
 
+# Test and Samples
+tests/
