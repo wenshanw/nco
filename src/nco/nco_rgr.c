@@ -4735,13 +4735,13 @@ nco_grd_nfr /* [fnc] Infer SCRIP-format grid file from input data file */
   if((rcd=nco_inq_varid_flg(in_id,"area",&area_id)) == NC_NOERR) area_nm_in=strdup("area");
   else if((rcd=nco_inq_varid_flg(in_id,"Area",&area_id)) == NC_NOERR) area_nm_in=strdup("Area");
   else if((rcd=nco_inq_varid_flg(in_id,"grid_area",&area_id)) == NC_NOERR) area_nm_in=strdup("grid_area");
-  else if((rcd=nco_inq_varid_flg(in_id,"tarea",&area_id)) == NC_NOERR) area_nm_in=strdup("tarea");	/* for CICE */
-  else if((rcd=nco_inq_varid_flg(in_id,"uarea",&area_id)) == NC_NOERR) area_nm_in=strdup("uarea");	/* for CICE */
+//  else if((rcd=nco_inq_varid_flg(in_id,"tarea",&area_id)) == NC_NOERR) area_nm_in=strdup("tarea");	/* for CICE */
+//  else if((rcd=nco_inq_varid_flg(in_id,"uarea",&area_id)) == NC_NOERR) area_nm_in=strdup("uarea");	/* for CICE */
   if((rcd=nco_inq_varid_flg(in_id,"mask",&msk_id)) == NC_NOERR) msk_nm_in=strdup("mask");
   else if((rcd=nco_inq_varid_flg(in_id,"Mask",&msk_id)) == NC_NOERR) msk_nm_in=strdup("Mask");
   else if((rcd=nco_inq_varid_flg(in_id,"grid_imask",&msk_id)) == NC_NOERR) msk_nm_in=strdup("grid_imask");
-  else if((rcd=nco_inq_varid_flg(in_id,"tmask",&msk_id)) == NC_NOERR) msk_nm_in=strdup("tmask");			/* for CICE */
-  else if((rcd=nco_inq_varid_flg(in_id,"umask",&msk_id)) == NC_NOERR) msk_nm_in=strdup("umask");			/* for CICE */
+//  else if((rcd=nco_inq_varid_flg(in_id,"tmask",&msk_id)) == NC_NOERR) msk_nm_in=strdup("tmask");			/* for CICE */
+//  else if((rcd=nco_inq_varid_flg(in_id,"umask",&msk_id)) == NC_NOERR) msk_nm_in=strdup("umask");			/* for CICE */
 
   if(flg_grd_crv){
     /* Obtain fields that must be present in input file */
@@ -4753,6 +4753,8 @@ nco_grd_nfr /* [fnc] Infer SCRIP-format grid file from input data file */
 
     /* 20150923: fxm also input corners, area, mask, if present in curvilinear file */
     if(area_id != NC_MIN_INT) rcd=nco_get_vara(in_id,area_id,dmn_srt,dmn_cnt,area,crd_typ);
+		/* 20151122: problem remained: in CICE tmask is in float */
+    if(msk_id != NC_MIN_INT) rcd=nco_get_vara(in_id,msk_id,dmn_srt,dmn_cnt,msk,NC_INT);
     
   } /* !flg_grd_crv */
 
