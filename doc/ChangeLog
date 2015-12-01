@@ -1,4 +1,34 @@
+2015-12-01  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.5.4-alpha03 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.5.4-alpha03 final changes';git push
+	git tag -a 4.5.4-alpha03 -m 'Version 4.5.4-alpha03 new features: nfr crv dateline swaths';git push --tags
+
+2015-11-29  Charlie Zender  <zender@uci.edu>
+
+	* Restrict grid to real latitudes and to the 360-degree range detected from input cell-centers
+
+	* nco_grd_nfr() sanity-check for extrapolated corners outside [-90.0,90.0], [-180.0,360.0]
+
+2015-11-19  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.5.4-alpha02 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.5.4-alpha02 final changes';git push
+	git tag -a 4.5.4-alpha02 -m 'Version 4.5.4-alpha02 new features: crd xcs, skl bug, GSL2';git push --tags
+
+	* Correct whitespace when excising dimension names from "coordinates" attribute	in nco_cnv_cf_cll_mth_add() after dimension reduction operations
+
+2015-11-18  Charlie Zender  <zender@uci.edu>
+
+	* Expose interpolation algorithm to sld_nco.sh with -a (bilinear|patch|neareststod|nearestdtos|conserve)
+
+	* Only pass variable list to ncks in regridding phase of sld_nco.sh
+
+	* Add nTimes and nXtrack to usual suspect list for lat/lon to support OMI L2 data
+
 2015-11-17  Charlie Zender  <zender@uci.edu>
+
+	* Merge Wenshan's patch to accept CICE dimensions TLAT,ULAT,TLONG,ULONG
 
 	* Add latt_bounds, latu_bounds, lont_bounds, lonu_bounds to regrid exclusion list (for CICE) as per Wenshan
 
