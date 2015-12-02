@@ -47,3 +47,6 @@ nco.make.*.foo
 
 # Test and Samples
 tests/
+
+# no temporary files
+*.swp
