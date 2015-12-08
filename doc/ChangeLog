@@ -1,3 +1,40 @@
+2015-12-07  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.5.4-alpha04 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.5.4-alpha04 final changes';git push
+	git tag -a 4.5.4-alpha04 -m 'Version 4.5.4-alpha04 new features: nfr POP CICE, nfr 1D, XML _Unsigned att, ncap2';git push --tags
+
+	* Print XML "_Unsigned" attribute to denote unsigned attribute types as per Aleksandar Jelenak and Ed Armstrong
+
+	* Patches to correctly infer grids for POP, CICE, CLM2 files
+
+	* Allow corners not to be inferred for unstructured grids
+
+	* Define M_LN10 and M_LN2 for Cygwin so PPC compiles. Update M_PI.
+
+2015-12-06  Charlie Zender  <zender@uci.edu>
+
+	* Account for missing values in curvilinear coordinate center and mask grids when diagnosing extrapolation issues and grid span
+
+	* In nco_grd_nfr(), convert input mask values that are missing value to integer zero for output
+
+2015-12-05  Charlie Zender  <zender@uci.edu>
+
+	* Improve nco_grd_mk() and nco_grd_nfr() regression tests, and make them passable, finally
+
+	* Regression tests for ncpdq now work for netCDF4 in.nc by checking answers independent of chunking text
+
+2015-12-04  Henry Butowsky  <henryb@hush.com>
+
+	* Modify where statment such that the assign statment in where body is NOT missing value aware
+
+2015-12-04  Henry Butowsky  <henryb@hush.com>
+
+	* Parser can now cast variables with (): temp($time,lev,$lat,$lon)=0.0; is equivalent to temp[$time,lev,$lat,$lon]=0.0
+
+	* In the conflict between a function call and a cast the function call wins e.g.,
+	tally=three_dmn_var_int.total($time,$lat,$lon) is valid	and total($time,$lat,$lon)=1.0d is invalid
+
 2015-12-01  Charlie Zender  <zender@uci.edu>
 
 	* Allow input masks of any type in nco_grd_nfr() (CICE has tmask as NC_FLOAT) and always convert output to NC_INT
