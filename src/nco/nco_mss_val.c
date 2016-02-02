@@ -2,7 +2,7 @@
 
 /* Purpose: Missing value utilities */
 
-/* Copyright (C) 1995--2015 Charlie Zender
+/* Copyright (C) 1995--2016 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -391,18 +391,20 @@ nco_mss_val_get_dbl /* [fnc] Return missing_value of variable, if any, as double
     has_mss_val=True;
     /* Oddly, ARM uses NC_CHAR for type of missing_value, so make allowances for this */
     (void)nco_get_att(nc_id,var_id,att_nm,mss_val_dbl,NC_DOUBLE);
+    //(void)fprintf(stderr,"%s: INFO NC_DOUBLE version of \"%s\" attribute for %s is %g\n",nco_prg_nm_get(),att_nm,var_nm,*mss_val_dbl);
+    if(!isfinite(*mss_val_dbl)) (void)fprintf(stderr,"%s: WARNING NC_DOUBLE version of \"%s\" attribute for %s fails isfinite(), value is %s\n",nco_prg_nm_get(),att_nm,var_nm,(isnan(*mss_val_dbl)) ? "NaN" : ((isinf(*mss_val_dbl)) ? "Infinity" : ""));
     break;
   } /* end loop over att */
 
-  /* Always warn when NCO looks for _FillValue but file has missing_value, and/or
-     always warn when NCO looks for missing_value but file has _FillValue.
+  /* Warn when NCO looks for _FillValue but file has missing_value, and/or
+     warn when NCO looks for missing_value but file has _FillValue.
      20101129: This is a long warning, only print when nco_dbg_lvl > 0 */
   if(nco_dbg_lvl_get() >= nco_dbg_std && has_fll_val && !has_mss_val && WRN_FIRST){
     char sa[1000];
     char sa1[1000];
     char sa2[1000]; 
     WRN_FIRST=False;
-    (void)sprintf(sa,"%s: WARNING Variable %s has attribute \"%s\" but not \"%s\". To comply with netCDF conventions, NCO ignores values that equal the %s attribute when performing arithmetic.",nco_prg_nm_get(),var_nm,nco_not_mss_val_sng_get(), nco_mss_val_sng_get(),nco_mss_val_sng_get()); 
+    (void)sprintf(sa,"%s: WARNING Variable %s has attribute \"%s\" but not \"%s\". To comply with netCDF conventions, NCO ignores values that equal the %s attribute when performing arithmetic.",nco_prg_nm_get(),var_nm,nco_not_mss_val_sng_get(),nco_mss_val_sng_get(),nco_mss_val_sng_get()); 
     (void)sprintf(sa1," Confusingly, values equal to the missing_value should also be neglected. However, it is tedious and (possibly) computationally expensive to check each value against multiple missing values during arithmetic on large variables. So NCO thinks that processing variables with a \"%s\" attribute and no \"%s\" attribute may produce undesired arithmetic results (i.e., where values that were intended to be neglected were not, in fact, neglected).",nco_not_mss_val_sng_get(),nco_mss_val_sng_get());
     (void)sprintf(sa2, " We suggest you rename all \"%s\" attributes to \"%s\" or include both \"%s\" and \"%s\" attributes (with the _same values_) for all variables that have either attribute. Because it is long, this message is only printed once per operator even though multiple variables may have the same attribute configuration. More information on missing values is given at:\nhttp://nco.sf.net/nco.html#mss_val\nExamples of renaming attributes are at:\nhttp://nco.sf.net/nco.html#xmp_ncrename\nExamples of creating and deleting attributes are at:\nhttp://nco.sf.net/nco.html#xmp_ncatted\n",nco_not_mss_val_sng_get(),nco_mss_val_sng_get(),nco_not_mss_val_sng_get(),nco_mss_val_sng_get());
     (void)fprintf(stderr,"%s%s%s",sa,sa1,sa2); 

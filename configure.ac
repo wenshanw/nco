@@ -3,7 +3,7 @@
 # Purpose: Template autoconf uses to generate NCO configure script
 # Newer convention names this file configure.ac, rather than configure.in
 
-# Copyright (C) 2003--2015 Charlie Zender
+# Copyright (C) 2003--2016 Charlie Zender
 # License: GNU General Public License (GPL) Version 3
 # See http://www.gnu.org/copyleft/gpl.html for full license text
 
@@ -51,7 +51,7 @@
 
 # Process configure input with autoconf to produce configure script
 # (package name,version,bug-report-address,tarball name)
-AC_INIT([NCO netCDF Operators],[4.5.4-alpha04],[nco-bugs@lists.sourceforge.net],[nco])
+AC_INIT([NCO netCDF Operators],[4.5.5-alpha05],[nco-bugs@lists.sourceforge.net],[nco])
 
 # Print GNU copyright in configure script
 AC_COPYRIGHT
@@ -401,7 +401,7 @@ if test "${C_INC}"; then
 # C_INC is useful on AIX platforms that have alternative C-compilers (e.g., gcc) installed in a directory (e.g., /usr/local) searched for other software (e.g., antlr)
 # Specifying both C_INC and ANTLR_INC would cause the pre-processor to grab 
 # C-headers from C_INC and antlr headers from ANTLR_INC
-# Using C_INC is required on UCI's ESMF
+# Using C_INC was required on UCI's old ESMF
     CPPFLAGS="-I${C_INC} ${CPPFLAGS}"
 fi
 AC_LANG_PUSH([C++])
@@ -531,7 +531,7 @@ AC_ARG_VAR(ESMF_LIB,Location of ESMF library (compile-time))
 # Store pre-ESMF LIBS value to restore from later
 nco_LIBS_no_ESMF="${LIBS}"
 nco_CPPFLAGS_no_ESMF="${CPPFLAGS}"
-AC_ARG_ENABLE(esmf,AS_HELP_STRING([--enable-esmf],[Build-in ESMF support if possible [[default=yes]]]),enable_esmf=${enableval},enable_esmf=yes)
+AC_ARG_ENABLE(esmf,AS_HELP_STRING([--enable-esmf],[Build-in ESMF support for integrated (instead of off-line) regridding. WARNING: Development code = Unsupported (and not necessary for regridding! Dragons lurk here.) [[default=yes]]]),enable_esmf=${enableval},enable_esmf=yes)
 if test "${enable_esmf}" != 'yes'; then
     enable_esmf='no'
 fi

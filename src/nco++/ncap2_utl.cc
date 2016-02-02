@@ -2,7 +2,7 @@
 
 /* Purpose: netCDF arithmetic processor */
 
-/* Copyright (C) 1995--2015 Charlie Zender
+/* Copyright (C) 1995--2016 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -143,9 +143,9 @@ ncap_att_stretch /* stretch a single valued attribute from 1 to sz */
     (void)cast_void_nctype((nc_type)NC_STRING,&var->val);
     
     for(idx=0;idx<nw_sz;idx++)
-      sng_cp[idx]=strdup(var->val.sngp[0]);    
+      sng_cp[idx]=(char*)NC_FILL_STRING;    
     
-    nco_free(var->val.sngp[0]);  
+    //nco_free(var->val.sngp[0]);  
     (void)cast_nctype_void((nc_type)NC_STRING,&var->val);
     vp=(void*)sng_cp;
     
@@ -363,6 +363,44 @@ ncap_att_prn     /* [fnc] Print a single attribute*/
   (void)fflush(stdout);
   
 } /* end ncap_att_prn() */
+
+
+int          /* number appended */ 
+ncap_att_str /* extract string(s) from a NC_CHAR or NC_STRING type attribute */
+(var_sct *var_att, 
+ std::vector<std::string> &str_vtr)
+{
+  int idx;
+  int srt_size=str_vtr.size();  
+  char *cstr;
+  
+  (void)cast_void_nctype((nc_type)var_att->type,&var_att->val);
+
+  if(var_att->type==NC_STRING)
+  {
+
+    for(idx=0;idx<var_att->sz;idx++)
+    {  
+      cstr=var_att->val.sngp[idx];
+      str_vtr.push_back(cstr);
+    }     
+
+  }
+
+  if(var_att->type==NC_CHAR)
+  { 
+    char buffer[NC_MAX_NAME+1];
+    strncpy(buffer, var_att->val.cp, var_att->sz);        
+    buffer[var_att->sz+1]='\0'; 
+    str_vtr.push_back(buffer);
+  } 
+  (void)cast_nctype_void((nc_type)var_att->type,&var_att->val);
+  
+  return (str_vtr.size() - srt_size);  
+
+
+
+}
 
 var_sct * /* O [sct] Remainder of modulo operation of input variables (var1%var2) */
 ncap_var_var_mod /* [fnc] Remainder (modulo) operation of two variables */
@@ -595,6 +633,7 @@ void
 ncap_lmt_evl
 (int nc_id,
  lmt_sct* lmt_ptr,
+ long hint_sz,
  prs_cls *prs_arg){
   
   long cnt_dmn;
@@ -612,14 +651,18 @@ ncap_lmt_evl
   dmn_vtr=(nc_id==prs_arg->in_id ? prs_arg->dmn_in_vtr: prs_arg->dmn_out_vtr);
   
   
+  // fudge the size
+  if( hint_sz > -1L )
+    cnt_dmn=hint_sz;
+  else 
+  {
+    dmn_ptr=dmn_vtr.find(lmt_ptr->nm);
   
-  dmn_ptr=dmn_vtr.find(lmt_ptr->nm);
-  
-  if(dmn_ptr==NULL)
-    err_prn(fnc_nm,"Dimension "+ std::string(lmt_ptr->nm)+" in limits not found");
-  
-  cnt_dmn=dmn_ptr->sz;
-  
+    if(dmn_ptr==NULL)
+      err_prn(fnc_nm,"Dimension "+ std::string(lmt_ptr->nm)+" in limits not found");
+
+    cnt_dmn=dmn_ptr->sz;
+  }   
   //fill out defaults
   srt=( lmt_ptr->is_usr_spc_min ? lmt_ptr->srt:0L);
   end=( lmt_ptr->is_usr_spc_max ? lmt_ptr->end:cnt_dmn-1);
@@ -1582,7 +1625,7 @@ ncap_var_var_op   /* [fnc] Add two variables */
     if( (var1->has_dpl_dmn ==-1 || var2->has_dpl_dmn==-1) && var1->sz >1 && var2->sz>1){  
       if(var1->sz != var2->sz) {
 	std::ostringstream os;
-	os<<"Hyperslabbed variable:"<<var1->nm <<" and variable:"<<var2->nm <<" have differnet number of elements, so cannot perform arithmetic operation.";
+	os<<"Hyperslabbed variable:"<<var1->nm <<" and variable:"<<var2->nm <<" have different number of elements, so cannot perform arithmetic operation.";
 	err_prn(fnc_nm,os.str());
       }
       if( nco_shp_chk(var1,var2)==False){ 

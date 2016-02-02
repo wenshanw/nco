@@ -2,7 +2,7 @@
 
 /* Purpose: Print variables, attributes, metadata */
 
-/* Copyright (C) 1995--2015 Charlie Zender
+/* Copyright (C) 1995--2016 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -349,7 +349,7 @@ nco_prn_att /* [fnc] Print all attributes of single variable or group */
 	  rcd_prn=snprintf(val_sng,(size_t)NCO_ATM_SNG_LNG,att_sng_pln,val_dbl);
 	  (void)sng_trm_trl_zro(val_sng,prn_flg->nbr_zro);
 	}else{
-	  if(isnan(val_dbl)) (void)sprintf(val_sng,"NaNf"); else if(isinf(val_dbl)) (void)sprintf(val_sng,"%sInfinity",(val_dbl < 0.0) ? "-" : "");
+	  if(isnan(val_dbl)) (void)sprintf(val_sng,"NaN"); else if(isinf(val_dbl)) (void)sprintf(val_sng,"%sInfinity",(val_dbl < 0.0) ? "-" : "");
 	} /* endelse */
 	(void)fprintf(stdout,"%s%s",val_sng,(lmn != att_szm1) ? spr_sng : "");
       } /* end loop */
@@ -2082,6 +2082,9 @@ lbl_chr_prn:
   } /* end if variable has more than one dimension */
 
   /* Free value buffer */
+  if(var.type == NC_STRING)
+      for(lmn=0;lmn<var.sz;lmn++)
+	if(var.val.sngp[lmn]) var.val.sngp[lmn]=(nco_string)nco_free(var.val.sngp[lmn]);
   var.val.vp=nco_free(var.val.vp);
   var.mss_val.vp=nco_free(var.mss_val.vp);
   var.nm=(char *)nco_free(var.nm);

@@ -4,7 +4,7 @@
 
 /* Purpose: Compute user-defined derived fields using forward algebraic notation applied to netCDF files */
 
-/* Copyright (C) 1995--2015 Charlie Zender
+/* Copyright (C) 1995--2016 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3.
@@ -516,7 +516,9 @@ main(int argc,char **argv)
   cnv_cls cnv_obj(true);
   // Aggregate functions
   agg_cls agg_obj(true);
-    // Aggregate  index functions
+  // derived  aggregate functions
+  aggd_cls aggd_obj(true);
+  // Aggregate  index functions
   agg_idx_cls agg_idx_obj(true);
   // Utility Functions 
   utl_cls utl_obj(true);
@@ -544,10 +546,13 @@ main(int argc,char **argv)
   cod_cls cod_obj(true); 
   // misc functions
   misc_cls misc_obj(true); 
+  // string list functions
+  vlist_cls vlist_obj(true);
 
   // Populate vector
   (void)pop_fmc_vtr(fmc_vtr,&cnv_obj);
   (void)pop_fmc_vtr(fmc_vtr,&agg_obj);
+  (void)pop_fmc_vtr(fmc_vtr,&aggd_obj);
   (void)pop_fmc_vtr(fmc_vtr,&agg_idx_obj);
   (void)pop_fmc_vtr(fmc_vtr,&utl_obj);
   (void)pop_fmc_vtr(fmc_vtr,&mth_obj);
@@ -562,6 +567,7 @@ main(int argc,char **argv)
   (void)pop_fmc_vtr(fmc_vtr,&bil_obj);
   (void)pop_fmc_vtr(fmc_vtr,&cod_obj);
   (void)pop_fmc_vtr(fmc_vtr,&misc_obj);
+  (void)pop_fmc_vtr(fmc_vtr,&vlist_obj);
 
 #ifdef ENABLE_GSL
 # ifdef ENABLE_NCO_GSL

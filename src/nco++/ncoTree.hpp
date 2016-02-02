@@ -12,7 +12,7 @@
 
 /* Purpose: ANTLR Grammar and support files for ncap2 */
 
-/* Copyright (C) 1995--2015 Charlie Zender
+/* Copyright (C) 1995--2016 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -51,7 +51,7 @@
 #line 52 "ncoTree.hpp"
 class CUSTOM_API ncoTree : public ANTLR_USE_NAMESPACE(antlr)TreeParser, public ncoParserTokenTypes
 {
-#line 644 "ncoGrammer.g"
+#line 657 "ncoGrammer.g"
 
 
 private:
@@ -182,7 +182,6 @@ NcapVector<lmt_sct*> &lmt_vtr )
 	(void)cast_void_nctype((nc_type)NC_UINT64,&var->val);
 	sz=var->sz;
 	dmn_sz=var->sz / nbr_dmn;
-	
     
 
     // shape of var must be (nbr_dmn) or (nbr_dmn,2) or (nbr_dmn,3) 
@@ -535,10 +534,10 @@ protected:
 private:
 	static const char* tokenNames[];
 #ifndef NO_STATIC_CONSTS
-	static const int NUM_TOKENS = 117;
+	static const int NUM_TOKENS = 118;
 #else
 	enum {
-		NUM_TOKENS = 117
+		NUM_TOKENS = 118
 	};
 #endif
 	

@@ -2,7 +2,7 @@
 
 /* Purpose: File manipulation */
 
-/* Copyright (C) 1995--2015 Charlie Zender
+/* Copyright (C) 1995--2016 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -62,9 +62,9 @@ nco_create_mode_prs /* [fnc] Parse user-specified file format */
   if(strcasestr("classic",fl_fmt_sng) && !strcasestr(fl_fmt_sng,"netcdf4")){
     /* If "classic" contains string and string does not contain "netcdf4" */
     *fl_fmt_enm=NC_FORMAT_CLASSIC;
-  }else if(strcasestr("64bit",fl_fmt_sng)){
-    /* If "64bit" contains string */
-    *fl_fmt_enm=NC_FORMAT_64BIT;
+  }else if(strcasestr("64bit_offset",fl_fmt_sng)){
+    /* If "64bit_offset" contains string */
+    *fl_fmt_enm=NC_FORMAT_64BIT_OFFSET;
   }else if(strcasestr(fl_fmt_sng,"netcdf4")){
     /* If string contains "netcdf4" */
 #ifdef ENABLE_NETCDF4
@@ -76,18 +76,18 @@ nco_create_mode_prs /* [fnc] Parse user-specified file format */
       *fl_fmt_enm=NC_FORMAT_NETCDF4_CLASSIC;
     } /* endif NETCDF4 */
 #else /* !ENABLE_NETCDF4 */
-    (void)fprintf(stderr,"%s: ERROR This NCO was not built with netCDF4 and cannot create the requested netCDF4 file format. HINT: Re-try with netCDF3 file format, either by omitting the filetype specification, or by explicitly specifying the \"-3\", \"--fl_fmt=classic\", \"-6\",  or \"--fl_fmt=64bit\" options.\n",nco_prg_nm_get());
+    (void)fprintf(stderr,"%s: ERROR This NCO was not built with netCDF4 and cannot create the requested netCDF4 file format. HINT: Re-try with netCDF3 file format, either by omitting the filetype specification, or by explicitly specifying the \"-3\", \"--fl_fmt=classic\", \"-6\",  or \"--fl_fmt=64bit_offset\" options.\n",nco_prg_nm_get());
     nco_exit(EXIT_FAILURE);
 #endif /* !ENABLE_NETCDF4 */
-  }else if(strcasestr("pnetcdf",fl_fmt_sng)){
-#ifdef ENABLE_MPI
-    /* If "pnetcdf" contains string */
-    *fl_fmt_enm=NC_FORMAT_CDF5;
-#else /* !ENABLE_MPI */
-    (void)fprintf(stderr,"%s: ERROR This NCO was not built with PnetCDF (http://trac.mcs.anl.gov/projects/parallel-netcdf) and cannot create the requested PnetCDF file format. HINT: Re-try with supported file format such as \"classic\" or \"64bit\".\n",nco_prg_nm_get());
-#endif /* !ENABLE_MPI */
+  }else if(strcasestr("64bit_data",fl_fmt_sng) || strcasestr("pnetcdf",fl_fmt_sng) || strcasestr(fl_fmt_sng,"cdf5")){
+    /* If "64bit_data" contains string or "pnetcdf" contains string or string contains "cdf5" */
+    if(NC_LIB_VERSION >= 440){
+      *fl_fmt_enm=NC_FORMAT_CDF5;
+    }else{
+      (void)fprintf(stderr,"%s: ERROR This NCO was not built with PnetCDF (http://trac.mcs.anl.gov/projects/parallel-netcdf) capabilities and cannot create the requested PnetCDF file format. PnetCDF was introduced in the base netCDF library in version 4.4.0 in January, 2016. HINT: Re-try with requisite library version or select a supported file format such as \"classic\" or \"64bit_offset\".\n",nco_prg_nm_get());
+    } /* !NC_LIB_VERSION */
   }else{
-    (void)fprintf(stderr,"%s: ERROR Unknown output file format \"%s\" requested. Valid formats are (unambiguous leading characters of) \"classic\", \"64bit\", \"netcdf4\", and \"netcdf4_classic\".\n",nco_prg_nm_get(),fl_fmt_sng);
+    (void)fprintf(stderr,"%s: ERROR Unknown output file format \"%s\" requested. Valid formats are (unambiguous leading characters of) \"classic\", \"64bit_offset\",%s \"netcdf4\", and \"netcdf4_classic\".\n",nco_prg_nm_get(),fl_fmt_sng,(NC_LIB_VERSION >= 440) ? "\"64bit_data\"," : "");
     nco_exit(EXIT_FAILURE);
   } /* endif fl_fmt_enm */
 

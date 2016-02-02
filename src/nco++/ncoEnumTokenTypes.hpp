@@ -118,10 +118,11 @@
 		NUMBER = 110,
 		VAR_ATT = 111,
 		VAR_ATT_QT = 112,
-		DIM_QT = 113,
-		DIM_VAL = 114,
-		INCLUDE = 115,
-		LMT_DMN = 116,
+		STR_ATT_QT = 113,
+		DIM_QT = 114,
+		DIM_VAL = 115,
+		INCLUDE = 116,
+		LMT_DMN = 117,
 		NULL_TREE_LOOKAHEAD = 3
 	};
 #endif /*INC_ncoEnumTokenTypes_hpp_*/

@@ -14,7 +14,7 @@
 
 /* Purpose: ANTLR Grammar and support files for ncap2 */
 
-/* Copyright (C) 1995--2015 Charlie Zender
+/* Copyright (C) 1995--2016 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -53,7 +53,7 @@
 #line 54 "ncoLexer.hpp"
 class CUSTOM_API ncoLexer : public ANTLR_USE_NAMESPACE(antlr)CharScanner, public ncoParserTokenTypes
 {
-#line 344 "ncoGrammer.g"
+#line 342 "ncoGrammer.g"
 
 private:
     prs_cls *prs_arg;
@@ -146,6 +146,8 @@ public:
 	public: void mNUMBER(bool _createToken);
 	public: void mVAR_ATT(bool _createToken);
 	public: void mVAR_ATT_QT(bool _createToken);
+	public: void mATT_ID(bool _createToken);
+	public: void mSTR_ATT_QT(bool _createToken);
 	public: void mDIM_QT(bool _createToken);
 	public: void mDIM_VAL(bool _createToken);
 	public: void mDIM_MTD_ID(bool _createToken);

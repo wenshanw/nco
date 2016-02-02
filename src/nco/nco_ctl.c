@@ -2,7 +2,7 @@
 
 /* Purpose: Program flow control functions */
 
-/* Copyright (C) 1995--2015 Charlie Zender
+/* Copyright (C) 1995--2016 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -843,7 +843,7 @@ nco_nmn_get(void) /* [fnc] Return mnemonic that describes current NCO version */
 { 
   /* Purpose: Return mnemonic describing current NCO version
      Always include terminal \n so mnemonic does not dangle */
-  return "Hiring\n";
+  return "CCW\n";
 } /* end nco_nmn_get() */
 
 char * /* O [sng] nm_in stripped of any path (i.e., program name stub) */ 
@@ -1006,9 +1006,9 @@ nco_usg_prn(void)
   if(strstr(opt_sng,"[-7]")) (void)fprintf(stdout,"-7, --7, --fl_fmt=netcdf4_classic\tOutput file in netCDF4 CLASSIC format (3+4=7)\n");
   if(strstr(opt_sng,"[-A]")) (void)fprintf(stdout,"-A, --apn, --append\tAppend to existing output file, if any\n");
   if(strstr(opt_sng,"[-a")){
-    if(prg_lcl == ncatted) (void)fprintf(stdout,"-a, --attribute att_nm,var_nm,mode,att_typ,att_val Attribute specification:\n\t\t\tmode = a,c,d,m,o and att_typ = f,d,l,s,c,b\n");
+    if(prg_lcl == ncatted) (void)fprintf(stdout,"-a, --attribute att_nm,var_nm,mode,att_typ,att_val Attribute specification:\n\t\t\tmode = a,c,d,m,o (append, create, delete, modify, overwrite)\n\t\t\tatt_typ = f,d,l/i,s,c,b (float, double, long/int, short, char, byte)\n");
 #ifdef ENABLE_NETCDF4
-    if(prg_lcl == ncatted) (void)fprintf(stdout,"\t\t\tnetCDF4 att_typ's = ub,us,u,ll,ull\n");
+    if(prg_lcl == ncatted) (void)fprintf(stdout,"\t\t\tnetCDF4 types = ub,us,u,ll,ull,sng (unsigned byte, u. short, u. int, long long int, u. long long int, string)\n");
 #endif /* !ENABLE_NETCDF4 */
     if(prg_lcl == ncks) (void)fprintf(stdout,"-a, --abc, --alphabetize\tDisable alphabetization of extracted variables\n");
     if(prg_lcl == ncpdq) (void)fprintf(stdout,"-a, --arrange, --permute, --reorder, --rdr [-]rdr_dim1[,[-]rdr_dim2[...]] Re-order dimensions\n");

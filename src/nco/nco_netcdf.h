@@ -2,7 +2,7 @@
 
 /* Purpose: NCO wrappers for netCDF C library */
 
-/* Copyright (C) 1995--2015 Charlie Zender
+/* Copyright (C) 1995--2016 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -68,14 +68,20 @@
 #ifndef NC_FORMAT_CLASSIC
 # define NC_FORMAT_CLASSIC (1)
 #endif
+#ifndef NC_FORMAT_64BIT_OFFSET
+# define NC_FORMAT_64BIT_OFFSET   (2)
+#endif
 #ifndef NC_FORMAT_64BIT
-# define NC_FORMAT_64BIT   (2)
+# define NC_FORMAT_64BIT (NC_FORMAT_64BIT_OFFSET)
 #endif
 #ifndef NC_FORMAT_NETCDF4
 # define NC_FORMAT_NETCDF4 (3)
 #endif
 #ifndef NC_FORMAT_NETCDF4_CLASSIC
 # define NC_FORMAT_NETCDF4_CLASSIC  (4) /* create netcdf-4 files, with NC_CLASSIC_MODEL. */
+#endif
+#ifndef NC_FORMAT_64BIT_DATA
+# define NC_FORMAT_64BIT_DATA   (5)
 #endif
 #ifndef NC_ENDIAN_NATIVE
 # define NC_ENDIAN_NATIVE 0
@@ -122,7 +128,7 @@
 #endif
 
 /* Three compatibility tokens from pnetcdf.h introduced to NCO 20140604 
-   None are used yet */
+   First actually used 20160114 */
 #ifndef NC_64BIT_DATA
 # define NC_64BIT_DATA	0x0010 /* CDF-5 format, (64-bit) supported */
 #endif

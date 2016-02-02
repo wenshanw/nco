@@ -67,10 +67,10 @@ Try to disable Spammers' machines:
 </td></tr></table>
 
 <p><hr width="100%"></p>
-<p><h1 align="center">Welcome to the netCDF Operator (NCO) Homepage</h1>
+<p><h1 align="center">Bienvenue sur le netCDF Operator (NCO) site</h1>
 
 <p><h2>
-Current stable NCO version is 4.5.3 released <!--#flastmod file="src/nco-4.5.3.tar.gz"-->
+Current stable NCO version is 4.5.4 released <!--#flastmod file="src/nco-4.5.4.tar.gz"-->
 </h2>
 
 <table border=0 width=100%>
@@ -149,9 +149,13 @@ and
 <h2>Recent Releases &amp; Milestones</h2>
 
 <ul>
-<li>2015 Nov&nbsp;??: 4.5.4 (<i>In progress</i>)
+<li>2016 Feb&nbsp;??: 4.5.5 (<i>In progress</i>)
+<li>2016 Jan&nbsp;07: 4.5.4 (<tt>ncremap</tt>)
+<li>2015 Dec&nbsp;16: <a href="http://dust.ess.uci.edu/smn/pst_nco_agu_201512.pdf">Poster</a> at Fall AGU, San Francisco</li>
+<li>2015 Nov&nbsp;04: <a href="http://dust.ess.uci.edu/smn/smn_nco_acme_201511.pdf">Talk</a> at DOE ACME, Albuquerque</li>
 <li>2015 Oct&nbsp;20: 4.5.3 (Curvilinear)
 <li>2015 Sep&nbsp;06: 4.5.2 (Generate SCRIP)
+<li>2015 Sep&nbsp;01: NSF EarthCube <a href="#prp_e3">project</a> commences</li>
 <li>2015 Jul&nbsp;10: 4.5.1 (Stability)
 <li>2015 Jun&nbsp;11: 4.5.0 (Regridding)
 <li>2015 May&nbsp;21: 4.4.9 (<tt>ncra</tt> weights)
@@ -163,28 +167,12 @@ and
 <li>2014 Jul&nbsp;01: NASA ACCESS 2013 <a href="#prp_axs">project</a> commences</li>
 <li>2014 May&nbsp;29: 4.4.4 (Stability)
 <li>2014 Apr&nbsp;02: 4.4.3 (Stability)
-<li>2014 Mar&nbsp;27: <a href="http://dust.ess.uci.edu/smn/smn_nco_gsfc_201403.pdf">Talk</a> at NASA GSFC, Greenbelt, Maryland</li>
-<li>2014 Mar&nbsp;25: <a href="http://dust.ess.uci.edu/smn/pst_nco_esds_201403.pdf">Poster</a> for NASA ESDSWG, Greenbelt, Maryland</li>
+<li>2014 Mar&nbsp;27: <a href="http://dust.ess.uci.edu/smn/smn_nco_gsfc_201403.pdf">Talk</a> at NASA GSFC, Greenbelt</li>
+<li>2014 Mar&nbsp;25: <a href="http://dust.ess.uci.edu/smn/pst_nco_esds_201403.pdf">Poster</a> at NASA ESDSWG, Greenbelt</li>
 <li>2014 Feb&nbsp;20: 4.4.2 (Stability)
 <li>2014 Jan&nbsp;29: 4.4.1 (Stability)
 <li>2014 Jan&nbsp;09: 4.4.0 (Stability)
-<li>2013 Dec&nbsp;13: <a href="http://dust.ess.uci.edu/smn/smn_nco_agu_201312.pdf">Talk</a> at Fall AGU, San Francisco, California</li>
-<li>2013 Dec&nbsp;02: 4.3.9 (new operator, <tt>nces</tt>)
-<li>2013 Nov&nbsp;06: 4.3.8 (<tt>ncatted</tt> groups)
-<li>2013 Oct&nbsp;17: 4.3.7 (HDF4, XML, <tt>ncrename</tt> groups)
-<li>2013 Oct&nbsp;02: <a href="http://dust.ess.uci.edu/smn/pst_nco_esds_201310.pdf">Poster</a> for NASA ESDSWG, Greenbelt, Maryland</li>
-<li>2013 Sep&nbsp;27: 4.3.6 (<tt>--dbl</tt> default, <tt>ncdismember</tt>)
-<li>2013 Sep&nbsp;20: 4.3.5 (<tt>nces</tt>, <tt>ncra</tt>, <tt>ncrcat</tt> groups)
-<li>2013 Aug&nbsp;01: 4.3.4 (<tt>ncpdq</tt> bugfix, HDF unpacking)
-<li>2013 Jul&nbsp;24: 4.3.3 (<tt>ncrename</tt>, <tt>ncwa</tt> groups, CDL, XML)
-<li>2013 Jul&nbsp;05: 4.3.2 (<tt>ncflint</tt>, <tt>ncpdq</tt> groups)</li>
-<li>2013 Jun&nbsp;03: Submitted NASA ACCESS 2013 <a href="http://dust.ess.uci.edu/prp/prp_axs/prp_axs.pdf">proposal</a></li>
-<li>2013 May&nbsp;01: 4.3.1 (Group broadcasting)</li>
-<li>2013 Mar&nbsp;28: 4.3.0 (<tt>ncbo</tt> groups)</li>
-<li>2013 Mar&nbsp;19: 4.2.6</li>
-<li>2013 Jan&nbsp;28: 4.2.5</li>
-<li>2013 Jan&nbsp;21: 4.2.4</li>
-<li><a href="./milestones_old.shtml">Milestones from 2003&ndash;2012 (versions 2.8.4&ndash;4.2.3)</a></li>
+<li><a href="./milestones_old.shtml">Milestones from 2003&ndash;2013 (versions 2.8.4&ndash;4.3.9)</a></li>
 <li><a href="./nco_news.shtml">News and Announcements from 1998&ndash;2003 (version 1.1.0&ndash;2.8.3) and earlier</a></li>
 </ul>
 <hr></p>
@@ -243,6 +231,7 @@ techniques for climate data analysis:
 <li><a href="./nco.html#ncpdq"><tt>ncpdq</tt></a> netCDF Permute Dimensions Quickly, Pack Data Quietly (<a href="./nco.html#xmp_ncpdq">examples</a>)</li>
 <li><a href="./nco.html#ncra"><tt>ncra</tt></a> netCDF Record Averager (<a href="./nco.html#xmp_ncra">examples</a>)</li>
 <li><a href="./nco.html#ncrcat"><tt>ncrcat</tt></a> netCDF Record conCATenator (<a href="./nco.html#xmp_ncrcat">examples</a>)</li>
+<li><a href="./nco.html#ncremap"><tt>ncremap</tt></a> netCDF REMAPer (<a href="./nco.html#xmp_ncremap">examples</a>)</li>
 <li><a href="./nco.html#ncrename"><tt>ncrename</tt></a> netCDF RENAMEer (<a href="./nco.html#xmp_ncrename">examples</a>)</li>
 <li><a href="./nco.html#ncwa"><tt>ncwa</tt></a></td> netCDF Weighted Averager (<a href="./nco.html#xmp_ncwa">examples</a>)</li>
 </ul>
@@ -689,20 +678,30 @@ San Francisco,&nbsp;CA, December 5&ndash;9, 2006.
 Stable releases receive unique tags and their tarballs are stored  
 <a href="http://nco.sf.net/src">here</a> on SourceForge and
 <a href="https://github.com/nco/nco/releases">here</a> at GitHub.
-You may also retrieve the source of tagged versions directly
-<a name="#Source">with <tt>git clone -b 4.5.2 http://github.com/nco/nco.git nco-4.5.2</tt></a>.
+You may also retrieve the source of tagged versions directly with, e.g.,
+<tt>git clone -b 4.5.4 http://github.com/nco/nco.git nco-4.5.4</tt></a>.
 <ul>
-<li><b>NCO 4.5.5</b>: (<i>Future</i>) 
+<li><b>NCO 4.5.6</b>: (<i>Future</i>) 
 <tt>ncks</tt> prints human-legible ISO8601 dates;
 <a href="http://nco.sf.net/nco.html#cnk">Chunking</a> bytes not elements, caching;
+<tt>ncks</tt> prints human-legible ISO8601 dates;
 extensive hashing?;
 netCDF4 compound types?;
 Optimize diskless files?;</li>
-<li><b>NCO 4.5.4</b>: (<i>In Progress, features in-progress or completed include</i>)
+<li><b>NCO 4.5.5</b>: (<i>In Progress, features in-progress or completed include</i>)
+All operators support CDF5 format;
+<tt>ncremap -P airs,mpas</tt>;
+<tt>ncremap</tt> use CF to find coordinates;
+<tt>ncks --xtn</tt> better extensive variable treatment;
+<tt>ncpdq</tt> fix <tt>--gaa</tt>;
+<tt>ncpdq</tt> fix permutation with multiple groups;</li>
+<li><b>NCO 4.5.4</b>: (<i>Current Stable Release</i>)
+<tt>ncap2</tt> syntax simplification/fixes;
 <tt>ncks -V</tt> bugfix;
-<tt>ncks</tt> regridder uses CF to find coordinates;
-<tt>ncks --xtn</tt> better extensive variable treatment;</li>
-<li><b>NCO 4.5.3</b>: (<i>Current Stable Release</i>)
+<tt>ncks</tt> XML <tt>_Unsigned</tt> attribute;
+<tt>ncremap</tt> debuts;
+<tt>ncwa</tt> fix whitespace in <tt>coordinates</tt> attribute;</li>
+<li><b>NCO 4.5.3</b>: 
 <tt>ncatted</tt> fix deletion of all attributes;
 <tt>ncecat</tt> fix <tt>gag</tt> mode;
 <tt>ncks</tt> infers rectangular and curvilinear grids;
@@ -950,10 +949,10 @@ Thanks to Gavin Burris and Kyle Wilcox for documenting build procedures for RHEL
 <!-- 
 # Mac OS X 10.11 (El Capitan) systems (aerosol):
 /usr/bin/scp ~/nco/doc/index.shtml zender,nco@web.sf.net:/home/project-web/nco/htdocs
-cd ~/bin;tar cvzf ${DATA}/nco-4.5.3.macosx.10.11.tar.gz nc*;scp ${DATA}/nco-4.5.3.macosx.10.11.tar.gz zender,nco@web.sf.net:/home/project-web/nco/htdocs/src
+cd ~/bin;tar cvzf ${DATA}/nco-4.5.4.macosx.10.11.tar.gz nc*;scp ${DATA}/nco-4.5.4.macosx.10.11.tar.gz zender,nco@web.sf.net:/home/project-web/nco/htdocs/src
 -->
 The most up-to-date binaries are probably those in the tarball below. Those unfamiliar with installing executables from tarballs may try the (older) <a href="http://en.wikipedia.org/wiki/Apple_Disk_Image">DMG</a> files (you may need to add <tt>/opt/local/bin</tt> to your executable path to access those operators).
-<li><a href="src/nco-4.5.3.macosx.10.11.tar.gz">nco-4.5.3.macosx.10.11.tar.gz</a> (<!--#fsize file="src/nco-4.5.3.macosx.10.11.tar.gz"-->): Executables MacOSX 10.11-compatible (last updated <!--#flastmod file="src/nco-4.5.3.macosx.10.11.tar.gz"-->). 
+<li><a href="src/nco-4.5.4.macosx.10.11.tar.gz">nco-4.5.4.macosx.10.11.tar.gz</a> (<!--#fsize file="src/nco-4.5.4.macosx.10.11.tar.gz"-->): Executables MacOSX 10.11-compatible (last updated <!--#flastmod file="src/nco-4.5.4.macosx.10.11.tar.gz"-->). 
 (NB: These executables require
   the <a href="http://trac.macosforge.org/projects/macports/wiki">MacPorts</a>
   <a href="#bld_macports">dependencies</a> for <a href="http://svn.macports.org/repository/macports/trunk/dports/science/nco">NCO</a>). Maintained by NCO Project.</li>
@@ -968,7 +967,7 @@ The most up-to-date binaries are probably those in the tarball below. Those unfa
 <a name="mvs"></a> <!-- http://nco.sf.net#mvs -->
 <a name="windows"></a> <!-- http://nco.sf.net#windows -->
 <h3><a href="http://www.microsoft.com">Microsoft Windows</a>
-(native build, compiled with <a href="http://www.microsoft.com/visualstudio/en-us/products/2010-editions/express">Visual Studio 2010</a>, use this if unsure)</h3>
+(native build, compiled with <a href="https://www.visualstudio.com/en-us/visual-studio-homepage-vs.aspx">Visual Studio 2013</a>, use this if unsure)</h3>
 These native Windows executables should be stand-alone, i.e., not
 require users to have any additional software. 
 This is a new feature as of 20120615, please send us feedback. 
@@ -976,10 +975,10 @@ To build NCO from source yourself using MSVC or Qt, please see the <a href="nco_
 <ul>
 <!-- Copy files from http://glace.ess.uci.edu
 /usr/bin/scp /home/pvicente/nco/doc/index.shtml pvicente,nco@web.sf.net:/home/project-web/nco/htdocs
-/usr/bin/scp /home/pvicente/windows_setup/nco-4.5.2.windows.mvs.exe pvicente,nco@web.sf.net:/home/project-web/nco/htdocs/src
+/usr/bin/scp /home/pvicente/windows_setup/nco-4.5.4.windows.mvs.exe pvicente,nco@web.sf.net:/home/project-web/nco/htdocs/src
 /usr/bin/scp /home/pvicente/windows_setup/nco-4.4.5.win32.cygwin.tar.gz pvicente,nco@web.sf.net:/home/project-web/nco/htdocs/src
 -->
-<li><a href="src/nco-4.5.2.windows.mvs.exe">nco-4.5.2.windows.mvs.exe</a> (<!--#fsize file="src/nco-4.5.2.windows.mvs.exe"-->) : Windows Self-Extracting Installer (last updated <!--#flastmod file="src/nco-4.5.2.windows.mvs.exe"-->). Maintained by Pedro Vicente.</li>
+<li><a href="src/nco-4.5.4.windows.mvs.exe">nco-4.5.4.windows.mvs.exe</a> (<!--#fsize file="src/nco-4.5.4.windows.mvs.exe"-->) : Windows Self-Extracting Installer (last updated <!--#flastmod file="src/nco-4.5.4.windows.mvs.exe"-->). Maintained by Pedro Vicente.</li>
 </ul>
 
 <a name="cygwin"></a> <!-- http://nco.sf.net#cygwin -->
@@ -1168,17 +1167,17 @@ You may retrieve any NCO distribution you wish from
 <a href="https://help.github.com">GitHub</a>. 
 Usually you wish to retrieve a recent tagged (i.e., released) version.
 This command retrieves the entire NCO repository (&lt; 20&nbsp;MB) and
-then checks out NCO version <tt>4.5.2</tt>:
-<p><tt>git clone https://github.com/nco/nco.git;cd nco;git checkout 4.5.2</tt></p>
+then checks out NCO version <tt>4.5.4</tt>:
+<p><tt>git clone https://github.com/nco/nco.git;cd nco;git checkout 4.5.4</tt></p>
 This command retrieves the current (&ldquo;bleeding edge&rdquo;)
 development version of NCO into a local directory named <tt>nco</tt>:
 <p><tt>git clone https://github.com/nco/nco.git ~/nco</tt></p>
 Track changes to the development version using
 <p><tt>cd ~/nco;git pull</tt></p>
 One difference between running a "tagged" release 
-(e.g., <tt>4.5.2</tt>) and the development version is that the
+(e.g., <tt>4.5.4</tt>) and the development version is that the
 tagged release operators will print a valid version number (e.g.,
-<tt>4.5.2</tt>) when asked to do so with the <tt>-r</tt> flag
+<tt>4.5.4</tt>) when asked to do so with the <tt>-r</tt> flag
 (e.g., <tt>ncks -r</tt>).
 The development version simply places today's date in place of the
 version.
@@ -1222,7 +1221,7 @@ If pre-built executables do not satisfy you (e.g., are out-of-date)
 and you want the latest, greatest features, then the first steps to
 build (i.e., compile, for the most part) NCO from source code are to
 install the prerequisites:
-<a href="http://www.antlr.org">ANTLR</a> version 2.7.7 (like <a href="http://glace.ess.uci.edu/libs/antlr-2.7.7.tar.gz">this one</a> <i>not</i> version 3.x or 4.x!) (required for <tt>ncap2</tt>), 
+<a href="http://www.antlr.org">ANTLR</a> version 2.7.7 (like <a href="http://dust.ess.uci.edu/tmp/antlr-2.7.7.tar.gz">this one</a> <i>not</i> version 3.x or 4.x!) (required for <tt>ncap2</tt>), 
 <a href="http://www.gnu.org/software/gsl">GSL</a> (desirable for <tt>ncap2</tt>), 
 <a href="http://www.unidata.ucar.edu/packages/netcdf">netCDF</a> (absolutely required), 
 <a href="http://opendap.org">OPeNDAP</a> (enables network transparency), and
@@ -1310,9 +1309,9 @@ Users should instead first download and install the Antlr found <a href="http://
   then build the latest stable NCO and install it in,
   e.g., <tt>/usr/local</tt> with: 
 <tt>
-<dt>wget https://github.com/nco/nco/archive/4.5.2.tar.gz</dt>
-<dt>tar xvzf 4.5.2.tar.gz</dt>
-<dt>cd nco-4.5.2</dt>
+<dt>wget https://github.com/nco/nco/archive/4.5.4.tar.gz</dt>
+<dt>tar xvzf 4.5.4.tar.gz</dt>
+<dt>cd nco-4.5.4</dt>
 <dt>./configure --prefix=/usr/local</dt>
 <dt>make</dt>
 <dt>sudo make install</dt>
@@ -1361,11 +1360,14 @@ is usually untagged.
   <tt>export LD_LIBRARY_PATH="~zender/lib:${LD_LIBRARY_PATH}"</tt>
 <ul>
 <li>ANL ALCF Cooley <tt>cooley.alcf.anl.gov</tt>: <tt>~zender/bin</tt></li>
+<li>ANL ALCF Mira <tt>mira.alcf.anl.gov</tt>: <tt>~zender/bin</tt></li>
 <li>NCAR CISL <tt>yellowstone.ucar.edu</tt>: <tt>~zender/bin</tt></li>
 <li>NCAR CISL <tt>mirage0.ucar.edu</tt>: <tt>~zender/bin</tt></li>
+<li>NERSC Cori <tt>cori.nersc.gov</tt>: <tt>~zender/bin</tt></li>
 <li>NERSC Edison <tt>edison.nersc.gov</tt>: <tt>~zender/bin</tt> or <tt>module load nco/4.5.2</tt></li>
 <li>ORNL OLCF Pileus <tt>pileus-login01.ornl.gov</tt>: <tt>~zender/bin</tt></li>
 <li>ORNL OLCF Rhea <tt>rhea.ccs.ornl.gov</tt>: <tt>~zender/bin</tt></li>
+<li>ORNL OLCF Titan <tt>titan.ccs.ornl.gov</tt>: <tt>~zender/bin</tt></li>
 <li>UCI ESS <tt>greenplanet.ps.uci.edu</tt>: <tt>~zender/bin</tt></li>
 </ul>
 <hr></p>

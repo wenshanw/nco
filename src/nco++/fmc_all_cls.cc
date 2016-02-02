@@ -2,7 +2,7 @@
 
 /* Purpose: netCDF arithmetic processor class methods: families of functions/methods */
 
-/* Copyright (C) 1995--2015 Charlie Zender
+/* Copyright (C) 1995--2016 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -75,6 +75,7 @@
       fmc_vtr.push_back( fmc_cls("sqravg",this,(int)PSQRAVG));
       fmc_vtr.push_back( fmc_cls("total",this,(int)PTTL));
       fmc_vtr.push_back( fmc_cls("ttl",this,(int)PTTL));
+      fmc_vtr.push_back( fmc_cls("sum",this,(int)PTTL));
     }
   }		      
 		      
@@ -171,7 +172,7 @@
                 var=ncap_var_udf("~dot_methods");  
                 // deal with average over all dims or scalar var
                 else if( nbr_dim==0 || dmn_vtr.size()== 0 || dmn_vtr.size()==nbr_dim)  
-                var=ncap_sclr_var_mk(static_cast<std::string>("~dot_methods"),var1->type,false);    
+                var=ncap_sclr_var_mk(SCS("~dot_methods"),var1->type,false);    
                 else {
                     // cast a variable with the correct dims in the correct order
                     dim=var1->dim;
@@ -412,7 +413,7 @@
       // Initial scan
       if(prs_arg->ntl_scn) 
         if(var_tmp)  
-	  var_ret= ncap_sclr_var_mk(static_cast<std::string>
+	  var_ret= ncap_sclr_var_mk(SCS
 ("~utility_function"),var_tmp->type,false);
         else
 	  var_ret=ncap_var_udf("~utility_function");
@@ -423,7 +424,7 @@
            // nb ncap_sclr_var_mk() calls nco_mss_val_mk() and fills var_ret with the default fill value
            // for that type.  So if the var has no missing value then this is the value returned 
            // Default fill  values are defined in  netcdf.h . 
-           var_ret=ncap_sclr_var_mk(static_cast<std::string>("~utility_function"),var_tmp->type,true);
+           var_ret=ncap_sclr_var_mk(SCS("~utility_function"),var_tmp->type,true);
            if(var_tmp->has_mss_val)
              (void)memcpy(var_ret->val.vp, var_tmp->mss_val.vp,nco_typ_lng(var_tmp->type)); 
         }else{          
@@ -441,7 +442,7 @@
 
     if(prs_arg->ntl_scn) {
       if(var) var=nco_var_free(var);
-      return ncap_sclr_var_mk(static_cast<std::string>("~utility_function"),(nc_type)NC_INT,false);  
+      return ncap_sclr_var_mk(SCS("~utility_function"),(nc_type)NC_INT,false);  
     }
 
 
@@ -449,7 +450,7 @@
     if(!Nvar ){
        wrn_prn(fnc_nm,sfnm+" unable to find variable: "+va_nm); 
        if(var) var=nco_var_free(var);
-       return ncap_sclr_var_mk(static_cast<std::string>("~utility_function"),(nco_int)rval);        
+       return ncap_sclr_var_mk(SCS("~utility_function"),(nco_int)rval);        
     }
 
 
@@ -556,7 +557,7 @@
 
     }// end switch
 
-    return ncap_sclr_var_mk(static_cast<std::string>("~utility_function"),(nco_int)rval);        
+    return ncap_sclr_var_mk(SCS("~utility_function"),(nco_int)rval);        
 
   }// end function
 
@@ -592,7 +593,7 @@ var_sct * utl_cls::is_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &
 
     if(prs_arg->ntl_scn){
        nco_var_free(var);     
-       return ncap_sclr_var_mk(static_cast<std::string>("~utility_function"),styp,false);         
+       return ncap_sclr_var_mk(SCS("~utility_function"),styp,false);         
     }  
 
     // from now on dealing with a final scan !!
@@ -616,9 +617,9 @@ var_sct * utl_cls::is_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &
     nco_var_free(var); 
 
     if(styp==NC_UINT64) 
-       return ncap_sclr_var_mk(static_cast<std::string>("~utility_function"),(nco_uint64)icnt);
+       return ncap_sclr_var_mk(SCS("~utility_function"),(nco_uint64)icnt);
     else 
-      return ncap_sclr_var_mk(static_cast<std::string>("~utility_function"),(nco_int)icnt);
+      return ncap_sclr_var_mk(SCS("~utility_function"),(nco_int)icnt);
 }  
     
 
@@ -709,7 +710,7 @@ var_sct * utl_cls::is_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &
       var1=walker.out(tr) ;
       var1=nco_var_free(var1);
       }
-      return ncap_sclr_var_mk(static_cast<std::string>("~basic_function"),(nc_type)NC_INT,false);        
+      return ncap_sclr_var_mk(SCS("~basic_function"),(nc_type)NC_INT,false);        
     }
        
     // from here on dealing with final scan
@@ -738,7 +739,7 @@ var_sct * utl_cls::is_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &
       }   
       
       if(var1) nco_var_free(var1);    
-      return ncap_sclr_var_mk(static_cast<std::string>("~basic_function"),(nco_int)iret);
+      return ncap_sclr_var_mk(SCS("~basic_function"),(nco_int)iret);
     }
 
      
@@ -751,15 +752,15 @@ var_sct * utl_cls::is_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &
       switch(fdx){ 
            case PSIZE:
              if(mp_typ==NC_UINT64) 
-               var=ncap_sclr_var_mk(static_cast<std::string>("~basic_function"),(nco_uint64)var1->sz);
+               var=ncap_sclr_var_mk(SCS("~basic_function"),(nco_uint64)var1->sz);
              else 
-               var=ncap_sclr_var_mk(static_cast<std::string>("~basic_function"),(nco_int)var1->sz);
+               var=ncap_sclr_var_mk(SCS("~basic_function"),(nco_int)var1->sz);
              break;
            case PTYPE:
-             var=ncap_sclr_var_mk(static_cast<std::string>("~basic_function"),(nco_int)var1->type);
+             var=ncap_sclr_var_mk(SCS("~basic_function"),(nco_int)var1->type);
              break;
            case PNDIMS:
-             var=ncap_sclr_var_mk(static_cast<std::string>("~basic_function"),(nco_int)var1->nbr_dim);            
+             var=ncap_sclr_var_mk(SCS("~basic_function"),(nco_int)var1->nbr_dim);            
 
       } // end switch        
       
@@ -1105,7 +1106,7 @@ var_sct * utl_cls::is_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &
 		std::vector<std::string> cst_vtr;
 
                 for(idx=0 ; idx<nbr_dim ; idx++)
-                  cst_vtr.push_back( static_cast<std::string>((dmn_vtr[idx]->nm)));
+                  cst_vtr.push_back( SCS((dmn_vtr[idx]->nm)));
 
                 var_out=ncap_cst_mk(cst_vtr,prs_arg);
                 var_out=nco_var_cnf_typ(var_in->type,var_out);
@@ -1944,7 +1945,7 @@ var_sct * srt_cls::mst_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls 
 		else
 		{	
        // create empty var to return
-       var_out=ncap_sclr_var_mk(static_cast<std::string>("~zz@value_list"),mp_typ,false);          
+       var_out=ncap_sclr_var_mk(SCS("~zz@value_list"),mp_typ,false);          
 	    var_out->sz=var->nbr_dim;
 		}
        nco_var_free(var);
@@ -1953,7 +1954,7 @@ var_sct * srt_cls::mst_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls 
 		
     nbr_dim=var->nbr_dim;       
 	// create return attribute/var	
-	var_out=ncap_sclr_var_mk(static_cast<std::string>("~zz@value_list"),NC_UINT64,true);          
+	var_out=ncap_sclr_var_mk(SCS("~zz@value_list"),NC_UINT64,true);          
     var_out->has_dpl_dmn=-1;
  
 	ncap_att_stretch(var_out, nbr_dim); 
@@ -2881,7 +2882,7 @@ double bil_cls::clc_lin_ipl(double x1,double x2, double x, double Q0,double Q1){
   if(prs_arg->ntl_scn  ){
     nco_var_free(var1);
     nco_var_free(var2);
-    return ncap_sclr_var_mk(static_cast<std::string>("~coord_function"),(nc_type)NC_INT,false);  ;
+    return ncap_sclr_var_mk(SCS("~coord_function"),(nc_type)NC_INT,false);  ;
   }
 
 
@@ -2937,7 +2938,7 @@ double bil_cls::clc_lin_ipl(double x1,double x2, double x, double Q0,double Q1){
   nco_var_free(var1);   
   nco_var_free(var2);
 
-  return ncap_sclr_var_mk(static_cast<std::string>("~coord_function"),(nco_int)lret);        
+  return ncap_sclr_var_mk(SCS("~coord_function"),(nco_int)lret);        
   }
 
 
@@ -3323,6 +3324,474 @@ double bil_cls::clc_lin_ipl(double x1,double x2, double x, double Q0,double Q1){
     return var_out;
   } // end  
 
+
+
+  vlist_cls::vlist_cls(bool flg_dbg){
+    //Populate only on first constructor call
+    if(fmc_vtr.empty()){
+      fmc_vtr.push_back( fmc_cls("join",this,(int)PJOIN));
+      fmc_vtr.push_back( fmc_cls("push",this,(int)PPUSH));
+    }
+  }
+
+
+  var_sct *vlist_cls::fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker){
+  const std::string fnc_nm("vlist_cls::fnd");
+  bool bret;
+  int idx;
+  int fdx;
+  int nbr_args;
+  int nbr_dim;         
+  char *cstr;
+  std::string susg;
+  std::string sfnm=fmc_obj.fnm();
+  std::string att_nm;
+
+  var_sct *var=NULL_CEWI;
+  var_sct *var_att=NULL_CEWI;
+  var_sct *var_add=NULL_CEWI;
+
+
+  RefAST aRef;
+  RefAST tr;
+  std::vector<RefAST> vtr_args; 
+  prs_cls *prs_arg=walker.prs_arg;
+
+  NcapVar *Nvar=NULL;
+          
+  fdx=fmc_obj.fdx();
+
+
+  // Put args into vector 
+  if(expr)
+    vtr_args.push_back(expr);
+
+  if(tr=fargs->getFirstChild())
+  {
+    do  
+      vtr_args.push_back(tr);
+    while(tr=tr->getNextSibling());    
+  } 
+            
+  nbr_args=vtr_args.size();  
+
+  susg="usage: att_out="+sfnm+"(att_id, att_nm|var_nm|string)";
+
+  if(nbr_args!=2)
+    err_prn(sfnm, " Function has been called with wrong number of arguments arguments\n"+susg); 
+
+  
+
+
+
+  // deal with call by ref 
+  if(vtr_args[0]->getType() == CALL_REF )     
+  {   
+    bret=false; 
+  }
+  else
+  {
+    var_att=walker.out(vtr_args[0]);      
+    bret=true;
+  }
+
+  var_add=walker.out(vtr_args[1]);
+
+  // inital scan just return udf
+  if(prs_arg->ntl_scn)
+  {
+    if(var_att)
+       nco_var_free(var_att);
+     
+    nco_var_free(var_add);        
+
+    if( bret) 
+      var=ncap_var_udf("~zz@join_methods");  
+    else
+      var=ncap_sclr_var_mk(std::string(var_add->nm),(nc_type)NC_INT,false);  
+
+    return var;
+  }
+
+  // deal with call by ref final scan
+  if( !bret)
+  {     
+     att_nm=vtr_args[0]->getFirstChild()->getText();  
+     
+
+     Nvar=prs_arg->var_vtr.find(att_nm);
+
+
+     if(Nvar !=NULL)
+         var_att=nco_var_dpl(Nvar->var);
+     else    
+        var_att=ncap_att_init(att_nm,prs_arg);
+  
+     // if new var then write var - end of story   
+     if(!var_att) 
+     {   
+       nco_free(var_add->nm);
+       var_add->nm=strdup(att_nm.c_str());      
+       Nvar=new NcapVar(var_add,att_nm);
+
+       var=ncap_sclr_var_mk(att_nm,(nco_int)var_add->sz);
+       prs_arg->var_vtr.push_ow(Nvar);       
+
+       return var;
+
+     } 
+
+  } 
+
+  if(!var_att )
+     err_prn(sfnm, " first argument has evaluated to null\n"+susg); 
+  
+  
+  if(var_att->type==NC_CHAR && var_add->type !=NC_CHAR ) 
+     err_prn(sfnm, "Cannot push to a NC_CHAR attribute a non NC_CHAR type"+susg);           
+  
+
+  if(var_att->type == NC_STRING && !(var_add->type == NC_CHAR || var_add->type==NC_STRING) )
+     err_prn(sfnm, "Cannot push to a NC_STRING attribute a non-text type "+susg);           
+
+
+
+  // deal with this corner case first
+  if(var_att->type==NC_STRING && var_add->type==NC_CHAR)
+  { 
+     
+    char buffer[NC_MAX_ATTRS];
+    size_t sz_new;
+    size_t slb_sz=nco_typ_lng(var_att->type);   
+      
+    strncpy(buffer,(char*)var_add->val.vp, var_add->sz);            
+    buffer[var_add->sz]='\0';
+    sz_new=var_att->sz+1;
+ 
+    var_att->val.vp=nco_realloc(var_att->val.vp, sz_new*slb_sz);           
+    cast_void_nctype(NC_STRING,&var_att->val);         
+       
+    var_att->val.sngp[var_att->sz]=strdup(buffer);      
+    cast_nctype_void(NC_STRING,&var_att->val);           
+    var_att->sz++;
+          
+   }
+   else 
+   {
+     char *cp_in;
+     char *cp_out;
+     size_t slb_sz=nco_typ_lng(var_att->type);   
+     long sz_new=var_att->sz+var_add->sz;
+
+     nco_var_cnf_typ(var_att->type,var_add);         
+     var_att->val.vp=nco_realloc(var_att->val.vp, sz_new*slb_sz);           
+     
+     cp_in=(char*)var_add->val.vp;
+     cp_out=(char*)var_att->val.vp + (size_t)(var_att->sz*slb_sz);    
+   
+     memcpy(cp_out,cp_in, slb_sz*var_add->sz); 
+     var_att->sz=sz_new;  
+
+      // a bit cheeky here - set to null so we DONT have to deep-copy ragged array of strings    
+     if(var_add->type==NC_STRING) 
+     {
+       nco_free(var_add->val.vp);  
+       var_add->val.vp=(void*)NULL_CEWI;   
+     }
+        
+
+   }
+  
+
+  nco_var_free(var_add);
+
+  // deal with call by ref 
+  // not sure if we need a return value -?  for now return the att size 
+  if(bret) 
+  {
+     return var_att; 
+  }
+  else
+  {
+    Nvar=new NcapVar(var_att); 
+     var=ncap_sclr_var_mk(SCS("~zz@join_methods"), (nco_int)var_att->sz);
+     prs_arg->var_vtr.push_ow(Nvar);       
+     return var;  
+  }
+
+
+
+  }
+
+
+
+  var_sct *vlist_cls::fnd_join(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker){
+  const std::string fnc_nm("vlist_cls::fnd");
+  int idx;
+  int fdx;
+  int nbr_args;
+  int nbr_dim;         
+  char *cstr;
+  std::string susg;
+  std::string sfnm=fmc_obj.fnm();
+  var_sct *var;
+  var_sct *var_att;
+
+
+  RefAST aRef;
+  RefAST tr;
+  std::vector<RefAST> vtr_args; 
+  prs_cls *prs_arg=walker.prs_arg;
+  std::vector<std::string> str_vtr;
+          
+  fdx=fmc_obj.fdx();
+
+
+  // Put args into vector 
+  if(expr)
+    vtr_args.push_back(expr);
+
+  if(tr=fargs->getFirstChild())
+  {
+    do  
+      vtr_args.push_back(tr);
+    while(tr=tr->getNextSibling());    
+  } 
+            
+  nbr_args=vtr_args.size();  
+
+  susg="usage: att_out="+sfnm+"(att_id, att_nm|var_nm|string)";
+
+  if(nbr_args!=2)
+    err_prn(sfnm, " Function has been called with wrong number of arguments arguments\n"+susg); 
+
+
+  // inital scan just return udf
+  if(prs_arg->ntl_scn)
+  {
+   var=ncap_var_udf("~zz@join_methods");  
+   return var;
+  }
+
+  var_att=walker.out(vtr_args[0]);
+
+  if(!var_att )
+     err_prn(sfnm, " first argument has evaluated to null\n"+susg); 
+
+  if( var_att->type != NC_STRING && var_att->type != NC_CHAR )
+    err_prn(sfnm, " first argument must be of character string type and NOT("+nbr2sng(var_att->type)+")\n"+susg); 
+
+
+  ncap_att_str(var_att, str_vtr); 
+  
+  // deal with second argument    
+  aRef=vtr_args[1];
+  switch(aRef->getType())
+  {
+    case VAR_ID:
+      str_vtr.push_back(aRef->getText());
+      break;
+
+    case ATT_ID: 
+      {
+	var_sct *var_arg;
+        var_arg=walker.out(aRef); 
+        ncap_att_str(var_arg, str_vtr); 
+        nco_var_free(var_arg);    
+      }
+      break;
+
+    case NSTRING:
+    case N4STRING:
+      str_vtr.push_back(aRef->getText());
+      break;  
+   
+    default:
+       err_prn(sfnm, " problem with second argument, must be a var_nm or a string or a string in an attribute  "+susg);      
+    
+  }
+
+  // create output attribute
+  var=ncap_sclr_var_mk("~zz@join_methods",(nc_type)NC_STRING,true);
+
+  // stretch att if necessary
+  if(str_vtr.size() >1 )
+     ncap_att_stretch(var, str_vtr.size()); 
+  
+  (void)cast_void_nctype((nc_type)NC_STRING,&var->val);
+
+  for(idx=0;idx<str_vtr.size();idx++)
+  { 
+    cstr=strdup(str_vtr[idx].c_str());
+    var->val.sngp[idx]=cstr;  
+  }
+
+  (void)cast_nctype_void((nc_type)NC_STRING,&var->val);
+
+  
+  nco_var_free(var_att);
+
+  return var;
+
+}
+
+
+//Derived Aggregate Functions /************************************************/
+
+  aggd_cls::aggd_cls(bool flg_dbg){
+    //Populate only on first constructor call
+    if(fmc_vtr.empty()){
+      fmc_vtr.push_back( fmc_cls("ncap_stats_wvariance",this,(int)PWVARIANCE));
+    }
+  }		      
+
+  var_sct *aggd_cls::fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker){
+  const std::string fnc_nm("aggd_cls::fnd");
+  int fdx;
+  int nbr_args;
+  int idx;
+  int nbr_dim;
+  int avg_nbr_dim; 
+           
+  std::string susg;
+  std::string sfnm=fmc_obj.fnm();
+  std::vector<RefAST> vtr_args;             
+  RefAST aRef;
+  RefAST tr;
+
+  // de-reference 
+  ddra_info_sct ddra_info;        
+  prs_cls *prs_arg=walker.prs_arg;
+  var_sct *var_weight;
+  var_sct *var_weight_sum;
+  var_sct *var_weight_avg;
+  var_sct *var_in;
+  var_sct *var_out;
+
+  fdx=fmc_obj.fdx();
+ 
+ 
+  // Put args into vector 
+  if(expr)
+    vtr_args.push_back(expr);
+
+  if(tr=fargs->getFirstChild()) {
+    do  
+      vtr_args.push_back(tr);
+    while(tr=tr->getNextSibling());    
+  } 
+      
+  nbr_args=vtr_args.size();  
+
+  susg="usage var_out="+sfnm+"(var, weight)";
+
+  if(nbr_args!=2)
+    err_prn(sfnm, " Function has been called with no arguments\n"+susg); 
+
+          
+  var_in=walker.out(vtr_args[0]);   
+  var_weight=walker.out(vtr_args[1]);   
+
+  // deal with initial scan
+  if(prs_arg->ntl_scn)
+  {
+    if(var_in->undefined)
+       var_out=ncap_var_udf("~aggd_methods");   
+    else
+       var_out=ncap_sclr_var_mk(SCS("~aggd_methods"),var_in->type,false);       
+  
+    nco_var_free(var_in);
+    nco_var_free(var_weight);  
+    return var_out; 
+     
+  }
+  
+  /* nco stript we are implementing 
+  
+     (S1)  sum_weights = weights2.ttl();
+     (S2)  weighted_avg = (weights2*var).ttl()/sum_weights;
+     (S3)  anomaly = var - weighted_avg;
+     (S3)  numerator = (weights2*anomaly*anomaly).ttl();
+     (s4)  variance = numerator/sum_weights;
+     std = variance.sqrt();
+  */
+
+
+  // make weight same type as var_in
+  var_weight=nco_var_cnf_typ(var_in->type,var_weight);         
+  
+  // make vars conform or die 
+  if( !ncap_var_stretch(&var_in,&var_weight) )
+    err_prn(sfnm ,"unable to make weight var conform to input var");
+  
+
+  
+
+  // make sure missing value is same is same in both vars
+  // copy missing datums in var_in to var_weight
+  if(var_in->has_mss_val)
+  {
+    long idx;
+    long sz=var_in->sz;
+    char *cp_in=(char*)var_in->val.vp;
+    char *cp_out=(char*)var_weight->val.vp;
+    char  *cp_miss_var;
+    char  *cp_miss_weight;
+    size_t slb_sz=nco_typ_lng(var_in->type);
+
+    if(!var_weight->has_mss_val)
+       nco_mss_val_cp(var_in,var_weight);
+  
+    cp_miss_var=(char*)var_in->mss_val.vp;
+    cp_miss_weight=(char*)var_weight->mss_val.vp;
+  
+
+
+    for(idx=0;idx<sz;idx++)
+    {
+      if( !memcmp(cp_in, cp_miss_var, slb_sz) || !memcmp(cp_out, cp_miss_weight, slb_sz) )
+	 memcpy(cp_out, cp_miss_var, slb_sz);   
+
+      cp_in+=slb_sz;
+      cp_out+=slb_sz;
+    }
+    
+    memcpy(cp_miss_weight, cp_miss_var, slb_sz);   
+  }
+ 
+
+  // [S1] single value - duplicate is destroyed
+  var_weight_sum=nco_var_avg(nco_var_dpl(var_weight),var_weight->dim,var_weight->nbr_dim ,nco_op_ttl,False,&ddra_info);
+  
+  // return var_weight_sum;
+  // [S2] single value - duplicate is destroyed
+  var_weight_avg = nco_var_avg(  ncap_var_var_stc( nco_var_dpl(var_weight), var_in, TIMES), var_weight->dim, var_weight->nbr_dim, nco_op_ttl,False,&ddra_info);
+
+  // [S2] single value
+  var_weight_avg = ncap_var_var_stc ( var_weight_avg, var_weight_sum, DIVIDE);  
+
+
+  // [S2a] stretch var_weight_avg so it CONFORMS to var_in
+  (void)ncap_att_stretch(var_weight_avg, var_in->sz);
+  
+  // [S3] var_weight destroyed in this operation
+  var_out = nco_var_avg( ncap_var_var_stc( var_weight, ncap_var_var_stc( ncap_var_var_stc(var_in,var_weight_avg,MINUS), NULL_CEWI, VSQR2 ), TIMES ), var_weight->dim, var_weight->nbr_dim, nco_op_ttl,False,&ddra_info);
+
+  // [S4]
+  var_out= ncap_var_var_stc( var_out, var_weight_sum, DIVIDE);       
+                                 
+  nco_var_free(var_weight_avg);
+  nco_var_free(var_weight_sum);
+  nco_var_free(var_in);
+
+  return var_out;
+
+ }
+
+
+
+
+
 /* ncap2 functions and methods */
 
 /* To avoid confusion when I say FUNC (uppercase) I mean a custom ncap2 function.
@@ -3412,3 +3881,6 @@ double bil_cls::clc_lin_ipl(double x1,double x2, double x, double Q0,double Q1){
  It takes two fragments of the the parse tree ( expr, fargs) and returns a var_sct. 
  
  If expr is null then it is A FUNC else its a METHOD */
+
+
+

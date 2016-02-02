@@ -3,7 +3,7 @@ header {
 
 /* Purpose: ANTLR Grammar and support files for ncap2 */
 
-/* Copyright (C) 1995--2015 Charlie Zender
+/* Copyright (C) 1995--2016 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -169,8 +169,6 @@ dmn_list:
    LPAREN! DIM_ID (COMMA! DIM_ID)* RPAREN!
       { #dmn_list = #( [DMN_LIST, "dmn_list"], #dmn_list ); }
     ;
-
-
 
 // list of dims eg /$Lat,$time,$0,$1/
 dmn_arg_list:
@@ -550,6 +548,10 @@ VAR_ATT options {testLiterals=true; paraphrase="variable or function or attribut
                  bDoSearch=false;
                  $setType(ATT_ID);
                  break;    
+               case '[':
+                 bDoSearch=false;
+                 $setType(VAR_ID); 
+                 break;   
                default: 
                  bDoSearch=false;
                  $setType(VAR_ID);
@@ -578,6 +580,17 @@ VAR_ATT_QT :( '\''!)
                 ( '@' VAR_NM_QT {$setType(ATT_ID);})?
              ('\''!)
    ;     
+
+// return a STR_ATT_ID
+ATT_ID:  '@'(LPH)(LPH|DGT)* {string an=$getText;$setText("global"+an);$setType(ATT_ID);}
+;
+
+// Return a quoted STR_ATT_ID
+STR_ATT_QT :( '\''!)
+              '@' VAR_NM_QT {$setType(STR_ATT_QT);}
+             ('\''!)
+;     
+
 
 //Return a quoted dim
 DIM_QT: ( '\''!)
@@ -771,7 +784,6 @@ NcapVector<lmt_sct*> &lmt_vtr )
 	(void)cast_void_nctype((nc_type)NC_UINT64,&var->val);
 	sz=var->sz;
 	dmn_sz=var->sz / nbr_dmn;
-	
     
 
     // shape of var must be (nbr_dmn) or (nbr_dmn,2) or (nbr_dmn,3) 
@@ -1558,37 +1570,67 @@ var=NULL_CEWI;
             }
 
           | vid2:VAR_ID {   
-              
+
+              var_sct *var_lhs=(var_sct*)NULL;              
+              var_sct *var_rhs=(var_sct*)NULL;              
               std::string var_nm;
               
               var_nm=vid2->getText();
 
               if(nco_dbg_lvl_get() >= nco_dbg_var) dbg_prn(fnc_nm,var_nm);
+      
+              // Set class wide variables           
+              bcst=false;
+              var_cst=NULL_CEWI; 
+              
+              // get shape from RHS
+              var_rhs=out(vid2->getNextSibling());
+           
+              // use init_chk() to avoid warning from ncap_var_init() if var not present  
+              if(prs_arg->ncap_var_init_chk(var_nm)) 
+                var_lhs=prs_arg->ncap_var_init(var_nm,false); 
 
-               var_sct *var1;
-               
-               // Set class wide variables           
-               bcst=false;
-               var_cst=NULL_CEWI; 
-             
-               // get shape from RHS
-               var1=out(vid2->getNextSibling());
-               (void)nco_free(var1->nm);                
-               var1->nm =strdup(var_nm.c_str());
-
-               //Copy return variable
-               var=nco_var_dpl(var1);
-                
-               // Write var to int_vtr
-               // if var already in int_vtr or var_vtr then write call does nothing
-               (void)prs_arg->ncap_var_write(var1,bram);
-               //(void)ncap_var_write_omp(var1,bram,prs_arg);
-        
-           } // end action
+              if(var_lhs)
+              {
+                 var=nco_var_dpl(var_lhs);
+                 (void)prs_arg->ncap_var_write(var_lhs,bram);
+                 nco_var_free(var_rhs); 
+              }
+              else if(var_rhs)
+              {
+                 //Copy return variable
+                 (void)nco_free(var_rhs->nm);                
+                 var_rhs->nm =strdup(var_nm.c_str());
+                 //Copy return variable
+                var=nco_var_dpl(var_rhs);
+                // Write var to int_vtr
+                // if var already in int_vtr or var_vtr then write call does nothing
+                (void)prs_arg->ncap_var_write(var_rhs,bram);
+              }   
+              else 
+              {               
+                var=ncap_var_udf(var_nm.c_str());   
+              }  
+        } // end action
        
    |   (#(ATT_ID LMT_LIST))=> #(att:ATT_ID LMT_LIST){
-        ;
-        } 
+
+            //In Initial scan all newly defined atts are flagged as Undefined
+            var_sct *var1;
+            NcapVar *Nvar;
+
+            if(nco_dbg_lvl_get() > nco_dbg_var) dbg_prn(fnc_nm,att->getText());
+            
+            var1=ncap_var_udf(att->getText().c_str());
+
+            Nvar=new NcapVar(var1);
+            prs_arg->int_vtr.push_ow(Nvar);          
+
+            // Copy return variable
+            var=nco_var_dpl(var1);    
+
+       } //end action
+
    |   (#(ATT_ID LMT_DMN))=>  #(att1:ATT_ID DMN_LIST){
         ;
         } 
@@ -1696,7 +1738,7 @@ var=NULL_CEWI;
                  slb_sz=1;        
                 // fill out limit structure
                 for(idx=0 ; idx < nbr_dmn ;idx++){
-                   (void)ncap_lmt_evl(prs_arg->out_id,lmt_vtr[idx],prs_arg);
+                   (void)ncap_lmt_evl(prs_arg->out_id,lmt_vtr[idx],-1,prs_arg);
                     // Calculate size
                    slb_sz *= lmt_vtr[idx]->cnt;
                 }
@@ -1757,7 +1799,7 @@ var=NULL_CEWI;
                 var_lhs->sz=1;        
                 // fill out limit structure
                 for(idx=0 ; idx < nbr_dmn ;idx++){
-                   (void)ncap_lmt_evl(prs_arg->out_id,lmt_vtr[idx],prs_arg);
+                   (void)ncap_lmt_evl(prs_arg->out_id,lmt_vtr[idx],-1,prs_arg);
                     // Calculate size
                    var_lhs->sz *= lmt_vtr[idx]->cnt;
                 }
@@ -1896,49 +1938,64 @@ end0:         if(lmt->getNextSibling() && lmt->getNextSibling()->getType()==NORE
            
           | vid2:VAR_ID {   
                // Set class wide variables
-               var_sct *var1;
+               var_sct *var_lhs=(var_sct*)NULL;
+               var_sct *var_rhs=(var_sct*)NULL;
                NcapVar *Nvar;
                std::string var_nm;
  
                var_nm=vid2->getText();       
 
-              if(nco_dbg_lvl_get() >= nco_dbg_var) dbg_prn(fnc_nm,var_nm);
+               if(nco_dbg_lvl_get() >= nco_dbg_var) dbg_prn(fnc_nm,var_nm);
                
                bcst=false;
                var_cst=NULL_CEWI; 
               
-               var1=out(vid2->getNextSibling());
+               var_rhs=out(vid2->getNextSibling());
                
                // Save name 
-               std::string s_var_rhs(var1->nm);
-               (void)nco_free(var1->nm);                
-               var1->nm =strdup(var_nm.c_str());
+               std::string s_var_rhs(var_rhs->nm);
 
-               // Do attribute propagation only if
-               // var doesn't already exist or is defined but NOT
-               // populated
-               Nvar=prs_arg->var_vtr.find(vid2->getText());
-               //rcd=nco_inq_varid_flg(prs_arg->out_id,var1->nm ,&var_id);
+               Nvar=prs_arg->var_vtr.find(var_nm);
 
                if(!Nvar || (Nvar && Nvar->flg_stt==1))
-                 (void)ncap_att_cpy(var_nm,s_var_rhs,prs_arg);
-               
-                // var is defined and populated &  RHS is scalar -then stretch var to match
-               if(Nvar && Nvar->flg_stt==2) 
-                  if(var1->sz ==1 && Nvar->var->sz >1){
-                    var1=nco_var_cnf_typ(Nvar->var->type,var1);  
-                    (void)ncap_att_stretch(var1,Nvar->var->sz);
-                    
-                    // this is a special case -- if the RHS scalar has
-                    // no missing value then retain LHS missing value
-                    // else LHS missing value gets over written by RHS
-                    if(!var1->has_mss_val)
-                      (void)nco_mss_val_cp(Nvar->var,var1);   
-                  }
+                   (void)ncap_att_cpy(var_nm,s_var_rhs,prs_arg);
+
+               if(Nvar)
+                 var_lhs=nco_var_dpl(Nvar->var);
+               // use init_chk() to avoid warning from ncap_var_init() if var not present  
+               else if(prs_arg->ncap_var_init_chk(var_nm))
+                  var_lhs=prs_arg->ncap_var_init(var_nm,false); 
  
-               // Write var to disk
-               (void)prs_arg->ncap_var_write(var1,bram);
-               //(void)ncap_var_write_omp(var1,bram,prs_arg);
+               if(var_lhs)
+               {
+                   // var is defined and populated &  RHS is scalar -then stretch var to match
+                   var_rhs=nco_var_cnf_typ(var_lhs->type,var_rhs);   
+                   if(var_rhs->sz ==1 && var_lhs->sz >1)
+                   {
+                       (void)ncap_att_stretch(var_rhs,var_lhs->sz);
+                        // this is a special case -- if the RHS scalar has
+                        // no missing value then retain LHS missing value
+                        // else LHS missing value gets over written by RHS
+                        if(!var_rhs->has_mss_val)
+                         (void)nco_mss_val_cp(var_lhs,var_rhs);   
+                    }   
+
+                   if( var_rhs->sz != var_lhs->sz) 
+                       err_prn(fnc_nm,"regular assign - var size missmatch between \""+var_nm+"\" and RHS of expression");                        
+
+                   var_lhs->val.vp=var_rhs->val.vp;
+               
+                   var_rhs->val.vp=(void*)NULL;                
+                   nco_var_free(var_rhs);  
+                   // Write var to disk
+                   (void)prs_arg->ncap_var_write(var_lhs,bram);
+               }
+               else
+               {
+                   nco_free(var_rhs->nm);
+                   var_rhs->nm=strdup(var_nm.c_str());  
+                   (void)prs_arg->ncap_var_write(var_rhs,bram);  
+               }  
 
                 // See If we have to return something
                if(vid2->getFirstChild() && vid2->getFirstChild()->getType()==NORET)
@@ -1948,10 +2005,163 @@ end0:         if(lmt->getNextSibling() && lmt->getNextSibling()->getType()==NORE
                          
        } // end action
  
-   |   (#(ATT_ID LMT_LIST)) => #(att:ATT_ID LMT_LIST){
-        ;
+   |   (#(ATT_ID LMT_LIST)) => #(att:ATT_ID lmta:LMT_LIST){
+
+            long srt,end,cnt,srd;  
+            std::string att_nm=att->getText();
+            std::string fnc_nm("att_lmt"); 
+            NcapVar *Nvar=NULL;
+            NcapVector<lmt_sct*> lmt_vtr;
+
+            var_sct *var_lhs=NULL_CEWI; 
+            var_sct *var_rhs=NULL_CEWI; 
+            
+            if(prs_arg->ntl_scn)
+            { 
+              // only final scan for this attribute hyperslab 
+              var=ncap_var_udf(att_nm.c_str());
+              // can't return here -- have to use goto
+              goto att_end; 
+            } 
+  
+            Nvar=prs_arg->var_vtr.find(att_nm);
+
+            if(Nvar!=NULL)
+                var_lhs=nco_var_dpl(Nvar->var);
+            else    
+                var_lhs=ncap_att_init(att_nm,prs_arg);
+            
+
+            if(var_lhs==NULL_CEWI )
+                err_prn(fnc_nm,"Unable to locate attribute " +att_nm+ " in input or output files.");
+            
+		    lmt_mk(1L,lmta,lmt_vtr);
+           
+
+            if( lmt_vtr.size() != 1)
+                err_prn(fnc_nm,"Number of hyperslab limits for an attribute "+ att_nm+" must be one ");
+
+
+            lmt_vtr[0]->nm=strdup("zz@attribute");    
+            (void)ncap_lmt_evl(1,lmt_vtr[0],var_lhs->sz,prs_arg); 
+            
+            if(lmt_vtr[0]->cnt==0)
+               err_prn(fnc_nm,"Hyperslab limits for attribute "+ att_nm+" doesn't include any elements");   
+
+            srt=lmt_vtr[0]->srt;
+            cnt=lmt_vtr[0]->cnt;
+            srd=lmt_vtr[0]->srd; 
+            end=lmt_vtr[0]->end; 
+
+            // get rhs can be anything as long as it is of size cnt 
+            var_rhs=out(att->getNextSibling());
+
+
+            
+            if( var_lhs->type==NC_STRING)
+            { 
+              long szn; 
+              long idx; 
+              long cnt=0;  
+              char buffer[NC_MAX_ATTRS];  
+
+              buffer[0]='\0';
+ 
+              cast_void_nctype(NC_STRING, &var_lhs->val);    
+              cast_void_nctype(var_rhs->type, &var_rhs->val);     
+               
+              if( var_rhs->type==NC_STRING)
+              {
+                // check size
+               if(  var_rhs->sz!=1L &&  var_rhs->sz != cnt)   
+                  err_prn(fnc_nm,"Hyperslab limits for attribute "+att_nm + " on LHS size="+nbr2sng(cnt)+ " doesnt match RHS size=" + nbr2sng(var_rhs->sz));
+
+                   
+                szn=(var_rhs->sz >1 ? 1: 0);     
+                for(idx=srt; idx<=end;idx+=srd)  
+                {
+                   var_lhs->val.sngp[idx]=strdup(var_rhs->val.sngp[cnt]);    
+                   cnt+=szn;
+                }
+
+
+              } 
+                  
+              else if( var_rhs->type==NC_CHAR )
+              { 
+               // if RHS is a char string then it reduces to  single NC_STRING regardless of size  
+                strncpy(buffer, var_rhs->val.cp , var_rhs->sz);   
+                buffer[var_rhs->sz]='\0';  
+
+                for(idx=srt; idx<=end;idx+=srd)  
+                   var_lhs->val.sngp[idx]=strdup(buffer);    
+              }
+              else 
+              { 
+                err_prn(fnc_nm,"To hyperslab into a text NC_STRING The RHS type must alo be a text string of type NC_CHAR or NC_STRING"); 
+              } 
+
+              cast_nctype_void(var_rhs->type, &var_rhs->val);    
+              cast_nctype_void(var_lhs->type, &var_lhs->val);    
+
+  
+
+            }
+            
+
+            // deal with regular types   
+            if(var_lhs->type !=NC_STRING)
+            {  
+               char *cp_in;
+               char *cp_out;  
+               long idx;
+               long szn; 
+
+               size_t slb_sz=nco_typ_lng(var_lhs->type); 
+
+               // check size
+               if(  var_rhs->sz!=1L &&  var_rhs->sz != cnt)   
+                  err_prn(fnc_nm,"Hyperslab limits for attribute "+att_nm + " on LHS size="+nbr2sng(cnt)+ " doesnt match RHS size=" + nbr2sng(var_rhs->sz));
+
+ 
+               nco_var_cnf_typ(var_lhs->type,var_rhs);               
+
+               // if rhs size is one then simply copy across possibly multiple times
+               szn=(var_rhs->sz >1 ? 1: 0);   
+
+               cp_in=(char*)(var_rhs->val.vp); 
+              
+               //cp_out=(char*)var_lhs->val.vp; 
+
+               for(idx=srt; idx<=end;idx+=srd) 
+               { 
+                cp_out=(char*)(var_lhs->val.vp)+slb_sz*idx;     
+                memcpy(cp_out,cp_in,slb_sz);  
+                cp_in+= szn;
+               }
+
+            }
+
+            nco_var_free(var_rhs);  
+            nco_lmt_free(lmt_vtr[0]); 
+                  
+            Nvar=new NcapVar(var_lhs,att_nm);
+
+            prs_arg->var_vtr.push_ow(Nvar);       
+
+               // See If we have to return something
+            if(lmta->getFirstChild() && lmta->getFirstChild()->getType()==NORET)
+              var=NULL_CEWI;
+            else 
+              var=nco_var_dpl(var_lhs);               ;
+ 
+
+           att_end: ; 
+
+        
         } 
-   |   (#(ATT_ID LMT_DMN))=> #(att1:ATT_ID DMN_LIST){
+
+   |   (#(ATT_ID DMN_LIST))=> #(att1:ATT_ID DMN_LIST){
         ;
         } 
    |  att2:ATT_ID {
@@ -2235,6 +2445,102 @@ out returns [var_sct *var]
              
     }
 
+     // attribute with argument list 
+    | (#(ATT_ID LMT_LIST)) => #( attl:ATT_ID lmtl:LMT_LIST) {
+
+            std::string att_nm=attl->getText();
+            std::string fnc_nm("att_lmt"); 
+            NcapVar *Nvar=NULL;
+            NcapVector<lmt_sct*> lmt_vtr;
+
+            var_sct *var_att=NULL_CEWI; 
+
+            
+            if(prs_arg->ntl_scn)
+            { 
+              // only final scan for this attribute hyperslab 
+              var=ncap_var_udf(att_nm.c_str());
+              // can't return here -- have to use goto
+              goto attl_end; 
+            } 
+  
+            Nvar=prs_arg->var_vtr.find(attl->getText());
+
+            if(Nvar!=NULL)
+                var_att=nco_var_dpl(Nvar->var);
+            else    
+                var_att=ncap_att_init(att_nm,prs_arg);
+            
+
+            if(var_att==NULL_CEWI )
+                err_prn(fnc_nm,"Unable to locate attribute " +att_nm+ " in input or output files.");
+            
+		    lmt_mk(1L,lmtl,lmt_vtr);
+           
+
+            if( lmt_vtr.size() != 1)
+                err_prn(fnc_nm,"Number of hyperslab limits for an attribute "+ att_nm+"must be one ");
+
+            // fxm - very soon  
+            lmt_vtr[0]->nm=strdup("zz@attribute");    
+            (void)ncap_lmt_evl(1,lmt_vtr[0],var_att->sz,prs_arg); 
+             
+            // we have something to hyperslab
+            if( lmt_vtr[0]->cnt > 0)
+            {  
+               char *cp_in;
+               char *cp_out;  
+               long idx;
+               long srt=lmt_vtr[0]->srt;
+               long cnt=lmt_vtr[0]->cnt;
+               long srd=lmt_vtr[0]->srd; 
+               size_t slb_sz=nco_typ_lng(var_att->type); 
+                
+               /* create output att */
+               var=ncap_sclr_var_mk(att_nm,var_att->type,true);                 
+               (void)ncap_att_stretch(var,cnt);     
+
+               cp_in=(char*)( var_att->val.vp); 
+               cp_in+= (ptrdiff_t)slb_sz*srt;
+               cp_out=(char*)var->val.vp; 
+                    
+               idx=0;
+  
+               while(idx++ < cnt )
+               { 
+                  memcpy(cp_out, cp_in, slb_sz);                   
+                  cp_in+=srd*slb_sz;
+                  cp_out+=slb_sz; 
+               } 
+               
+               // if type NC_STRING then realloc ragged array  
+               if(var_att->type==NC_STRING)
+               { 
+                 idx=0;  
+                 (void)cast_void_nctype((nc_type)NC_STRING,&var->val);                  
+
+                 while(idx<cnt)
+                   var->val.sngp[idx]=strdup(var->val.sngp[idx++]);    
+
+                
+                 (void)cast_nctype_void((nc_type)NC_STRING,&var->val); 
+
+               }  
+
+
+            }
+            else
+            {
+              err_prn(fnc_nm,"Hyperslab limits for attribute "+ att_nm+" doesn't include any elements");  
+            }
+             
+            nco_var_free(var_att);    
+
+            attl_end: ; 
+        }
+
+
+
     // plain Variable
 	|   v:VAR_ID       
         { 
@@ -2343,34 +2649,34 @@ out returns [var_sct *var]
 
         // Naked numbers: Cast is not applied to these numbers
     |   val_float:NCAP_FLOAT  
-        {if(prs_arg->ntl_scn) var=ncap_sclr_var_mk(static_cast<std::string>("~float"),(nc_type)NC_FLOAT,false); else var=ncap_sclr_var_mk(static_cast<std::string>("~float"),static_cast<float>(std::strtod(val_float->getText().c_str(),(char **)NULL)));} // end FLOAT
+        {if(prs_arg->ntl_scn) var=ncap_sclr_var_mk(SCS("~float"),(nc_type)NC_FLOAT,false); else var=ncap_sclr_var_mk(SCS("~float"),static_cast<float>(std::strtod(val_float->getText().c_str(),(char **)NULL)));} // end FLOAT
     |   val_double:NCAP_DOUBLE        
-        {if(prs_arg->ntl_scn) var=ncap_sclr_var_mk(static_cast<std::string>("~double"),(nc_type)NC_DOUBLE,false); else var=ncap_sclr_var_mk(static_cast<std::string>("~double"),strtod(val_double->getText().c_str(),(char **)NULL));} // end DOUBLE
+        {if(prs_arg->ntl_scn) var=ncap_sclr_var_mk(SCS("~double"),(nc_type)NC_DOUBLE,false); else var=ncap_sclr_var_mk(SCS("~double"),strtod(val_double->getText().c_str(),(char **)NULL));} // end DOUBLE
 	|	val_int:NCAP_INT
-        {if(prs_arg->ntl_scn) var=ncap_sclr_var_mk(static_cast<std::string>("~int"),(nc_type)NC_INT,false); else var=ncap_sclr_var_mk(static_cast<std::string>("~int"),static_cast<nco_int>(std::strtol(val_int->getText().c_str(),(char **)NULL,NCO_SNG_CNV_BASE10)));} // end INT
+        {if(prs_arg->ntl_scn) var=ncap_sclr_var_mk(SCS("~int"),(nc_type)NC_INT,false); else var=ncap_sclr_var_mk(SCS("~int"),static_cast<nco_int>(std::strtol(val_int->getText().c_str(),(char **)NULL,NCO_SNG_CNV_BASE10)));} // end INT
 	|	val_short:NCAP_SHORT
-        {if(prs_arg->ntl_scn) var=ncap_sclr_var_mk(static_cast<std::string>("~short"),(nc_type)NC_SHORT,false); else var=ncap_sclr_var_mk(static_cast<std::string>("~short"),static_cast<nco_short>(std::strtol(val_short->getText().c_str(),(char **)NULL,NCO_SNG_CNV_BASE10)));} // end SHORT
+        {if(prs_arg->ntl_scn) var=ncap_sclr_var_mk(SCS("~short"),(nc_type)NC_SHORT,false); else var=ncap_sclr_var_mk(SCS("~short"),static_cast<nco_short>(std::strtol(val_short->getText().c_str(),(char **)NULL,NCO_SNG_CNV_BASE10)));} // end SHORT
     |	val_byte:NCAP_BYTE		
-        {if(prs_arg->ntl_scn) var=ncap_sclr_var_mk(static_cast<std::string>("~byte"),(nc_type)NC_BYTE,false); else var=ncap_sclr_var_mk(static_cast<std::string>("~byte"),static_cast<nco_byte>(std::strtol(val_byte->getText().c_str(),(char **)NULL,NCO_SNG_CNV_BASE10)));} // end BYTE
+        {if(prs_arg->ntl_scn) var=ncap_sclr_var_mk(SCS("~byte"),(nc_type)NC_BYTE,false); else var=ncap_sclr_var_mk(SCS("~byte"),static_cast<nco_byte>(std::strtol(val_byte->getText().c_str(),(char **)NULL,NCO_SNG_CNV_BASE10)));} // end BYTE
 // fxm TODO nco851: How to add ENABLE_NETCDF4 #ifdefs to ncoGrammer.g?
 // Workaround (permanent?) is to add stub netCDF4 forward compatibility prototypes to netCDF3 libnco
 // #ifdef ENABLE_NETCDF4
 	|	val_ubyte:NCAP_UBYTE
-        {if(prs_arg->ntl_scn) var=ncap_sclr_var_mk(static_cast<std::string>("~ubyte"),(nc_type)NC_UBYTE,false); else var=ncap_sclr_var_mk(static_cast<std::string>("~ubyte"),static_cast<nco_ubyte>(std::strtoul(val_ubyte->getText().c_str(),(char **)NULL,NCO_SNG_CNV_BASE10)));} // end UBYTE
+        {if(prs_arg->ntl_scn) var=ncap_sclr_var_mk(SCS("~ubyte"),(nc_type)NC_UBYTE,false); else var=ncap_sclr_var_mk(SCS("~ubyte"),static_cast<nco_ubyte>(std::strtoul(val_ubyte->getText().c_str(),(char **)NULL,NCO_SNG_CNV_BASE10)));} // end UBYTE
         // NB: sng2nbr converts "255" into nco_ubtye=2. This is not good.
-        //        {if(prs_arg->ntl_scn) var=ncap_sclr_var_mk(static_cast<std::string>("~ubyte"),(nc_type)NC_UBYTE,false); else var=ncap_sclr_var_mk(static_cast<std::string>("~ubyte"),sng2nbr(val_ubyte->getText(),nco_ubyte_CEWI));} // end UBYTE
+        //        {if(prs_arg->ntl_scn) var=ncap_sclr_var_mk(SCS("~ubyte"),(nc_type)NC_UBYTE,false); else var=ncap_sclr_var_mk(SCS("~ubyte"),sng2nbr(val_ubyte->getText(),nco_ubyte_CEWI));} // end UBYTE
 	|	val_ushort:NCAP_USHORT
-        {if(prs_arg->ntl_scn) var=ncap_sclr_var_mk(static_cast<std::string>("~ushort"),(nc_type)NC_USHORT,false); else var=ncap_sclr_var_mk(static_cast<std::string>("~ushort"),static_cast<nco_ushort>(std::strtoul(val_ushort->getText().c_str(),(char **)NULL,NCO_SNG_CNV_BASE10)));} // end USHORT
+        {if(prs_arg->ntl_scn) var=ncap_sclr_var_mk(SCS("~ushort"),(nc_type)NC_USHORT,false); else var=ncap_sclr_var_mk(SCS("~ushort"),static_cast<nco_ushort>(std::strtoul(val_ushort->getText().c_str(),(char **)NULL,NCO_SNG_CNV_BASE10)));} // end USHORT
 	|	val_uint:NCAP_UINT	
-        {if(prs_arg->ntl_scn) var=ncap_sclr_var_mk(static_cast<std::string>("~uint"),(nc_type)NC_UINT,false); else var=ncap_sclr_var_mk(static_cast<std::string>("~uint"),static_cast<nco_uint>(std::strtoul(val_uint->getText().c_str(),(char **)NULL,NCO_SNG_CNV_BASE10)));} // end UINT
+        {if(prs_arg->ntl_scn) var=ncap_sclr_var_mk(SCS("~uint"),(nc_type)NC_UINT,false); else var=ncap_sclr_var_mk(SCS("~uint"),static_cast<nco_uint>(std::strtoul(val_uint->getText().c_str(),(char **)NULL,NCO_SNG_CNV_BASE10)));} // end UINT
 	|	val_int64:NCAP_INT64
-        {if(prs_arg->ntl_scn) var=ncap_sclr_var_mk(static_cast<std::string>("~int64"),(nc_type)NC_INT64,false); else var=ncap_sclr_var_mk(static_cast<std::string>("~int64"),sng2nbr(val_int64->getText(),nco_int64_CEWI));} // end INT64
+        {if(prs_arg->ntl_scn) var=ncap_sclr_var_mk(SCS("~int64"),(nc_type)NC_INT64,false); else var=ncap_sclr_var_mk(SCS("~int64"),sng2nbr(val_int64->getText(),nco_int64_CEWI));} // end INT64
         // std::strtoll() and std::strtoull() are not (yet) ISO C++ standard
-        //{if(prs_arg->ntl_scn) var=ncap_sclr_var_mk(static_cast<std::string>("~int64"),(nc_type)NC_INT64,false); else var=ncap_sclr_var_mk(static_cast<std::string>("~int64"),static_cast<nco_int64>(std::strtoll(val_int64->getText().c_str(),(char **)NULL,NCO_SNG_CNV_BASE10)));} // end INT64
+        //{if(prs_arg->ntl_scn) var=ncap_sclr_var_mk(SCS("~int64"),(nc_type)NC_INT64,false); else var=ncap_sclr_var_mk(SCS("~int64"),static_cast<nco_int64>(std::strtoll(val_int64->getText().c_str(),(char **)NULL,NCO_SNG_CNV_BASE10)));} // end INT64
 	|	val_uint64:NCAP_UINT64
-        {if(prs_arg->ntl_scn) var=ncap_sclr_var_mk(static_cast<std::string>("~uint64"),(nc_type)NC_UINT64,false); else var=ncap_sclr_var_mk(static_cast<std::string>("~uint64"),sng2nbr(val_uint64->getText(),nco_uint64_CEWI));} // end UINT64
+        {if(prs_arg->ntl_scn) var=ncap_sclr_var_mk(SCS("~uint64"),(nc_type)NC_UINT64,false); else var=ncap_sclr_var_mk(SCS("~uint64"),sng2nbr(val_uint64->getText(),nco_uint64_CEWI));} // end UINT64
         // std::strtoll() and std::strtoull() are not (yet) ISO C++ standard
-        // {if(prs_arg->ntl_scn) var=ncap_sclr_var_mk(static_cast<std::string>("~uint64"),(nc_type)NC_UINT64,false); else var=ncap_sclr_var_mk(static_cast<std::string>("~uint64"),static_cast<nco_uint64>(std::strtoull(val_uint64->getText().c_str(),(char **)NULL,NCO_SNG_CNV_BASE10)));} // end UINT64
+        // {if(prs_arg->ntl_scn) var=ncap_sclr_var_mk(SCS("~uint64"),(nc_type)NC_UINT64,false); else var=ncap_sclr_var_mk(SCS("~uint64"),static_cast<nco_uint64>(std::strtoull(val_uint64->getText().c_str(),(char **)NULL,NCO_SNG_CNV_BASE10)));} // end UINT64
 // #endif /* !ENABLE_NETCDF4 */
 
 ;
@@ -3051,7 +3357,7 @@ var=NULL_CEWI;
                         
           // fill out limit structure
            for(idx=0 ; idx < nbr_dmn ;idx++)
-            (void)ncap_lmt_evl(var_rhs->nc_id,lmt_vtr[idx],prs_arg);
+            (void)ncap_lmt_evl(var_rhs->nc_id,lmt_vtr[idx],-1,prs_arg);
 
           // See if var can be normalized
            for(idx=0; idx<nbr_dmn ; idx++){

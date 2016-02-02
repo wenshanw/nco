@@ -2,7 +2,7 @@
 
 /* Purpose: NCO wrappers for netCDF C library */
 
-/* Copyright (C) 1995--2015 Charlie Zender
+/* Copyright (C) 1995--2016 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -446,8 +446,8 @@ nco_fmt_sng /* [fnc] Convert netCDF file format enum to string */
   switch(fl_fmt){
   case NC_FORMAT_CLASSIC:
     return "NC_FORMAT_CLASSIC";
-  case NC_FORMAT_64BIT:
-    return "NC_FORMAT_64BIT";
+  case NC_FORMAT_64BIT_OFFSET:
+    return "NC_FORMAT_64BIT_OFFSET";
   case NC_FORMAT_NETCDF4:
     return "NC_FORMAT_NETCDF4";
   case NC_FORMAT_NETCDF4_CLASSIC:
@@ -470,14 +470,14 @@ nco_fmt_hdn_sng /* [fnc] Convert netCDF file format enum to string for hidden at
   switch(fl_fmt){
   case NC_FORMAT_CLASSIC:
     return "classic";
-  case NC_FORMAT_64BIT:
+  case NC_FORMAT_64BIT_OFFSET:
     return "64-bit offset";
   case NC_FORMAT_NETCDF4:
     return "netCDF-4";
   case NC_FORMAT_NETCDF4_CLASSIC:
     return "netCDF-4 classic model";
   case NC_FORMAT_CDF5:
-    return "64-bit-variable";
+    return "64-bit data";
   default: nco_dfl_case_nc_type_err(); break;
   } /* end switch */
 
@@ -490,23 +490,43 @@ nco_fmt_xtn_sng /* [fnc] Convert netCDF extended file format enum to string */
 (const int fl_fmt_xtn) /* I [enm] netCDF extended file format */
 {
   /* Purpose: Convert netCDF extended file format enum to string */
-  switch(fl_fmt_xtn){
-  case NC_FORMAT_NC3:
-    return "NC_FORMAT_NC3";
-  case NC_FORMAT_NC_HDF5:
-    return "NC_FORMAT_HDF5";
-  case NC_FORMAT_NC_HDF4:
-    return "NC_FORMAT_HDF4";
-  case NC_FORMAT_PNETCDF:
-    return "NC_FORMAT_PNETCDF";
-  case NC_FORMAT_DAP2:
-    return "NC_FORMAT_DAP2";
-  case NC_FORMAT_DAP4:
-    return "NC_FORMAT_DAP4";
-  case NC_FORMAT_UNDEFINED:
-    return "NC_FORMAT_UNDEFINED";
-  default: nco_dfl_case_nc_type_err(); break;
-  } /* end switch */
+#if NC_LIB_VERSION < 440
+    switch(fl_fmt_xtn){
+    case NC_FORMAT_NC3:
+      return "NC_FORMAT_NC3";
+    case NC_FORMAT_NC_HDF5:
+      return "NC_FORMAT_HDF5";
+    case NC_FORMAT_NC_HDF4:
+      return "NC_FORMAT_HDF4";
+    case NC_FORMAT_PNETCDF:
+      return "NC_FORMAT_PNETCDF";
+    case NC_FORMAT_DAP2:
+      return "NC_FORMAT_DAP2";
+    case NC_FORMAT_DAP4:
+      return "NC_FORMAT_DAP4";
+    case NC_FORMAT_UNDEFINED:
+      return "NC_FORMAT_UNDEFINED";
+    default: nco_dfl_case_nc_type_err(); break;
+    } /* end switch */
+#else /* !NC_LIB_VERSION */
+    switch(fl_fmt_xtn){
+    case NC_FORMATX_NC3:
+      return "NC_FORMATX_NC3";
+    case NC_FORMATX_NC_HDF5:
+      return "NC_FORMATX_HDF5";
+    case NC_FORMATX_NC_HDF4:
+      return "NC_FORMATX_HDF4";
+    case NC_FORMATX_PNETCDF:
+      return "NC_FORMATX_PNETCDF";
+    case NC_FORMATX_DAP2:
+      return "NC_FORMATX_DAP2";
+    case NC_FORMATX_DAP4:
+      return "NC_FORMATX_DAP4";
+    case NC_FORMATX_UNDEFINED:
+      return "NC_FORMATX_UNDEFINED";
+    default: nco_dfl_case_nc_type_err(); break;
+    } /* end switch */
+#endif /* !NC_LIB_VERSION */
 
   /* Some compilers, e.g., SGI cc, need return statement to end non-void functions */
   return (char *)NULL;
@@ -1525,7 +1545,7 @@ nco_inq_var_packing /* [fnc] Check whether variable is packed on disk */
  int * const packing) /* O [flg] Variable is packed on disk */
 {
   /* Purpose: Check whether variable is packed on disk
-     Designed to behave like netCDF-library call for packing (which does not exist)
+     Designed to behave like (non-existent) netCDF-library call for packing
      Based on nco_pck_dsk_inq()
      Difference is that:
      nco_pck_dsk_inq() fills in members of variable structure

@@ -3,7 +3,7 @@
 # Purpose: GNU Makefile for NCO module nco
 # Requires GNU Make---AT&T Make chokes on GNU syntax
 
-# Copyright (C) 1994--2015 Charlie Zender
+# Copyright (C) 1994--2016 Charlie Zender
 # License: GNU General Public License (GPL) Version 3
 # See http://www.gnu.org/copyleft/gpl.html for full license text
 
@@ -521,6 +521,7 @@ CPP_PTH := $(foreach dir,${MDL_PTH},-I${dir})
 # Variables having to do with binary executables created by module
 MDL_BIN_TRG := ncap ncatted ncbo ncecat ncflint ncks ncpdq ncra ncrename ncwa # NCO binary targets
 MDL_BIN_SYM_LNK := ncdiff ncea nces ncrcat # Symbolic links
+MDL_BIN_SPT := ncremap # Scripts
 ifeq (${MPI},Y)
 # MDL_MPI_TRG := mpncbo mpncecat mpncflint mpncpdq mpncra mpncwa # MPI binary targets
  MDL_MPI_TRG := # MPI binary targets
@@ -533,7 +534,7 @@ ifeq (${MPI},Y)
  MDL_BIN_TRG += ${MDL_MPI_TRG} # NCO binary targets
  MDL_BIN_SYM_LNK += ${MDL_MPI_SYM_LNK} # Symbolic links
 endif # endif MPI
-MDL_BIN_STB := ${MDL_BIN_TRG} ${MDL_BIN_SYM_LNK} # All NCO files in MY_BIN_DIR
+MDL_BIN_STB := ${MDL_BIN_TRG} ${MDL_BIN_SPT} ${MDL_BIN_SYM_LNK} # All NCO files in MY_BIN_DIR
 MDL_BIN := $(addprefix ${MY_BIN_DIR}/,${MDL_BIN_STB}) # distclean removes these files
 
 # Variables having to do with header files created by module
@@ -1584,10 +1585,10 @@ CXXCPPFLAGS := ${CPPFLAGS} -I${NCO_CXX_SRC_DIR}
 libnco := ${MY_LIB_DIR}/libnco
 
 # Default targets
-all: dir lib ${MDL_BIN_TRG} data
-non_ncap: dir lib $(filter-out ncap,${MDL_BIN_TRG}) data
+all: dir lib ${MDL_BIN_TRG} ${MDL_BIN_SPT} data
+non_ncap: dir lib $(filter-out ncap,${MDL_BIN_TRG}) ${MDL_BIN_SPT} data
 # .PHONY tells make to remake the following non-file targets 
-.PHONY: all cln dst_cln dbg ${MDL_BIN_TRG}
+.PHONY: all cln dst_cln dbg ${MDL_BIN_TRG} ${MDL_BIN_SPT}
 # Delete default suffixes---this should increase speed
 .SUFFIXES: 
 # Define suffixes that matter
@@ -1690,6 +1691,9 @@ ${MY_BIN_DIR}/ncra:	${MY_OBJ_DIR}/ncra.o lib
 	cd ${MY_BIN_DIR}; rm -f ncea; ln -s -f ncra ncea
 	cd ${MY_BIN_DIR}; rm -f nces; ln -s -f ncra nces
 	cd ${MY_BIN_DIR}; rm -f ncrcat; ln -s -f ncra ncrcat
+ncremap:   ${MY_BIN_DIR}/ncremap
+${MY_BIN_DIR}/ncremap:	${MY_DAT_DIR}/ncremap
+	/bin/cp -f ${MY_DAT_DIR}/ncremap ${MY_BIN_DIR}
 ncrename:   ${MY_BIN_DIR}/ncrename
 ${MY_BIN_DIR}/ncrename:	${MY_OBJ_DIR}/ncrename.o lib
 	${CC} -o $@${BNR_SFX} $< ${LDFLAGS}
@@ -1697,12 +1701,12 @@ ${MY_BIN_DIR}/ncrename:	${MY_OBJ_DIR}/ncrename.o lib
 ncwa:   ${MY_BIN_DIR}/ncwa
 ${MY_BIN_DIR}/ncwa:	${MY_OBJ_DIR}/ncwa.o ${MY_OBJ_DIR}/ncap_yacc.o ${MY_OBJ_DIR}/ncap_lex.o ${MY_OBJ_DIR}/ncap_utl.o lib
 ifeq (${MSVC},TRUE)
-	${CC} -o $@${BNR_SFX} $<  ${LDFLAGS}
+	${CC} -o $@${BNR_SFX} $< ${LDFLAGS}
 else
-	${CC} -o $@${BNR_SFX} $<  ${MY_OBJ_DIR}/ncap_yacc.o ${MY_OBJ_DIR}/ncap_lex.o ${MY_OBJ_DIR}/ncap_utl.o ${LDFLAGS}
+	${CC} -o $@${BNR_SFX} $< ${MY_OBJ_DIR}/ncap_yacc.o ${MY_OBJ_DIR}/ncap_lex.o ${MY_OBJ_DIR}/ncap_utl.o ${LDFLAGS}
 endif
 	chmod 755 $@${BNR_SFX}
-bin: ${MDL_BIN_TRG}
+bin: ${MDL_BIN_TRG} ${MDL_BIN_SPT}
 binclean: bin_cln
 bin_cln: 
 	rm -f ${MDL_BIN}
@@ -1968,10 +1972,10 @@ src: ${MDL_NCAP}
 src_cln:
 	rm -f ${MDL_NCAP}
 # Targets in /usr/local
-sys: ${MDL_BIN_TRG}
-	- cd ${MY_BIN_DIR};sudo /bin/cp -f ${MDL_BIN_TRG} ncap2 /usr/local/bin; cd /usr/local/bin; sudo rm -f ncdiff ncea nces ncrcat ncunpack; sudo ln -s -f ncbo ncdiff; sudo ln -s -f ncra ncea;  sudo ln -s -f ncra nces; sudo ln -s -f ncra ncrcat; sudo ln -s -f ncpdq ncunpack; sudo ln -s -f ncpdq ncpack; cd ${HOME}/nco/src/nco++; ${MAKE} -f Makefile.old OPTS=${OPTS} $@
+sys: ${MDL_BIN_TRG} ${MDL_BIN_SPT}
+	- cd ${MY_BIN_DIR};sudo /bin/cp -f ${MDL_BIN_TRG} ${MDL_BIN_SPT} ncap2 /usr/local/bin; cd /usr/local/bin; sudo rm -f ncdiff ncea nces ncrcat ncunpack; sudo ln -s -f ncbo ncdiff; sudo ln -s -f ncra ncea; sudo ln -s -f ncra nces; sudo ln -s -f ncra ncrcat; sudo ln -s -f ncpdq ncunpack; sudo ln -s -f ncpdq ncpack; cd ${HOME}/nco/src/nco++; ${MAKE} -f Makefile.old OPTS=${OPTS} $@
 sys_cln:
-	- cd /usr/local/bin;rm -f ${MDL_BIN_TRG}
+	- cd /usr/local/bin;rm -f ${MDL_BIN_TRG} ${MDL_BIN_SPT} ${MDL_BIN_SYM_LNK}
 
 # Housekeeping
 clean: cln
@@ -2018,6 +2022,9 @@ dbg:
 	@printf "LIB_NCAR = ${LIB_NCAR}\n"
 	@printf "LINUX_CC = ${LINUX_CC}\n"
 	@printf "LINUX_CXX = ${LINUX_CXX}\n"
+	@printf "MDL_BIN = ${MDL_BIN}\n"
+	@printf "MDL_BIN_SPT = ${MDL_BIN_SPT}\n"
+	@printf "MDL_BIN_SYM_LNK = ${MDL_BIN_SYM_LNK}\n"
 	@printf "MDL_BIN_TRG = ${MDL_BIN_TRG}\n"
 	@printf "MDL_DPN = ${MDL_DPN}\n"
 	@printf "MDL_MAN = ${MDL_MAN}\n"

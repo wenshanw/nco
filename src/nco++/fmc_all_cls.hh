@@ -1,6 +1,6 @@
 /* Purpose: netCDF arithmetic processor class methods */
 
-/* Copyright (C) 1995--2015 Charlie Zender
+/* Copyright (C) 1995--2016 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -238,5 +238,31 @@ public:
   cod_cls(bool flg_dbg);
   var_sct *fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker);
 };
+
+
+// var list class /*********************************************************/
+class vlist_cls: public vtl_cls {
+private:
+  enum {PJOIN,PPUSH };
+   bool _flg_dbg;
+public:
+  vlist_cls(bool flg_dbg);
+  var_sct *fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker);
+  var_sct *fnd_join(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker);
+};
+
+
+// derived aggregate Functions /***************************************/
+class aggd_cls: public vtl_cls {
+private:
+  enum{ PWVARIANCE};
+  bool _flg_dbg;
+public:
+  aggd_cls(bool flg_dbg);
+  var_sct *fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker);
+};
+
+
+
 
 #endif // FMC_ALL_CLS_HH

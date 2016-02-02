@@ -3,7 +3,7 @@
 # Purpose: Makefile for NCO C++ directory nco++
 # Requires GNU Make---AT&T Make chokes on GNU syntax
 
-# Copyright (C) 1994--2015 Charlie Zender
+# Copyright (C) 1994--2016 Charlie Zender
 # License: GNU General Public License (GPL) Version 3
 # See http://www.gnu.org/copyleft/gpl.html for full license text
 
@@ -35,10 +35,10 @@
 # Cygwin on Windows Vista systems:
 # cd ~/nco/src/nco++;ANTLR='antlr' make -f Makefile.old GSL=Y OPTS=D NETCDF4=Y UDUNITS=Y all;cd -
 
-# NB: ncap2 requires ANTLR headers and library
+# NB: ncap2 requires ANTLR 2.7.7 headers and library
 # http://www.antlr.org
 # sudo apt-get install antlr libantlr-dev
-# sudo yum install antlr-2.7.5-1.i586.rpm      
+# sudo dnf install antlr-2.7.5-1.i586.rpm      
 
 # In rule 
 # foobar.o : foo.c bar.c

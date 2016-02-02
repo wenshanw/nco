@@ -2,7 +2,7 @@
 
 /* Purpose: Group utilities */
 
-/* Copyright (C) 1995--2015 Charlie Zender
+/* Copyright (C) 1995--2016 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -4552,7 +4552,7 @@ nco_cpy_var_dfn_trv                 /* [fnc] Define specified variable in output
           found_dim=True;
           /* If dimension was to be record keep it that way, otherwise define degenerate size of 1 */
           if(DFN_CRR_DMN_AS_REC_IN_OUTPUT) dmn_cnt=NC_UNLIMITED; else dmn_cnt=1L;
-        } 
+        } /* endif */
         if(!found_dim){
           DEFINE_DIM[idx_dmn]=False;
           nbr_dmn_var_out--;    
@@ -4563,8 +4563,9 @@ nco_cpy_var_dfn_trv                 /* [fnc] Define specified variable in output
       if(DEFINE_DIM[idx_dmn]){
         /* Define dimension and obtain dimension ID */
         (void)nco_def_dim(grp_dmn_out_id,dmn_nm,dmn_cnt,&dmn_id_out);
+	if(dmn_cnt == NC_UNLIMITED) rec_dmn_out_id=dmn_id_out; else rec_dmn_out_id=NCO_REC_DMN_UNDEFINED;
 
-        if(nco_dbg_lvl_get() == nco_dbg_dev) (void)fprintf(stdout,"%s: DEBUG %s Defined dimension <%s><%s>#%d\n",nco_prg_nm_get(),fnc_nm,grp_dmn_out_fll,dmn_nm,dmn_id_out);
+        if(nco_dbg_lvl_get() == nco_dbg_dev) (void)fprintf(stdout,"%s: DEBUG %s Defined dimension %s/%s ID %d\n",nco_prg_nm_get(),fnc_nm,grp_dmn_out_fll,dmn_nm,dmn_id_out);
 
         /* Assign defined ID to dimension ID array for the variable */
         dmn_out_id[idx_dmn]=dmn_id_out; 
@@ -4592,7 +4593,7 @@ nco_cpy_var_dfn_trv                 /* [fnc] Define specified variable in output
       } /* endif */
     } /* !ncwa */
 
-    /* Construct full dimension name using the full group name */
+    /* Construct full dimension name using full group name */
     dmn_nm_fll_out=(char *)nco_malloc(strlen(grp_dmn_out_fll)+strlen(dmn_nm)+2L);
     strcpy(dmn_nm_fll_out,grp_dmn_out_fll);
     if(strcmp(grp_dmn_out_fll,"/")) strcat(dmn_nm_fll_out,"/");
@@ -4602,8 +4603,10 @@ nco_cpy_var_dfn_trv                 /* [fnc] Define specified variable in output
     (void)nco_dfn_dmn(dmn_nm_fll_out,dmn_cnt,dmn_id_out,dmn_cmn,var_trv->nbr_dmn);
 
     /* Die informatively if record dimension is not first dimension in netCDF3 output */
-    if(idx_dmn > 0 && dmn_out_id[idx_dmn] == rec_dmn_out_id && fl_fmt != NC_FORMAT_NETCDF4 && DEFINE_DIM[idx_dmn]){
-      (void)fprintf(stdout,"%s: ERROR User defined the output record dimension to be \"%s\". Yet in the variable \"%s\" this is dimension number %d. The output file adheres to the netCDF3 API which only supports the record dimension as the first (i.e., least rapidly varying) dimension. Consider using ncpdq to permute the location of the record dimension in the output file.\n",nco_prg_nm_get(),rec_dmn_nm,var_nm,idx_dmn+1);  
+    /* 20160122: This would be a helpful error message yet it currently triggers five false-positive ncpdq failures
+       Suspect incorrect conditions tested, if-clause entered, and program exits and causes regression test failures */
+    if(False && idx_dmn > 0 && dmn_out_id[idx_dmn] == rec_dmn_out_id && DEFINE_DIM[idx_dmn] && fl_fmt != NC_FORMAT_NETCDF4){
+      (void)fprintf(stdout,"%s: ERROR User defined output record dimension to be \"%s\". Yet in the variable \"%s\" this is dimension number %d. The output file adheres to the netCDF3 API which only supports the record dimension as the first (i.e., least rapidly varying) dimension. Consider using ncpdq to permute the location of the record dimension in the output file.\n",nco_prg_nm_get(),rec_dmn_nm,var_nm,idx_dmn+1);  
       nco_exit(EXIT_FAILURE);
     } /* end if err */
 
@@ -4704,8 +4707,8 @@ nco_cpy_var_dfn_trv                 /* [fnc] Define specified variable in output
   } /* !ncwa */
 
   if(nco_dbg_lvl_get() == nco_dbg_dev){
-    (void)fprintf(stdout,"%s: DEBUG %s Defined variable <%s><%s> : ",nco_prg_nm_get(),fnc_nm,grp_out_fll,var_nm);
-    for(int idx_dmn=0;idx_dmn<nbr_dmn_var;idx_dmn++) (void)fprintf(stdout,"<%s>#%d SIZE=%ld : ",dmn_cmn[idx_dmn].nm_fll,dmn_out_id[idx_dmn],dmn_cmn[idx_dmn].sz);
+    (void)fprintf(stdout,"%s: DEBUG %s Defined variable %s/%s: ",nco_prg_nm_get(),fnc_nm,grp_out_fll,var_nm);
+    for(int idx_dmn=0;idx_dmn<nbr_dmn_var;idx_dmn++) (void)fprintf(stdout,"name,ID,sz = %s,%d,%ld : ",dmn_cmn[idx_dmn].nm_fll,dmn_out_id[idx_dmn],dmn_cmn[idx_dmn].sz);
     (void)fprintf(stdout,"\n");
   } /* endif dbg */ 
 
@@ -4930,17 +4933,18 @@ nco_var_dmn_rdr_mtd_trv /* [fnc] Set new dimensionality in metadata of each re-o
  const nco_bool *dmn_rvr_rdr)         /* I [flg] Reverse dimension */
 {
   /* Purpose: Determine and set new dimensionality in metadata of each re-ordered variable
-     Based in nco_var_dmn_rdr_mtd(). LIMITATION: the first record dimension for the object variable is used
-     Test case : ncpdq -O -a lev,time -v two_dmn_rec_var in.nc out.nc
-     Mark lev as record and un-mark time as record (by setting the record name as lev) */
+     Based in nco_var_dmn_rdr_mtd(). 
+     NB: first record dimension for object variable is used
+     Test case: ncpdq -O -a lev,time -v two_dmn_rec_var in.nc out.nc
+     Mark lev as record and un-mark time as record (by setting record name to lev) */
 
   char *rec_dmn_nm_out_crr; /* [sng] Name of record dimension, if any, required by re-order */
   char *rec_dmn_nm_in; /* [sng] Record dimension name, original */
   char *rec_dmn_nm_out; /* [sng] Record dimension name, re-ordered */
-  int dmn_idx_out_in[NC_MAX_DIMS]; /* [idx] Dimension correspondence, output->input  (Stored in GTT ) */
+  int dmn_idx_out_in[NC_MAX_DIMS]; /* [idx] Dimension correspondence, output->input (Stored in GTT) */
   int nco_prg_id; /* [enm] Program ID */
   nco_bool REDEFINED_RECORD_DIMENSION; /* [flg] Re-defined record dimension */
-  nco_bool dmn_rvr_in[NC_MAX_DIMS]; /* [flg] Reverse dimension  (Stored in GTT ) */
+  nco_bool dmn_rvr_in[NC_MAX_DIMS]; /* [flg] Reverse dimension (Stored in GTT) */
   nm_lst_sct *rec_dmn_nm; /* [sct] Record dimension names array */
 
   /* Get Program ID */
@@ -4991,7 +4995,7 @@ nco_var_dmn_rdr_mtd_trv /* [fnc] Set new dimensionality in metadata of each re-o
     } /* end loop over dimensions */
 
     /* If record dimension required by current variable re-order...
-    ...and variable is multi-dimensional (one dimensional arrays cannot request record dimension changes)... */
+       ...and variable is multi-dimensional (one dimensional arrays cannot request record dimension changes)... */
     if(rec_dmn_nm_in && rec_dmn_nm_out_crr && var_prc_out[idx_var_prc]->nbr_dim > 1){
       /* ...differs from input and current output record dimension(s)... */
       if(strcmp(rec_dmn_nm_out_crr,rec_dmn_nm_in) && strcmp(rec_dmn_nm_out_crr,rec_dmn_nm_out)){
@@ -5910,7 +5914,7 @@ nco_dmn_avg_mk                         /* [fnc] Build dimensions to average(ncwa
  dmn_sct ***dmn_avg,                   /* O [sct] Array of dimensions to average */
  int *nbr_dmn_avg)                     /* O [nbr] Number of dimensions to average (size of above array) */
 {
-  /* Purpose: Create list of dimensions from list of dimension name strings (function based in nco_xtr_mk() ) */
+  /* Purpose: Create list of dimensions from list of dimension name strings. Function based on nco_xtr_mk(). */
 
   /* Dimensions to average/not average are built using these 3 functions:
      
@@ -6054,7 +6058,7 @@ nco_dmn_avg_mk                         /* [fnc] Build dimensions to average(ncwa
     } /* Loop table */
   } /* Loop input dimension name list */
   
-    /* Export */
+  /* Export */
   *nbr_dmn_avg=nbr_avg_dmn;
   
   if(nco_dbg_lvl_get() >= nco_dbg_var){ 

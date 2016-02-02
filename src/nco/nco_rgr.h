@@ -2,7 +2,7 @@
 
 /* Purpose: Description (definition) of regridding functions */
 
-/* Copyright (C) 2015--2015 Charlie Zender
+/* Copyright (C) 2015--2016 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -33,11 +33,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
-
-/* WIN32 math.h does not define M_PI, needed for dgr2rdn and rdn2dgr */
-#ifndef M_PI
-# define M_PI        3.14159265358979323846264338327950288   /* pi             */
-#endif /* M_PI */
 
   typedef enum nco_rgr_cmd_typ_enm{ /* [enm] Tempest remap type enum */
     nco_rgr_AAA_nil=0,
@@ -210,6 +205,26 @@ extern "C" {
   const char * /* O [sng] String containing regridding command name */
   nco_tps_cmd_sng /* [fnc] Convert Tempest remap command enum to command name */
   (const nco_rgr_cmd_typ nco_rgr_cmd); /* I [enm] Tempest remap command enum */
+
+  double /* O [dgr] Longitude difference (lon_r-lon_l) */
+  nco_lon_dff_brnch /* [fnc] Subtract longitudes with branch-cut rules */
+  (double lon_r, /* I [dgr] Longitude on right of gridcell (subtractor) */
+   double lon_l); /* I [dgr] Longitude on  left of gridcell (subtractee) */
+
+  double /* O [dgr] Longitude average (lon_r-lon_l) */
+  nco_lon_crn_avg_brnch /* [fnc] Average quadrilateral longitude with branch-cut rules */
+  (double lon_ll, /* I [dgr] Longitude at lower left  of gridcell */
+   double lon_lr, /* I [dgr] Longitude at lower right of gridcell */
+   double lon_ur, /* I [dgr] Longitude at upper right of gridcell */
+   double lon_ul); /* I [dgr] Longitude at upper left  of gridcell */
+
+  nco_bool /* O [flg] Input corners were CCW */
+  nco_ccw_chk /* [fnc] Convert quadrilateral gridcell corners to CCW orientation */
+  (double * const crn_lat, /* [dgr] Latitude corners of gridcell */
+   double * const crn_lon, /* [dgr] Latitude corners of gridcell */
+   const int crn_nbr, /* [nbr] Number of corners per gridcell */
+   int idx_ccw, /* [idx] Index of starting vertice for CCW check (Point A = tail side AB) */
+   const int rcr_lvl); /* [nbr] Recursion level */
 
 #ifdef __cplusplus
 } /* end extern "C" */

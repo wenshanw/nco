@@ -2,7 +2,7 @@
 
 /* Purpose: Sub-set cell-based grids using auxiliary coordinate variable */
 
-/* Copyright (C) 1995--2015 Charlie Zender
+/* Copyright (C) 1995--2016 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -29,11 +29,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
-
-/* WIN32 math.h does not define M_PI, needed for dgr2rdn and rdn2dgr */
-#ifndef M_PI
-# define M_PI        3.14159265358979323846264338327950288   /* pi             */
-#endif /* M_PI */
 
 lmt_sct **
 nco_aux_evl
