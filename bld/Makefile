@@ -284,7 +284,7 @@ endif # endif ZNETCDF
 # These tokens should not be altered by hand
 
 # NB: CPP_TKN is recursively expanded variable, define only when components are ready
-CPP_TKN = ${USR_TKN} -D${PVM_ARCH} -DNO_NETCDF_2 -DVERSION='${VRS_SNG}' -DHOSTNAME='${HOST}' -DUSER='${USER}' -DNCO_ABORT_ON_ERROR
+CPP_TKN = ${USR_TKN} -D${PVM_ARCH} -DNO_NETCDF_2 -DNCO_VERSION='${VRS_SNG}' -DHOSTNAME='${HOST}' -DUSER='${USER}' -DNCO_ABORT_ON_ERROR
 ifndef LFLAGS # Flags for Flex (Lex)
  LFLAGS := -P${NCO_YY_PFX}
 endif
@@ -401,7 +401,7 @@ else
   ESMF_INC_FLG := -I/usr/local/include
 endif # endif ESMF_ROOT
 endif # endif ESMF_INC
-# 20150319: For some reaseon, ESMC.h #includes ESMC_VM.h which #includes mpi.h
+# 20150319: For some reason, ESMC.h #includes ESMC_VM.h which #includes mpi.h
 ifeq (${PVM_ARCH},MACOSX)
 # Use stub header for uniprocessor MPI emulation provided by ESMF
  ESMF_INC_FLG += -I/Users/zender/data/esmf/src/Infrastructure/stubs/mpiuni

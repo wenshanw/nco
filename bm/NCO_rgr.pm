@@ -233,6 +233,17 @@ print "\n";
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
 
+    $dsc_sng="Run script to to test gsl functions -FAILS IF NOT linked to gsl lib";
+    $tst_cmd[0]="ncap2 -h -O $fl_fmt $nco_D_flg -v -S '../data/gsl_sf.in' $in_pth_arg in.nc %tmp_fl_00%";
+    $tst_cmd[1]="ncks -C -H -v nbr_err_ttl -s '%d' %tmp_fl_00%";
+    $tst_cmd[2]="0";
+    $tst_cmd[3]="SS_OK";
+    NCO_bm::tst_run(\@tst_cmd);
+    $#tst_cmd=0; # Reset array
+
+
+
+
     $USER=$ENV{'USER'};
     if($USER eq 'zender'){
 	# Regridding regression tests
@@ -1112,7 +1123,6 @@ print "\n";
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
 
-# NEW NCO 4.4.2
 #nces #19 (check coordinate variables)
 # ncra -Y ncge -h -O mdl_1.nc ~/foo.nc
 # ncks -g cesm -v time ~/foo.nc
@@ -1125,7 +1135,6 @@ print "\n";
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
 
-# NEW NCO 4.4.3
 #nces #20 (error checking of ensemble variable dimensions)
 #  ncra -Y ncge -O in_grp_4.nc in_grp_5.nc ~/foo.nc
 	
@@ -1136,7 +1145,6 @@ print "\n";
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
 
-# NEW NCO 4.4.3
 #nces #21 
 # ncra -Y ncge -h -O mdl_1.nc ~/foo.nc
 	
@@ -1147,9 +1155,55 @@ print "\n";
     $tst_cmd[3]="SS_OK";
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
+	
+#nces #22 
+# ncks mdl_1.nc -v /cesm/cesm_02/time | grep 'time attribute 0: long_name'
+# ncra -Y ncge -O --nsm_grp -p ~/nco/data mdl_1.nc ~/foo.nc
+# ncks -v /cesm/time ~/foo.nc | grep 'time attribute 0: long_name'
+
+    $dsc_sng="(Groups) Test copy of attributes for coordinate variables (time)";
+    $tst_cmd[0]="ncra -Y ncge $omp_flg -O --nsm_grp $fl_fmt $nco_D_flg $in_pth_arg mdl_1.nc %tmp_fl_00%";
+    $tst_cmd[1]="ncks -v /cesm/time %tmp_fl_00% | grep 'time attribute 0: long_name'";
+    $tst_cmd[2]="time attribute 0: long_name, size = 4 NC_CHAR, value = time";
+    $tst_cmd[3]="SS_OK";
+    NCO_bm::tst_run(\@tst_cmd);
+    $#tst_cmd=0; # Reset array	
 
    } # #### Group Ensemble tests	
     
+#nces #23
+# nces -O -y mebs -v one -p ~/nco/data in.nc in.nc ~/foo.nc
+# ncks -C -H -v one ~/foo.nc
+    $dsc_sng="Test mebs normalization";
+    $tst_cmd[0]="ncra -Y ncfe -y mebs -v one $omp_flg -O $fl_fmt $nco_D_flg $in_pth_arg in.nc in.nc %tmp_fl_00%";
+    $tst_cmd[1]="ncks -C -H -v one %tmp_fl_00%";
+    $tst_cmd[2]="one = 1";
+    $tst_cmd[3]="SS_OK";
+    NCO_bm::tst_run(\@tst_cmd);
+    $#tst_cmd=0; # Reset array	
+
+#nces #24
+# nces -O -y tabs -v one -p ~/nco/data in.nc in.nc ~/foo.nc
+# ncks -C -H -v one ~/foo.nc
+    $dsc_sng="Test tabs (total absolute value)";
+    $tst_cmd[0]="ncra -Y ncfe -y tabs -v one $omp_flg -O $fl_fmt $nco_D_flg $in_pth_arg in.nc in.nc %tmp_fl_00%";
+    $tst_cmd[1]="ncks -C -H -v one %tmp_fl_00%";
+    $tst_cmd[2]="one = 2";
+    $tst_cmd[3]="SS_OK";
+    NCO_bm::tst_run(\@tst_cmd);
+    $#tst_cmd=0; # Reset array	
+
+#nces #25
+# nces -O -y tabs -v lond -p ~/nco/data in.nc in.nc ~/foo.nc
+# ncks -C -H -v lon -d lon,3 ~/foo.nc
+    $dsc_sng="Test tabs on coordinate";
+    $tst_cmd[0]="ncra -Y ncfe -y tabs -v lond $omp_flg -O $fl_fmt $nco_D_flg $in_pth_arg in.nc in.nc %tmp_fl_00%";
+    $tst_cmd[1]="ncks -C -H -v lon -d lon,3 %tmp_fl_00%";
+    $tst_cmd[2]="lon[3] = 270";
+    $tst_cmd[3]="SS_OK";
+    NCO_bm::tst_run(\@tst_cmd);
+    $#tst_cmd=0; # Reset array	
+
 # print "paused - hit return to continue"; my $wait=<STDIN>;
     
 ####################
@@ -2650,7 +2704,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
     
 if($RUN_NETCDF4_TESTS_VERSION_GE_431){
 
-#ncks #93
+#ncks #107
 #ncks -O -D 5 -C -d lat,0 -v one,four --cnk_plc=xst --cnk_map=xst ~/nco/data/hdn.nc ~/foo.nc
     $dsc_sng="Chunking multiple variables while hyperslabbing";
     $tst_cmd[0]="ncks -O $nco_D_flg -C -d lat,0 -v one,four --cnk_plc=xst --cnk_map=xst $in_pth_arg hdn.nc %tmp_fl_00%";
@@ -2660,7 +2714,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
 
-#ncks #107
+#ncks #108
 #ncks -O -D 5 -C -d lat,0 -v var_shf --cnk_plc=uck ~/nco/data/hdn.nc ~/foo.nc
     $dsc_sng="Unchunking variable with Shuffle flag set";
     $tst_cmd[0]="ncks -O $nco_D_flg -C -v var_shf --cnk_plc=uck $in_pth_arg hdn.nc %tmp_fl_00%";
@@ -2670,7 +2724,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
 
-# ncks #108
+# ncks #109
 # ncks -h -O --gaa script=nco_climo.sh ~/nco/data/in.nc ~/foo.nc
 # ncks -M ~/foo.nc | grep script | cut -d ' ' -f 11    
     $dsc_sng="Add single global attribute";
@@ -2681,7 +2735,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
 
-# ncks #109
+# ncks #110
 # ncks -h -O --gaa foo=bar --gaa foo2,foo3=bar2 --gaa script='created by nco_climo.sh' ~/nco/data/in.nc ~/foo.nc
 # ncks -M ~/foo.nc | grep script | cut -d ' ' -f 11-13    
     $dsc_sng="Add multiple global attributes";
@@ -2692,7 +2746,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
 
-# ncks #110
+# ncks #111
 # NB: This tests whether the output file has global metadata, and that provides (circumstantial) evidence that there were no major problems in the intervening routines of grid generation
 # ncks -O -v one -D 5 -t 1 --rgr grd_ttl='FV-scalar grid' --rgr grid=~/65x128_SCRIP.nc --rgr lat_nbr=65 --rgr lon_nbr=128 --rgr lat_typ=FV --rgr lon_typ=Grn_ctr ~/nco/data/in.nc ~/foo.nc
 # ncks -M ~/foo.nc | grep "julian" | cut -d ' ' -f 4
@@ -2705,6 +2759,26 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
     $#tst_cmd=0; # Reset array
 
 } # RUN_NETCDF4_TESTS_VERSION_GE_431
+	
+# ncks #112 wrapped limit with an additional limit (no --msa)
+# ncks -O -C -g g19 -v time -d time,9,0 -d time,1,2 ~/nco/data/in_grp_3.nc ~/foo.nc
+    $dsc_sng="(Groups) Test wrapped limit with addtional limit (no --msa)";
+    $tst_cmd[0]="ncks -O $nco_D_flg -C -g g19 -v time -d time,9,0 -d time,1,2 $in_pth_arg in_grp_3.nc %tmp_fl_00";
+    $tst_cmd[1]="ncks -H %tmp_fl_00 | grep '=10'";
+    $tst_cmd[2]="time[3]=10"; 
+    $tst_cmd[3]="SS_OK";
+    NCO_bm::tst_run(\@tst_cmd);
+    $#tst_cmd=0; # Reset array
+	
+#ncks #113 wrapped limit with an additional limit (with --msa) pvn20160211 -- bug found that happens in nco 4.2.0 also
+# ncks -O -C --msa -g g19 -v time -d time,9,0 -d time,1,2 ~/nco/data/in_grp_3.nc ~/foo.nc
+    $dsc_sng="(Groups) Test wrapped limit with additonal limit and msa user order (expect failure TODO)";
+    $tst_cmd[0]="ncks -O $nco_D_flg -C --msa -g g19 -v time -d time,9,0 -d time,1,2 $in_pth_arg in_grp_3.nc %tmp_fl_00";
+    $tst_cmd[1]="ncks -H %tmp_fl_00 | grep '=3'";
+    $tst_cmd[2]="time[3]=3"; 
+    $tst_cmd[3]="SS_OK";
+    NCO_bm::tst_run(\@tst_cmd);
+    $#tst_cmd=0; # Reset array	
 	
 #####################
 #### ncpdq tests #### -OK !
@@ -3242,7 +3316,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
 
 #ncpdq #41
 #ncpdq -O -a -lat -g g23,g24 ~/nco/data/in_grp_3.nc ~/foo.nc
-   $dsc_sng="(Groups) Reverse -a lat -g g24 several groups";
+   $dsc_sng="(Groups) Reverse -a lat -g g24 several groups (expect failure TODO)";
    $tst_cmd[0]="ncpdq $omp_flg $fl_fmt $nco_D_flg -O -a -lat -g g23,g24 $in_pth_arg in_grp_3.nc %tmp_fl_00%";
    $tst_cmd[1]="ncks -v lat -g g24 %tmp_fl_00%";
    $tst_cmd[2]="lat[1]=-60 degrees_north";
@@ -4953,6 +5027,39 @@ if(0){
     $tst_cmd[3]="SS_OK";
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
+
+#ncwa #67
+# ncwa -O -y mebs -v one_dmn_rec_var_flt -p ~/nco/data in.nc in.nc ~/foo.nc
+# ncks -C -H -v one_dmn_rec_var_flt ~/foo.nc
+    $dsc_sng="Test mebs normalization";
+    $tst_cmd[0]="ncwa -y mebs -v one_dmn_rec_var_flt $omp_flg -O $fl_fmt $nco_D_flg $in_pth_arg in.nc %tmp_fl_00%";
+    $tst_cmd[1]="ncks -C -H -v one_dmn_rec_var_flt %tmp_fl_00%";
+    $tst_cmd[2]="one_dmn_rec_var_flt = 5.5";
+    $tst_cmd[3]="SS_OK";
+    NCO_bm::tst_run(\@tst_cmd);
+    $#tst_cmd=0; # Reset array	
+
+#ncwa #68
+# ncwa -O -y tabs -v one_dmn_rec_var -p ~/nco/data in.nc in.nc ~/foo.nc
+# ncks -C -H -v one_dmn_rec_var ~/foo.nc
+    $dsc_sng="Test tabs (total absolute value)";
+    $tst_cmd[0]="ncwa -y tabs -v one_dmn_rec_var $omp_flg -O $fl_fmt $nco_D_flg $in_pth_arg in.nc %tmp_fl_00%";
+    $tst_cmd[1]="ncks -C -H -v one_dmn_rec_var %tmp_fl_00%";
+    $tst_cmd[2]="one_dmn_rec_var = 55";
+    $tst_cmd[3]="SS_OK";
+    NCO_bm::tst_run(\@tst_cmd);
+    $#tst_cmd=0; # Reset array	
+
+#ncwa #69
+# ncwa -O -y tabs -v lon -p ~/nco/data in.nc in.nc ~/foo.nc
+# ncks -C -H -v lon ~/foo.nc
+    $dsc_sng="Test tabs on coordinate";
+    $tst_cmd[0]="ncwa -y tabs -v lon $omp_flg -O $fl_fmt $nco_D_flg $in_pth_arg in.nc %tmp_fl_00%";
+    $tst_cmd[1]="ncks -C -H -v lon %tmp_fl_00%";
+    $tst_cmd[2]="lon = 135";
+    $tst_cmd[3]="SS_OK";
+    NCO_bm::tst_run(\@tst_cmd);
+    $#tst_cmd=0; # Reset array	
 
 ####################
 #### ncrename tests #### OK!

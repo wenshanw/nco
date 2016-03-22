@@ -113,12 +113,12 @@ Octave TeXInfo manual shows clean TeXInfo structure
 @setfilename nco.info
 
 @c Define edition, date, ...
-@set nco-edition 4.5.5-alpha05
-@set doc-edition 4.5.5-alpha05
+@set nco-edition 4.5.6-alpha05
+@set doc-edition 4.5.6-alpha05
 @set copyright-years 1995--2016
 @set update-year 2015
-@set update-date 27 January 2016
-@set update-month January 2016
+@set update-date 18 March 2016
+@set update-month March 2016
 
 @settitle @acronym{NCO} @value{nco-edition} User Guide
 
@@ -2357,13 +2357,13 @@ to the memory requirements.
 Further note that some operators perform internal type-promotion on some
 variables prior to arithmetic (@pxref{Type Conversion}).
 For example, @command{ncra} and @command{nces} both promote integer
-types to double-precision floating point prior to arithmetic, then 
+types to double-precision floating-point prior to arithmetic, then 
 perform the arithmetic, then demote back to the original integer type
 after arithmetic.
 This preserves the on-disk storage type while obtaining the accuracy
-advantages of floating point arithmetic. 
+advantages of floating-point arithmetic. 
 Since version 4.3.6 (released in September, 2013), @acronym{NCO} also
-by default converts single-precision floating point to double-precision
+by default converts single-precision floating-point to double-precision
 prior to arithmetic, which incurs the same @acronym{RAM} penalty.
 Hence, the sustained memory required for integer variables and
 single-precision floats are two or four-times their on-disk,
@@ -2437,7 +2437,7 @@ Leaks cause peak memory usage to increase monotonically with time
 regardless of script complexity. 
 Slow leaks are very difficult to find.
 Sometimes a @command{malloc()} (or @command{new[]}) failure is the
-only noticeable clue to their existance.
+only noticeable clue to their existence.
 If you have good reasons to believe that a memory allocation failure  
 is ultimately due to an @acronym{NCO} memory leak (rather than
 inadequate @acronym{RAM} on your system), then we would be very
@@ -2713,7 +2713,7 @@ Compute-intensive operators (@code{ncap2}, @code{ncwa} and @code{ncpdq})
 benefit most from threading.
 The greatest increases in throughput due to threading occur on
 large datasets where each thread performs millions, at least,
-of floating point operations.
+of floating-point operations.
 Otherwise, the system overhead of setting up threads probably outweighs 
 the speed enhancements due to @acronym{SMP} parallelism.
 However, we have not yet demonstrated that the @acronym{SMP} parallelism 
@@ -3914,7 +3914,7 @@ Three numeric types (@code{NC_UINT}, @code{NC_UINT64} and
 @code{NC_INT64}) are @emph{demoted}.
 Since the input range is larger than the output range, demotion can
 result in numeric truncation and thus loss of data. 
-In such cases, it would possible to convert the data to floating point
+In such cases, it would possible to convert the data to floating-point
 values instead. 
 If this feature interests you, please be the squeaky wheel and let us
 know.
@@ -5236,7 +5236,7 @@ ncks -F -d lon,1.0,2.0 in.nc out.nc
 # Every other longitude value between 0 and 90 degrees
 ncks -F -d lon,0.0,90.0,2 in.nc out.nc
 @end example
-As shown, we recommend using a full floating point suffix of @code{.0}
+As shown, we recommend using a full floating-point suffix of @code{.0}
 instead of simply @code{.} in order to make obvious the selection of
 hyperslab elements based on coordinate value rather than index.
 
@@ -5958,7 +5958,7 @@ multi-slabs of regular coordinates.
 @example
 ncra -O -X 0.,180.,-30.,30. -X 270.,315.,45.,90. in.nc out.nc
 @end example
-The arguments to @samp{-X} are always interpreted as floating point
+The arguments to @samp{-X} are always interpreted as floating-point
 numbers, i.e., as coordinate values rather than dimension indices
 so that these two commands produce identical results
 @example
@@ -6343,9 +6343,23 @@ Long options:
 @samp{--renormalize=@var{wgt_thr}}@*
 @end cartouche
 
-As of @acronym{NCO} version 4.5.0 (June, 2015), @command{ncks} supports 
-horizontal regridding of global datasets where the grids and weights are
-all stored in an external @var{map-file}.
+@acronym{NCO} includes extensive regridding features in 
+@command{ncremap} (as of version 4.5.4 in November, 2015) and 
+and @command{ncks} (since version 4.5.0 in June, 2015). 
+Regridding can involve many choices, options, inputs, and outputs.
+The appropriate operator for this workflow is the @command{ncremap}
+script which automatically handles many details of regridding and
+passes the required commands to @command{ncks} and external programs.
+Occasionally users need access to lower-level remapping functionality
+present in @command{ncks} and not exposed to direct manipulation
+through @command{ncremap}. 
+This section describes the lower-level functionality and switches
+as implemented in @command{ncks}.
+Knowing what these features all will help @command{ncremap} users
+understand the full potential of both operators.
+
+@command{ncks} supports horizontal regridding of datasets where the
+grids and weights are all stored in an external @var{map-file}.
 Use the @samp{--map} or @samp{--rgr_map} options to specify the
 @var{map-file}, and @acronym{NCO} will regrid the @var{input-file} to
 a new (or possibly the same, aka, an identity mapping) horizontal grid
@@ -7822,7 +7836,7 @@ Packed data also can also be deflated for additional space savings.
 A limitation of packing is that unpacking data stored as integers
 into the linear range defined by @code{scale_factor} and
 @code{add_offset} rapidly loses precision outside of a narrow range of
-floating point values.  
+floating-point values.  
 Variables packed as @code{NC_SHORT}, for example, can represent only
 about 64000 discrete values in the range 
 @math{-32768*scale_factor+add_offset} to
@@ -7881,9 +7895,9 @@ intrinsic characteristics and, in addition, the units of storage.
 This is the fundamental difference between the @acronym{NSD} and 
 @acronym{DSD} approaches. 
 The eight-hundred pound gorilla always has @math{@var{nsd=1}} regardless 
-of whether the value is store in pounds or in some other unit.
+of whether the value is stored in pounds or in some other unit.
 @acronym{DSD} corresponding to this weight is @math{@var{dsd=-2}} if the
-value is store in pounds, @math{@var{dsd=4}} if stored in megapounds.
+value is stored in pounds, @math{@var{dsd=4}} if stored in megapounds.
 
 Users may wish to express the precision to be preserved as either
 @acronym{NSD} or @acronym{DSD}.
@@ -7937,13 +7951,13 @@ when more precision is requested.
 The time-penalty for compressing and uncompressing data varies according 
 to the algorithm.
 The Number of Significant Digit (@acronym{NSD}) algorithm quantizes by
-bitmasking, and employs no floating point math.
+bitmasking, and employs no floating-point math.
 The Decimal Significant Digit (@acronym{DSD}) algorithm quantizes by
-rounding, which does require floating point math.
+rounding, which does require floating-point math.
 Hence @acronym{NSD} is likely faster than @acronym{DSD}, though
 the difference has not been measured.
 @acronym{NSD} creates a bitmask to alter the @dfn{significand} of
-@w{@acronym{IEEE} 754} floating point data.
+@w{@acronym{IEEE} 754} floating-point data.
 The bitmask is one for all bits to be retained and zero or one for all
 bits to be ignored.
 The algorithm assumes that the number of binary digits (i.e., bits)
@@ -8071,7 +8085,7 @@ fashion when processing array data.
 In general, the first element is rounded down, the second up, and so
 on. 
 This results in a mean bias quite close to zero.
-The only exception is that the floating point value of zero is never 
+The only exception is that the floating-point value of zero is never 
 quantized upwards.
 For simplicity, @acronym{NSD} always rounds scalars downwards.
 
@@ -8142,7 +8156,7 @@ in the attribute @code{least_significant_digit} and @acronym{NCO}
 does the same for consistency.
 The Unidata blog 
 @uref{http://www.unidata.ucar.edu/blogs/developer/en/entry/compression_by_bit_shaving,  
-here} also shows how to compress @acronym{IEEE} floating point data by
+here} also shows how to compress @acronym{IEEE} floating-point data by
 zeroing insignificant bits.
 The author, John Caron, writes that the technique has been called
 ``bit-shaving''.
@@ -8190,7 +8204,7 @@ on-disk storage reduction only occurs once the data are compressed.
 @end html
 How can one be sure the lossy data are sufficiently precise?
 @acronym{PPC} preserves all significant digits of every value.
-The @acronym{DSD} algorithm uses floating point math to round each 
+The @acronym{DSD} algorithm uses floating-point math to round each 
 value optimally so that it has the maximum number of zeroed bits
 that preserve the specified precision.
 The @acronym{NSD} algorithm uses a theoretical approach (3.2 bits per
@@ -8478,7 +8492,7 @@ This table summarizes the performance of lossless and lossy compression
 on two typical, or at least random, netCDF data files.  
 The files were taken from representative model-simulated and
 satellite-retrieved datasets.
-Only floating point data were compressed.
+Only floating-point data were compressed.
 No attempt was made to compress integer-type variables as they occupy an 
 insignificant fraction of every dataset.
 The columns are
@@ -8504,7 +8518,7 @@ Number of significant digits retained by the precision-preserving
 compression @acronym{NSD} algorithm.  
 @item Pck 
 @kbd{Y} if the default @command{ncpdq} packing algorithm (convert
-floating point types to @code{NC_SHORT}) was employed.
+floating-point types to @code{NC_SHORT}) was employed.
 @item Size
 Resulting filesize in @acronym{MB}.
 @item %
@@ -9213,6 +9227,7 @@ Pack and unpack individual variables with @command{ncpdq} and the
 @cindex @code{mibs}
 @cindex @code{rmssdn}
 @cindex @code{rms}
+@cindex @code{tabs}
 @cindex @code{ttl}
 @cindex @code{sqrt}
 @cindex average
@@ -9250,7 +9265,7 @@ Minimum value
 Maximum absolute value
 @item mebs
 Mean absolute value
-@item mabs
+@item mibs
 Minimum absolute value
 @item rms
 Root-mean-square (normalized by @var{N})
@@ -9258,6 +9273,8 @@ Root-mean-square (normalized by @var{N})
 Root-mean square (normalized by @var{N-1})
 @item sqrt
 Square root of the mean
+@item tabs
+Sum of absolute values
 @item ttl
 Sum of values
 @end table
@@ -9390,6 +9407,12 @@ $$
 \mskflg_{\lmnnbr} \wgt_{\lmnnbr} \xxx_{\lmnnbr} ] 
 $$
 Thus the minima and maxima are determined after any weights are applied.
+
+The total absolute value of~$\xxx$ (@code{-y tabs}) is 
+$$
+\bar \xxx_{\jjj} = \sum_{\idx=1}^{\idx=\lmnnbr} \mssflg_{\idx}
+\mskflg_{\idx} \wgt_{\idx} |\xxx_{\idx}|
+$$
 
 The minimum absolute value of~$\xxx$ (@code{-y mibs}) is 
 $$
@@ -9714,10 +9737,10 @@ Reasons to engage in type conversion include avoiding rounding
 errors and out-of-range limitations of less-precise types.
 This is the case with most integers.
 Thus @acronym{NCO} defaults to automatically promote integer types to
-floating point when performing lengthy arithmetic, yet @acronym{NCO}
+floating-point when performing lengthy arithmetic, yet @acronym{NCO}
 defaults to not promoting single to double-precision floats.
 
-Before discussing the more subtle floating point issues, we first
+Before discussing the more subtle floating-point issues, we first
 examine integer promotion. 
 We will show how following parsimonious conversion rules dogmatically
 can cause problems, and what @acronym{NCO} does about that. 
@@ -9816,7 +9839,7 @@ Truncation rounds @var{x} to the nearest integer not larger in absolute
 value.
 For example, truncation rounds @code{1.0d}, @code{1.5d}, and
 @code{1.8d} to the same value, @code{1s}. 
-Clearly, truncation does not round floating point numbers to the nearest
+Clearly, truncation does not round floating-point numbers to the nearest
 integer! 
 Yet truncation is how the @w{C language} performs implicit conversion of 
 real numbers to integers.
@@ -9954,7 +9977,7 @@ However the intermediate results where running sums are accumulated may
 suffer from too much rounding or from underflow unless computed in
 double-precision. 
 
-The order of operations matters to floating point math even when the
+The order of operations matters to floating-point math even when the
 analytic expressions are equal. 
 Cautious users feel disquieted when results from equally valid analyses
 differ in the final bits instead of agreeing bit-for-bit.
@@ -10165,7 +10188,7 @@ Why are the single-precision numerical artifacts so large?
 Each global average is the result of multiplying almost 15,000 elements
 each by its weight, summing those, and then dividing by the summed 
 weights.  
-Thus about 50,000 single-precision floating point operations caused
+Thus about 50,000 single-precision floating-point operations caused
 the loss of two to three significant digits of precision.
 The net error of a series of independent rounding errors is a random
 walk phenomena
@@ -10264,11 +10287,11 @@ their results.
 
 The @samp{--dbl} and @samp{--flt} switches are only available with the
 @acronym{NCO} arithmetic operators that could potentially perform more
-than a few  single-precision floating point operations per result.
+than a few  single-precision floating-point operations per result.
 These are @command{nces}, @command{ncra}, and @command{ncwa}.
 Each is capable of thousands to millions or more operations per result. 
 By contrast, the arithmetic operators @command{ncbo} and
-@command{ncflint} perform at most one floating point operation per
+@command{ncflint} perform at most one floating-point operation per
 result. 
 Providing the @samp{--dbl} option for such trivial operations makes 
 little sense, so the option is not currently made available.
@@ -11531,7 +11554,7 @@ template variable @code{var_tpl}, i.e., a variable with the same shape
 as the desired output. 
 The type of @code{var_out} will be the same as @code{val_srt}.
 Be sure to encode this type with the appropriate decimal point
-and floating point suffix when @code{val_srt} is a ``naked constant''
+and floating-point suffix when @code{val_srt} is a ``naked constant''
 rather than a variable.
 For example, to produce an array of shorts (signed two-byte integers), 
 integers (signed four-byte integers), unsigned 64-bit integers,
@@ -11770,8 +11793,6 @@ sng_arr[$sng_len]=a1@long_name; // sng_arr now contains "Kelvin"
 Attributes defined in a script are stored in memory and are written to Output after script completion.
 To stop the attribute being written use the ram_delete() method or use a bogus variable name.
 
-
-
 @noindent @strong{Attribute Propagation and Inheritance}
 @cindex attribute propagation
 @cindex attribute inheritance
@@ -11806,7 +11827,7 @@ The table below lists the postfix character(s) to add to a number
 literal (aka, a naked constant) for explicit type specification.
 The same type-specification rules are used for variables and
 attributes. 
-A floating point number without a postfix defaults to @code{NC_DOUBLE}, 
+A floating-point number without a postfix defaults to @code{NC_DOUBLE}, 
 while an integer without a postfix defaults to type @code{NC_INT}:
 @example
 @verbatim
@@ -11881,9 +11902,9 @@ filetype is not.
 @item l|L	 
   @code{NC_INT}, a signed 4-byte integer 
 @item f|F	 
-  @code{NC_FLOAT}, a single-precision (4-byte) floating point number 
+  @code{NC_FLOAT}, a single-precision (4-byte) floating-point number 
 @item d|D
-  @code{NC_DOUBLE}, a double-precision (8-byte) floating point number 
+  @code{NC_DOUBLE}, a double-precision (8-byte) floating-point number 
 @item @strong{netCDF4 Types}
 @item ub|UB	 
   @code{NC_UBYTE}, an unsigned 1-byte integer 
@@ -12071,11 +12092,11 @@ They only work on variables in Output.
 @cindex @code{set_miss()}
  The numeric argument @var{expr} becomes the new missing value,
  overwriting the old missing value, if any.
- The argument given is converted if necessary to the variable type.
- NB: This only changes the missing value attribute. 
+ The argument given is converted if necessary to the variable's type.
+ NB: This only changes the missing value attribute.
  Missing values in the original variable remain unchanged, and thus 
  are no long considered missing values.
- They are ``orphaned''.
+ They are effectively ``orphaned''.
  Thus @code{set_miss()} is normally used only when creating new
  variables.
  The intrinsic function @code{change_miss()} (see below) is typically 
@@ -12187,7 +12208,10 @@ Root-mean-square (normalize by @var{N})
 @item rmssdn()
 @cindex rmssdn()
 Root-mean square (normalize by @var{N-1})
-@item ttl() or total()
+@item tabs() or ttlabs()
+@cindex tabs()
+Sum of absolute values
+@item ttl() or total() or sum()
 @cindex ttl()
 Sum of values
 @end table
@@ -12298,10 +12322,10 @@ lat_2D_rrg_new=0,90,-30,30,-30,30,-90,0
  convert to @code{NC_INT},   a signed 4-byte integer 
 @item float()
 @cindex float()	 
- convert to @code{NC_FLOAT}, a single-precision (4-byte) floating point number 
+ convert to @code{NC_FLOAT}, a single-precision (4-byte) floating-point number 
 @item double() 
 @cindex double()
- convert to @code{NC_DOUBLE}, a double-precision (8-byte) floating point number 
+ convert to @code{NC_DOUBLE}, a double-precision (8-byte) floating-point number 
 @item @strong{netCDF4 Types}
 @item ubyte()	 
 @cindex ubyte()
@@ -13185,7 +13209,7 @@ These are the @acronym{GSL} standard function names postfixed with
 function suffix.
 }.
 This allows @acronym{NCO} to return a missing value when the
-@acronym{GSL} library encounters a domain error or a floating point 
+@acronym{GSL} library encounters a domain error or a floating-point 
 exception. 
 The slow-down due to calling the error-handling version of the 
 @acronym{GSL} numerical functions was found to be negligible (please let
@@ -13729,7 +13753,7 @@ print(yout);  // 3.18545454545 ,9.15636363636, ,12.1418181818 ,33.04
 @node GSL statistics, GSL random number generation, GSL least-squares fitting, ncap2 netCDF Arithmetic Processor
 @subsection GSL statistics
 
-@noindent Wrappers for most of the @acronym{GSL} Statistical functions have been implemented. The @acronym{GSL} function names include a type specifier (except for type double functions). To obtain the equivalent @acronym{NCO} name simply remove the type specifier; then depending on the data type the appropriate @acronym{GSL} function  is called. The weighed statistical functions e.g., @code{ gsl_stats_wvariance()} are only defined in @acronym{GSL} for floating point types; so your data must of type @code{float} or @code{double} otherwise ncap2 will emit an error message. To view the implemented functions use the shell command @command{ncap2 -f|grep _stats}   
+@noindent Wrappers for most of the @acronym{GSL} Statistical functions have been implemented. The @acronym{GSL} function names include a type specifier (except for type double functions). To obtain the equivalent @acronym{NCO} name simply remove the type specifier; then depending on the data type the appropriate @acronym{GSL} function  is called. The weighed statistical functions e.g., @code{ gsl_stats_wvariance()} are only defined in @acronym{GSL} for floating-point types; so your data must of type @code{float} or @code{double} otherwise ncap2 will emit an error message. To view the implemented functions use the shell command @command{ncap2 -f|grep _stats}   
 
 @noindent @acronym{GSL} Functions
 @example
@@ -14478,7 +14502,7 @@ log$(10.0) = 1.0$
 @end ifinfo
 @item nearbyint(x)
 @dfn{Round inexactly}
-Nearest integer to @var{x} is returned in floating point format.
+Nearest integer to @var{x} is returned in floating-point format.
 @cindex inexact conversion
 No exceptions are raised for @dfn{inexact conversions}.
 Example: 
@@ -14506,7 +14530,7 @@ pow$(2,3) = 8$
 @end ifinfo
 @item rint(x)
 @dfn{Round exactly}
-Nearest integer to @var{x} is returned in floating point format.
+Nearest integer to @var{x} is returned in floating-point format.
 Exceptions are raised for @dfn{inexact conversions}.
 Example: 
 @tex
@@ -14517,7 +14541,7 @@ rint$(0.1) = 0$
 @end ifinfo
 @item round(x)
 @dfn{Round}
-Nearest integer to @var{x} is returned in floating point format.
+Nearest integer to @var{x} is returned in floating-point format.
 Round halfway cases away from zero, regardless of current @acronym{IEEE}
 rounding direction.  
 Example: 
@@ -14585,7 +14609,7 @@ tanh$(1.0) = 0.761594155956$
 @end ifinfo
 @item trunc(x)
 @dfn{Truncate}
-Nearest integer to @var{x} is returned in floating point format.
+Nearest integer to @var{x} is returned in floating-point format.
 Round halfway cases toward zero, regardless of current @acronym{IEEE}
 rounding direction.  
 Example: 
@@ -14776,8 +14800,8 @@ netcdf-4.0 Final  2008/08/28@*
 SYNTAX
 @example
 ncatted [-a @var{att_dsc}] [-a @dots{}] [-D @var{dbg}] [-h] [--hdr_pad @var{nbr}]
-[-l @var{path}] [-O] [-o @var{output-file}] [-p @var{path}] [-R] [-r] [--ram_all]
-@var{input-file} [[@var{output-file}]]
+[-l @var{path}] [-O] [-o @var{output-file}] [-p @var{path}] [-R] [-r]
+[--ram_all] [-t] @var{input-file} [[@var{output-file}]]
 @end example
  
 @noindent
@@ -14824,7 +14848,7 @@ as swiftly as possible.
 @cindex @code{_FillValue}
 When @command{ncatted} is used to change the @code{_FillValue} attribute,
 it changes the associated missing data self-consistently.
-If the internal floating point representation of a missing value, 
+If the internal floating-point representation of a missing value, 
 e.g., 1.0e36, differs between two machines then netCDF files produced 
 on those machines will have incompatible missing values.
 This allows @command{ncatted} to change the missing values in files from 
@@ -14911,6 +14935,11 @@ Finally, if @var{var_nm} is left blank, then @command{ncatted}
 attempts to perform the editing operation on every variable in the file.
 This option may be convenient to use if you decide to change the
 conventions you use for describing the data.
+As of @acronym{NCO} 4.5.6 (March, 2016), @command{ncatted} accepts 
+the @samp{-t} (or long-option equivalent @samp{--typ_mch} or
+@samp{--type_match}) option.
+This causes @command{ncatted} to perform the editing operation only on
+variables that are the same type as the specified attribute.
 
 @html
 <a name="mode"></a> <!-- http://nco.sf.net/nco.html#mode -->
@@ -15138,6 +15167,31 @@ from whatever it currently is to ``temperature'':
 @example
 ncatted -a long_name,T,o,c,temperature in.nc
 @end example
+
+@html
+<a name="MPAS"></a> <!-- http://nco.sf.net/nco.html#MPAS -->
+<a name="typ_mch"></a> <!-- http://nco.sf.net/nco.html#typ_mch -->
+<a name="type_match"></a> <!-- http://nco.sf.net/nco.html#type_match -->
+@end html
+@cindex MPAS
+@cindex @code{_FillValue}
+Many model and observational datasets use missing values that are not
+annotated in the standard manner.
+For example, the MPAS ocean and ice models use
+@math{-9.99999979021476795361e+33} as the missing value.
+To prevent arithmetic from treating these values as normal, designate
+this value as the @code{_FillValue} attribute:
+@example
+ncatted    -a _FillValue,,o,d,-9.99999979021476795361e+33 in.nc
+ncatted -t -a _FillValue,,o,d,-9.99999979021476795361e+33 in.nc
+ncatted -t -a _FillValue,,o,d,-9.99999979021476795361e+33 \
+           -a _FillValue,,o,f,1.0e36 -a _FillValue,,o,i,-999 in.nc
+@end example
+The first example adds the attribute to all variables. 
+The @samp{-t} switch causes the second example to add the attribute only
+to double precision variables.
+This is often more useful, and can be used to provide distinct missing
+value attributes to each numeric type, as in the third example.
 
 @html
 <a name="NaN"></a> <!-- http://nco.sf.net/nco.html#NaN -->
@@ -15526,7 +15580,7 @@ not rank, while, @command{ncwa} changes both variable size and rank.}.
 In this case the input files to @command{ncbo}, @var{file_1} and
 @var{file_2}, will have unequally sized @code{time} dimensions which
 causes @command{ncbo} to fail.
-To prevent this from occuring, use @command{ncwa} to remove the
+To prevent this from occurring, use @command{ncwa} to remove the
 @code{time} dimension from @var{file_2}.
 See the example below.
 
@@ -18592,8 +18646,9 @@ SYNTAX
 ncremap [-a @var{alg_typ}] [-D @var{dbg_lvl}] [-d @var{dst_fl}] [-E @var{esmf_opt}]
 [-G @var{grd_sng}] [-g @var{grd_dst}] [-I @var{drc_in}] [-i @var{input-file}] [-j @var{job_nbr}]
 [-M] [-m @var{map_fl}] [-n @var{nco_opt}] [-O @var{drc_out}] [-o @var{output-file}]
-[-P @var{pdq_typ}] [-p @var{par_typ}] [-R @var{rgr_opt}] [-s @var{grd_src}] [-T @var{tempest_opt}] [-t @var{thr_nbr}]
-[-v @var{var_lst}[,@dots{}]] [-w @var{wgt_gnr}] [-x @var{xtn_lst}[,@dots{}]] 
+[-P @var{pdq_typ}] [-p @var{par_typ}] [-R @var{rgr_opt}] [-s @var{grd_src}] 
+[-T @var{tempest_opt}] [-t @var{thr_nbr}] [-u @var{unq_sfx}] [-v @var{var_lst}[,@dots{}]] 
+[-w @var{wgt_gnr}] [-x @var{xtn_lst}[,@dots{}]] 
 @end example
 
 @noindent
@@ -18603,15 +18658,17 @@ DESCRIPTION
 @var{drc_in}, or piped through standard input, to the grid specified by 
 (in descending order of precedence) @var{map_fl}, @var{grd_dst}, or
 @var{dst_fl} and stores the result in @var{output-file}(s). 
+When no @var{input-file} is provided, @command{ncremap} operates in
+``map-only'' mode where it exits after producing an annotated map-file. 
 @command{ncremap} was introduced to @acronym{NCO} in version 4.5.4
 (December, 2015). 
-As the newest operator, its interface is still evolving to respond to
-user needs, feedback, and new features.
+As the newest operator, its interface is evolving in response to user
+needs, feedback, and new features. 
 @command{ncremap} orchestrates the regridding features of several
 different programs.
-Under the hood, @acronym{NCO} generates and infers grids, and calls
-external programs to generate the remapping weights that @acronym{NCO}
-then applies.  
+Under the hood @acronym{NCO} applies pre-computed remapping weights or, 
+when necessary, generates and infers grids, and calls external programs
+to generate the remapping weights that @acronym{NCO} then applies.  
 
 @cindex @command{ncremap}
 @cindex @command{ESMF_RegridWeightGen}
@@ -18637,16 +18694,41 @@ generate weights and mapfiles.
 In order to use the weight-generation options, ensure that one or both
 of the weight-generation packages is installed and on your
 @code{$PATH}. 
-@acronym{ERWG} is distributed in binary format with @acronym{NCL}, which
-many (most?) @acronym{NCO} users already have on their system(s). 
-@acronym{ERWG} may also be installed from source:
+The recommended way to obtain @acronym{ERWG} is as distributed in binary
+format with @acronym{NCL}, which many (most?) @acronym{NCO} users
+already have on their system(s).
+Then be sure the directory containing the @acronym{ERWG} executable is
+on your @code{$PATH} before using @command{ncremap}.
+As a fallback, @acronym{ERWG} may also be installed from source:
 @url{https://earthsystemcog.org/projects/esmf/download_last_public}.
 @command{ncremap} can also generate and utilize mapfiles created by
 TempestRemap, 
 @url{https://github.com/ClimateGlobalChange/tempestremap}.
+As far as we know TempestRemap must be built from source because there
+are no binary distributions of it. 
 Please contact those projects for support on building and installing
 their software, which makes @command{ncremap} more functional and
 user-friendly.
+Please ensure you have the latest version of @acronym{ERWG} or
+TempestRemap before reporting any related problems to @acronym{NCO}. 
+
+As mentioned above, @command{ncremap} orchestrates the regridding
+features of several different programs.
+@command{ncremap} runs most quickly when it is supplied with a
+pre-computed mapfile.  
+However, @command{ncremap} will also (call other programs to) compute
+mapfiles when necessary and when given sufficient grid information.
+Thus it is helpful to understand when @command{ncremap} will and will 
+not internally generate a mapfile.
+Supplying input data files and a pre-computed mapfile @emph{without}
+any other grid information causes @command{ncremap} to regrid the data
+files without first pausing to internally generate a mapfile.
+On the other hand, supplying any grid information (i.e., using any of
+the @samp{-d}, @samp{-G}, @samp{-g}, or @samp{-s} switches described
+below), causes @command{ncremap} to internally (re-)generate the
+mapfile by combining the supplied and inferred grid information.
+A generated mapfile is given a default name unless a user-specified name
+is supplied with @samp{-m @var{map_fl}}. 
 
 @unnumberedsubsec Options specific to @command{ncremap}
 
@@ -18770,6 +18852,7 @@ and inspecting the results.
 @end html
 @cindex @code{-I @var{in_drc}}
 @cindex @var{in_drc}
+@cindex @code{stdin}
 @item -I @var{in_drc}
 Specifies the input directory, i.e., the directory which contains
 the input file(s).
@@ -18784,8 +18867,8 @@ When multiple files are regridded, each output file takes the name
 of the corresponding input file.
 There is no namespace conflict because the input and output files are in
 separate directories. 
-Note that @command{ncremap} could instead take the list of multiple 
-input piped through standard input, e.g., @samp{ls *.nc | ncremap ...}.
+Note that @command{ncremap} can instead accept the list of input files
+through standard input, e.g., @samp{ls *.nc | ncremap ...}. 
 
 @html
 <a name="in_fl"></a> <!-- http://nco.sf.net/nco.html#in_fl -->
@@ -18809,6 +18892,8 @@ then @acronym{NCO} will guess (for rectangular grids) or interpolate
 Unstructured grids must supply cell boundary information, as it cannot
 be interpolated or guessed-at.
 @var{in_fl} is not modified, and may have read-only permissions.
+Note that @command{ncremap} can instead accept the input file name
+through standard input, e.g., @samp{ls *.nc | ncremap ...}. 
 
 @html
 <a name="job_nbr"></a> <!-- http://nco.sf.net/nco.html#job_nbr -->
@@ -18818,12 +18903,12 @@ be interpolated or guessed-at.
 @item -j @var{job_nbr}
 Specifies the number of simultaneous regridding processes to spawn  
 during parallel execution for both Background and @acronym{MPI} modes. 
-In either parallel model @command{ncremap} spawns proceses in batches 
+In both parallel modes @command{ncremap} spawns proceses in batches 
 of @var{job_nbr} jobs, thens waits for those processes to complete.
 Once a batch finishes, @command{ncremap} spawns the next batch.
 In Background mode, all jobs are spawned to the local node.
 In @acronym{MPI} mode, all jobs are spawned in round-robin fashion
-until to all available nodes until @var{job_nbr} jobs are running.
+to all available nodes until @var{job_nbr} jobs are running.
 
 If regridding consumes so much @acronym{RAM} (e.g., because
 variables are large and/or the number of threads is large) that a
@@ -18868,14 +18953,28 @@ by utilizing more threads per process.
 @cindex @code{-m @var{map_fl}}
 @cindex @var{map_fl}
 @item -m @var{map_fl}
-Specifies a pre-computed mapfile to remap the source to destination grid.
-The @var{map_fl} must be in @acronym{SCRIP} format, although it may have
-been produced by any application (usually @acronym{ERWG} or
-TempestRemap). 
+Specifies a mapfile (i.e., weight-file) to remap the source to
+destination grid. 
+If @var{map_fl} is specified in conjunction with any of the @samp{-d},
+@samp{-G}, @samp{-g}, or @samp{-s} switches, then @command{ncremap}
+will name the internally generated mapfile @var{map_fl}.
+Otherwise (i.e., if none of the source-grid switches are used),
+@command{ncremap} assumes that @var{map_fl} is a pre-computed mapfile. 
+In that case, the @var{map_fl} must be in @acronym{SCRIP} format,
+although it may have been produced by any application (usually
+@acronym{ERWG} or TempestRemap). 
 If @var{map_fl} has only cell-center coordinates (and no edges),
 then @acronym{NCO} will guess-at or interpolate the edges.
 If @var{map_fl} has cell boundaries then @acronym{NCO} will use those.
-@var{map_fl} is not modified, and may have read-only permissions.
+A pre-computed @var{map_fl} is not modified, and may have read-only
+permissions. 
+The user will be prompted to confirm if a newly generated map-file  
+named @var{map_fl} would overwrite an existing file.
+@command{ncremap} adds provenance information to any newly generated
+map-file whose name was specified with @samp{-m @var{map_fl}}.
+This provenance includes a @code{history} attribute that contains
+the command invoking @command{ncremap}, and the map-generating command
+invoked by @command{ncremap}.
 
 @html
 <a name="map_mlt"></a> <!-- http://nco.sf.net/nco.html#map_mlt -->
@@ -19033,6 +19132,13 @@ contents, which are currently empty.
 For example, to cause @command{GenerateOfflineMap} to use a
 @code{_FillValue} of @math{-1}, pass 
 @samp{-T "--fillvalue -1.0"} to @command{ncremap}.
+Other common options include enforcing monotonicity (which is not the
+default in TempestRemap) constraints. 
+To guarantee monotonicity in regridding from Finite Volume @acronym{FV} 
+to @acronym{FV} maps (e.g., @acronym{MPAS}-to-rectangular), pass 
+@samp{-T "-in_np 1"} to @command{ncremap}.
+To guarantee monotonicity in regridding from Finite Element @acronym{FE} 
+to @acronym{FV} maps, pass @samp{-T "--mono"}.
 
 @html
 <a name="thr_nbr"></a> <!-- http://nco.sf.net/nco.html#thr_nbr -->
@@ -19043,6 +19149,29 @@ For example, to cause @command{GenerateOfflineMap} to use a
 Specifies the number of threads used per regridding process
 (@pxref{OpenMP Threading}).
 The @acronym{NCO} regridder scales well up to 8--16 threads.
+
+@html
+<a name="unq_sfx"></a> <!-- http://nco.sf.net/nco.html#unq_sfx -->
+@end html
+@cindex @code{-u @var{unq_sfx}}
+@cindex @var{unq_sfx}
+@cindex noclean
+@item -u @var{unq_sfx}
+Specifies the suffix used to label intermediate (internal) files
+generated by the regridding workflow.
+Unique names are required to avoid interference among parallel
+invocations of @command{ncremap}. 
+The default @var{unq_sfx} is @samp{.pid@var{PID}.ncremap.tmp}, where
+@var{PID} is the process ID.
+Applications that invoke ncremap can provide more or less informative
+suffixes.
+The suffix should be unique so that no two simultaneously executing 
+instances of @command{ncremap} can generate the same file.
+For instance, a climatology script that issues a dozen @command{ncremap} 
+commands may find it useful to encode the climatological month in the
+unique suffix.
+If @var{unq_sfx} is @samp{noclean} then @command{ncremap} retains
+(not removes) all intermediate files after completion.
 
 @html
 <a name="var_lst"></a> <!-- http://nco.sf.net/nco.html#var_lst -->
@@ -19112,7 +19241,7 @@ necessary:
 @example
 # AIRS Level2 vertical profiles
 ncremap -P airs -i AIRS_L2.nc -d dst_1x1.nc -O ~/rgr
-# MPAS-O fields
+# MPAS-O/I fields
 ncremap -P mpas -i mpas.nc -m mpas120_to_t62.nc -O ~/rgr
 @end example
 @noindent
@@ -19153,18 +19282,21 @@ to call @acronym{ERWG} with the options to exploit those capabilities.
 A side-effect of @command{ncremap} being an offline regridder is that,
 when necessary, it generates intermediate files to store grids and maps.  
 These files are named, by default, 
-@file{ncremap_tmp_grd_dst.nc},
-@file{ncremap_tmp_grd_src.nc},   
-@file{ncremap_tmp_gnr_out.nc},  
-@file{ncremap_tmp_map_*.nc}, 
-@file{ncremap_tmp_msh_ovr_*.nc}, and
-@file{ncremap_tmp_pdq.nc},  
-They are placed in @var{drc_out}, which is the current working directory
-unless otherwise specified.
-No intermediate grid or map files are generated when the map-file is
-provided. 
-No intermediate permuted file is generated unless the 
-@samp{-P @var{prm_typ}} option is invoked.
+@file{ncremap_tmp_grd_dst.nc}@samp{unq_sfx},
+@file{ncremap_tmp_grd_src.nc}@samp{unq_sfx},
+@file{ncremap_tmp_gnr_out.nc}@samp{unq_sfx},
+@file{ncremap_tmp_map_*.nc}@samp{unq_sfx},
+@file{ncremap_tmp_msh_ovr_*.nc}@samp{unq_sfx}, and
+@file{ncremap_tmp_pdq.nc}@samp{unq_sfx}.
+They are placed in @var{drc_out} with the output file(s).
+In general, no intermediate grid or map files are generated when the
+map-file is provided. 
+Intermediate files are always generated when the @samp{-P @var{prm_typ}}
+option is invoked. 
+By default these files are automatically removed upon successful
+completion of the script.
+Early or unexpected termination of @command{ncremap} leaves these
+intermediate files behind.
 Should intermediate files proliferate and/or annoy you, locate and/or
 remove all such files under the current directory with 
 @example
@@ -19172,12 +19304,6 @@ find . -name 'ncremap_tmp*'
 rm `find . -name 'ncremap_tmp*'`
 @end example
 @noindent
-When @command{ncremap} is run in parallel mode, the intermediate files
-can interfere with one-another, and must be uniquely named.
-We have not yet addressed this issue, so parallel mode is supported when 
-all input files are on the same grid, and unsupported otherwise.
-If this limitation affects your workflow, please let us know and we will
-increase the priority of addressing it.
 
 @noindent
 @html
@@ -19205,17 +19331,28 @@ specified output directory.
 Since no output filename is provided, the output file will be named
 @file{regrid/in.nc}.
 
-To save time generating weights, use a pre-computed mapfile instead.
+Supplying a pre-computed mapfile (with @samp{-m @var{map_fl}})
+considerably reduces wallclock time because it eliminates time-consuming
+weight-generation:
 @example
 ncremap -i in.nc  -m map.nc -o out.nc
 ncremap -I drc_in -m map.nc -O regrid
 @end example
-Supplying the mapfile @var{map_fl} considerably reduces wallclock time. 
-The mapfile file may have been generated by a previous @command{ncremap} 
-invocation. 
+The mapfile is often generated by a previous @command{ncremap}
+invocation, and then stored for later re-use.
+
+@command{ncremap} annotates the gridfiles and mapfiles that it creates
+with helpful metadata containing the full provenance of the command.
+Consequently, @command{ncremap} is a sensible tool for generating
+mapfiles for later use. 
+To generate a mapfile with the specified (non-default) name
+@file{map.nc}, and then regrid a single file, 
+@example
+ncremap -i in.nc -d dst.nc -m map.nc -o out.nc
+@end example
 
 To test the remapping workflow, regrid only one or a few variables
-instad of the entire file:  
+instead of the entire file:  
 @example
 ncremap -v T,Q,FSNT -i in.nc -m map.nc -o out.nc
 @end example

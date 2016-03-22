@@ -3,7 +3,7 @@
 
 #include <antlr/config.hpp>
 #include "ncoParserTokenTypes.hpp"
-/* $ANTLR 2.7.7 (2006-11-01): "ncoGrammer.g" -> "ncoTree.hpp"$ */
+/* $ANTLR 2.7.7 (20130428): "ncoGrammer.g" -> "ncoTree.hpp"$ */
 #include <antlr/TreeParser.hpp>
 
 #line 1 "ncoGrammer.g"
@@ -51,7 +51,7 @@
 #line 52 "ncoTree.hpp"
 class CUSTOM_API ncoTree : public ANTLR_USE_NAMESPACE(antlr)TreeParser, public ncoParserTokenTypes
 {
-#line 657 "ncoGrammer.g"
+#line 662 "ncoGrammer.g"
 
 
 private:
@@ -351,7 +351,7 @@ if( nbr_dmn!=lmt_init(lmt,ast_lmt_vtr) )
      int wlk_nbr);
 
      if(tr== ANTLR_USE_NAMESPACE(antlr)nullAST)
-        err_prn("run_dbl"," REPORTS given a null AST Refrence\n");
+        err_prn("run_dbl"," REPORTS given a null AST Reference\n");
             
      //small list dont bother with double parsing     
      // just do a final parse
@@ -476,7 +476,7 @@ RefAST nco_dupList(RefAST tr){
       RefAST otr;  
       // nb astFactory is protected- must call from within class
       otr=astFactory->dupList(tr);      
-      otr->setNextSibling( ANTLR_USE_NAMESPACE(antlr)nullAST ) ;
+      //otr->setNextSibling( ANTLR_USE_NAMESPACE(antlr)nullAST ) ;
       /*  
       if(otr->getNextSibling()!= ANTLR_USE_NAMESPACE(antlr)ASTNULL )     
         err_prn("nco_dupList", "NON NULL AST SIBLING\n");
@@ -510,6 +510,7 @@ public:
 		bool bram
 	);
 	public: var_sct * out_asn(ANTLR_USE_NAMESPACE(antlr)RefAST _t);
+	public:  RefAST  att2var(ANTLR_USE_NAMESPACE(antlr)RefAST _t);
 	public: var_sct * value_list(ANTLR_USE_NAMESPACE(antlr)RefAST _t);
 	public: var_sct * value_list_string(ANTLR_USE_NAMESPACE(antlr)RefAST _t,
 		 std::vector<var_sct*> &exp_vtr
@@ -534,10 +535,10 @@ protected:
 private:
 	static const char* tokenNames[];
 #ifndef NO_STATIC_CONSTS
-	static const int NUM_TOKENS = 118;
+	static const int NUM_TOKENS = 117;
 #else
 	enum {
-		NUM_TOKENS = 118
+		NUM_TOKENS = 117
 	};
 #endif
 	
