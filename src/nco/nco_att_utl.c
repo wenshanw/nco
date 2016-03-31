@@ -148,7 +148,7 @@ nco_aed_prc_wrp /* [fnc] Expand regular expressions then pass attribute edits to
   return flg_chg; /* [flg] Attribute was altered */
 } /* end nco_aed_prc() */
 
- nco_bool /* [flg] Attribute was changed */
+nco_bool /* [flg] Attribute was changed */
 nco_aed_prc /* [fnc] Process single attribute edit for single variable */
 (const int nc_id, /* I [id] Input netCDF file ID */
  const int var_id, /* I [id] ID of variable on which to perform attribute editing */
@@ -384,6 +384,7 @@ nco_aed_prc /* [fnc] Process single attribute edit for single variable */
 
   switch(aed.mode){
   case aed_append:	
+  case aed_nappend:	
     if(rcd_inq_att == NC_NOERR){
       /* Append to existing attribute value */
       if(aed.type != att_typ){
@@ -405,7 +406,7 @@ nco_aed_prc /* [fnc] Process single attribute edit for single variable */
       rcd+=nco_put_att(nc_id,var_id,aed.att_nm,aed.type,att_sz+aed.sz,att_val_new);
       flg_chg=True; /* [flg] Attribute was altered */
       att_val_new=nco_free(att_val_new);
-    }else{
+    }else if(aed.mode == aed_append){
       /* Create new attribute */
       rcd+=nco_put_att(nc_id,var_id,aed.att_nm,aed.type,aed.sz,aed.val.vp);
       flg_chg=True; /* [flg] Attribute was altered */
@@ -1217,12 +1218,14 @@ nco_prs_aed_lst /* [fnc] Parse user-specified attribute edits into structure lis
 	  }else if(!strcmp("create",arg_lst[2])){aed_lst[idx].mode=aed_create;
 	  }else if(!strcmp("delete",arg_lst[2])){aed_lst[idx].mode=aed_delete;
 	  }else if(!strcmp("modify",arg_lst[2])){aed_lst[idx].mode=aed_modify;
+	  }else if(!strcmp("nappend",arg_lst[2])){aed_lst[idx].mode=aed_nappend;
 	  }else if(!strcmp("overwrite",arg_lst[2])){aed_lst[idx].mode=aed_overwrite;} */
     switch(*(arg_lst[2])){
     case 'a': aed_lst[idx].mode=aed_append; break;
     case 'c': aed_lst[idx].mode=aed_create; break;
     case 'd': aed_lst[idx].mode=aed_delete; break;
     case 'm': aed_lst[idx].mode=aed_modify; break;
+    case 'n': aed_lst[idx].mode=aed_nappend; break;
     case 'o': aed_lst[idx].mode=aed_overwrite; break;
     default: 
       (void)fprintf(stderr,"%s: ERROR `%s' is not a supported mode\n",nco_prg_nm_get(),arg_lst[2]);
@@ -1240,42 +1243,12 @@ nco_prs_aed_lst /* [fnc] Parse user-specified attribute edits into structure lis
       nco_exit(EXIT_FAILURE);
     } /* !ATT_TYP_INHERIT */
 
-    /* Attribute type and value do not matter if we are deleting it */
+    /* Attribute type and value do not matter when we will delete attribute */
     if(aed_lst[idx].mode != aed_delete && !ATT_TYP_INHERIT){
 
       /* Set type of current aed structure */
-      /* Convert single letter code to type enum */
-      switch(*(arg_lst[3])){
-      case 'F':	
-      case 'f':	aed_lst[idx].type=(nc_type)NC_FLOAT; break;
-      case 'D':	
-      case 'd':	aed_lst[idx].type=(nc_type)NC_DOUBLE; break;
-      case 'C':	
-      case 'c':	aed_lst[idx].type=(nc_type)NC_CHAR; break;
-      case 'B':	
-      case 'b':	aed_lst[idx].type=(nc_type)NC_BYTE; break;
-      default: 
-        /* Ambiguous single letters must use full string comparisons */
-        if(!strcasecmp(arg_lst[3],"l") || !strcasecmp(arg_lst[3],"i")) aed_lst[idx].type=(nc_type)NC_INT; 
-        else if(!strcasecmp(arg_lst[3],"s")) aed_lst[idx].type=(nc_type)NC_SHORT; 
-#ifdef ENABLE_NETCDF4
-        else if(!strcasecmp(arg_lst[3],"ub")) aed_lst[idx].type=(nc_type)NC_UBYTE; 
-        else if(!strcasecmp(arg_lst[3],"us")) aed_lst[idx].type=(nc_type)NC_USHORT; 
-        else if(!strcasecmp(arg_lst[3],"u") || !strcasecmp(arg_lst[3],"ui") || !strcasecmp(arg_lst[3],"ul")) aed_lst[idx].type=(nc_type)NC_UINT; 
-        else if(!strcasecmp(arg_lst[3],"ll") || !strcasecmp(arg_lst[3],"int64")) aed_lst[idx].type=(nc_type)NC_INT64; 
-        else if(!strcasecmp(arg_lst[3],"ull") || !strcasecmp(arg_lst[3],"uint64")) aed_lst[idx].type=(nc_type)NC_UINT64; 
-        else if(!strcasecmp(arg_lst[3],"sng") || !strcasecmp(arg_lst[3],"string")) aed_lst[idx].type=(nc_type)NC_STRING; 
-        else{
-          (void)fprintf(stderr,"%s: ERROR `%s' is not a supported netCDF data type\n",nco_prg_nm_get(),arg_lst[3]);
-          (void)fprintf(stderr,"%s: HINT: Valid data types are `c' = char, `f' = float, `d' = double,`s' = short, `i' = `l' = integer, `b' = byte",nco_prg_nm_get());
+      aed_lst[idx].type=nco_sng2typ(arg_lst[3]);
 
-          (void)fprintf(stderr,", `ub' = unsigned byte, `us' = unsigned short, `u' or `ui' or `ul' = unsigned int,`ll' or `int64' = 64-bit signed integer, `ull' or `uint64` = unsigned 64-bit integer, `sng' or `string' = string");
-
-          (void)fprintf(stderr,"\n");
-          nco_exit(EXIT_FAILURE);} /*  end if error */
-#endif /* ENABLE_NETCDF4 */
-        break;
-      } /* end switch */
     } /* end if not delete mode and !ATT_TYP_INHERIT */
 
     if(aed_lst[idx].mode != aed_delete){
@@ -1971,12 +1944,13 @@ nco_glb_att_add /* [fnc] Add global attributes */
     /* nco_sng2kvm() converts argument "--gaa one,two=3" into kvm.key="one,two" and kvm.val=3
        Then nco_lst_prs_2D() converts kvm.key into two items, "one" and "two", with the same value, 3 */
     if(kvm.key){
-      int att_idx; /* [idx] Index over attribute names in current GAA argument */
+      int att_idx; /* [idx] Index over qattribute names in current GAA argument */
       int att_nbr; /* [nbr] Number of attribute names in current GAA argument */
       char **att_lst;
       att_lst=nco_lst_prs_2D(kvm.key,",",&att_nbr);
       for(att_idx=0;att_idx<att_nbr;att_idx++){ /* Expand multi-attribute-name specification */
         gaa_lst[gaa_nbr].key=strdup(att_lst[att_idx]);
+	/* 20160324: fxm: can next line break when kvm.val is NULL? */
 	gaa_lst[gaa_nbr].val=strdup(kvm.val);
         gaa_nbr++;
       } /* end for */
@@ -1995,6 +1969,11 @@ nco_glb_att_add /* [fnc] Add global attributes */
     /* Insert value into attribute structure */
     gaa_aed.val=att_val;
     gaa_aed.sz=strlen(gaa_aed.val.cp);
+    /* 20160324: which is better mode for gaa---overwrite or append? 
+       20160330: answer is overwrite. otherwise, climo_nco.sh produces ANN file with, e.g.,
+       :climo_script = "climo_nco.shclimo_nco.shclimo_nco.sh" ;
+       :climo_hostname = "aerosolaerosolaerosol" ;
+       :climo_version = "4.5.6-alpha054.5.6-alpha054.5.6-alpha05" ; */
     gaa_aed.mode=aed_overwrite;
     /* Write attribute to disk */
     (void)nco_aed_prc(out_id,NC_GLOBAL,gaa_aed);
