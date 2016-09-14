@@ -1,8 +1,401 @@
+2016-09-09  Henry Butowsky  <henryb@hush.com>
+
+	* Updated manual section on ncap2/print (need to finalize form of sprint() & snprint())
+
+2016-09-01  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.1-gmd_ppc release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.1-gmd_ppc final changes';git pus
+	git tag -a 4.6.1-gmd_ppc -m 'Same as version 4.6.2-alpha01. Zenodo tag for GMD PPC paper.';git push --tags
+
+2016-08-31  Charlie Zender  <zender@uci.edu>
+
+	* git tag -a 4.6.2-alpha01-zenodo -m 'Same as version 4.6.2-alpha01. Second attempt at Zenodo release for PPC paper.';git push --tags
+
+	* NCO 4.6.2-alpha01 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.2-alpha01 final changes';git push
+	git tag -a 4.6.2-alpha01 -m 'Version 4.6.2-alpha01 new features: fall-back if BASH_SOURCE fails; first Zenodo release for PPC paper';git push --tags
+
+2016-08-24  Charlie Zender  <zender@uci.edu>
+
+	* Note in ncra.c tagged 20160824 on how to fix --cb to work for multiple-record input files and hyperslabs
+
+2016-08-24  Henry Butowsky  <henryb@hush.com>
+
+	* Document ncap2 function create_bounds()
+
+2016-08-23  Charlie Zender  <zender@uci.edu>
+
+	* Split finding NCO path from finding script path
+
+2016-08-22  Charlie Zender  <zender@uci.edu>
+
+	* Add -U drc_tmp switch to ncremap documentation
+
+2016-08-09  Charlie Zender  <zender@uci.edu>
+
+	* Implement fall-back in case BASH_SOURCE does not work
+
+	* Add [[ -z "${spt_src}" ]] && spt_src="${0}" in case BASH_SOURCE does not work
+
+	* Change spt_nm=$(basename ${BASH_SOURCE[0]}) to spt_nm=$(basename ${spt_src}). Former fails for Jerome and on Edison
+
+2016-08-06  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.1 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.1 final changes';git push
+	git tag -d 4.6.1;git push origin :refs/tags/4.6.1
+	git tag -a 4.6.1 -m 'Version 4.6.1 new features: nco_fl_mv(), cnk doc, ncremap crv, ncatted dot, ncclimo ncr md, ncflint -N, provenance';git push --tags
+
+2016-08-04  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.1-beta01 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.1-beta01 final changes';git push
+	git tag -a 4.6.1-beta01 -m 'Version 4.6.1-beta01 new features: ncremap crv, constance, nco_fl_mv(), cnk';git push --tags
+
+	* ncremap: give-up on confirming overwriting existing maps until it works in interactive shells only
+
+	* Use different output dimensions bounds names for mappings to curvilinear axes
+	Default is now to use temporal bounds name for spatial bounds for rectangular grids,
+	and to use "nvertices" for spatial bounds on 1D and curvilinear grids.
+
+2016-08-03  Charlie Zender  <zender@uci.edu>
+
+	* ncclimo: merge Balwinder's changes for Constance at PNNL
+
+	* Only write lat_wgt attributes when flg_grd_out_rct is true
+
+	* Write lat/lon_crn not lat/lon_bnd data when map is curvilinear
+
+	* Improve documentation for chunking with LFP and using ncra subcyles and MRO
+
+2016-08-02  Charlie Zender  <zender@uci.edu>
+
+	* Fix nco_grd_nfr(): use nco_inq_varid() not nco_inq_dimid() to	find coordinates
+
+	* Relax failed return code diagnosis for nco_fl_mv(), fail when rcd != 0
+
+2016-08-01  Charlie Zender  <zender@uci.edu>
+
+	* Clarify which size options are in bytes and which are in elements, especially for chunking
+
+2016-07-31  Charlie Zender  <zender@uci.edu>
+
+	* Deduce script and NCO paths using stackoverflox method borrowed from terraref.sh
+
+2016-07-29  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.1-alpha03 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.1-alpha03 final changes';git push
+	git tag -a 4.6.1-alpha03 -m 'Version 4.6.1-alpha03 new features: fix hyperactive incremental mode, ncatted special characters, chunking docs';git push --tags
+
+	* Prevent ncclimo from attempting to generate incremental climos when yr_srt_prv not supplied
+
+2016-07-26  Charlie Zender  <zender@uci.edu>
+
+	* Allow special characters in ncatted names. Fixes TODO nco1130 reported by emontgomery 20160726.
+
+2016-07-19  Charlie Zender  <zender@uci.edu>
+
+	* Accept, e.g., map_rew as well as rew and cnk_map_rew-style options
+
+2016-07-17  Charlie Zender  <zender@uci.edu>
+
+	* Address some chunking documentation/implementation inconsistencies noted by Antonio Rodriges
+
+2016-07-14  Charlie Zender  <zender@uci.edu>
+
+	* Avoid segfault when --gaa key= does not have RHS argument, so val=NULL
+
+2016-06-21  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.1-alpha02 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.1-alpha02 final changes';git push
+	git tag -a 4.6.1-alpha02 -m 'Version 4.6.1-alpha02 new features: ncclimo incremental mode, ncflint -N';git push --tags
+
+	* Fix yrs_averaged attributes of incremental climos
+
+	* Fix incremental generation on analysis grid
+
+2016-06-20  Charlie Zender  <zender@uci.edu>
+
+	* Correct filenames for fl_rgr_xtn that contain December
+
+2016-06-17  Charlie Zender  <zender@uci.edu>
+
+	* Implement all ncclimo extended/previous directories and command-line options
+
+	* ncclimo extended climatologies work on analysis grid
+
+2016-06-16  Charlie Zender  <zender@uci.edu>
+
+	* Add ncflint -N, --nrm, --normalize option so w1:=w1/(w1+w2), w2:=w2/(w1+w2)
+
+	* Quiet ncpdq INFO messages
+
+	* ncclimo extended climatologies work on native grid
+
+2016-06-15  Charlie Zender  <zender@uci.edu>
+
+	* Add stubs to extend previous climatology in ncclimo
+
+2016-06-13  Charlie Zender  <zender@uci.edu>
+
+	* Add integrated, end-to-end grid-generation, map-generation, conservative regridding regression test
+
+2016-06-09  Charlie Zender  <zender@uci.edu>
+
+	* Coaslesce (and make obsolete) four earlier functions into nco_is_spc_in_cf_att()
+
+	* Add nco_rfr_crd.pdf to homepage. Contributed by Wenshan Wang of UCI.
+
+2016-06-03  Henry Butowsky  <henryb@hush.com>
+
+	* array() function can now take dimension list as third argument, e.g., n2=array(1.0, 2.0, /$time,$lat,$lon/)
+
+2016-06-02  Henry Butowsky  <henryb@hush.com>
+
+	* Fix handling of implicit array bounds for slabs of form var(x:)
+
+2016-05-31  Charlie Zender  <zender@uci.edu>
+
+	* Die with explanation when --mk_rec_dmn receives multiple arguments
+
+2016-05-26  Henry Butowsky  <henryb@hush.com>
+
+	* Fix VarOpNew.cc so array of NC_STRING is correctly sorted in descending order
+
+	* Add getdims() to bsc_cls, returns attribute of type NC_STRING with dim names
+
+2016-05-23  Charlie Zender  <zender@uci.edu>
+
+	* Clean-up new provenance code now that netCDF4 4.4.1-RC3 merged necessary patches
+
+2016-05-20  Charlie Zender  <zender@uci.edu>
+
+	* Add nctypget filter
+
+2016-05-20  Henry Butowsky  <henryb@hush.com>
+
+	* Add NC_STRING sort (att & var) to srt_cls(). More work to do integrating into existing templates...
+
+2016-05-16  Charlie Zender  <zender@uci.edu>
+
+	* Condense homepage, add new presentations
+
+	* NCO 4.6.1-alpha01 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.1-alpha01 final changes';git push
+	git tag -a 4.6.1-alpha01 -m 'Version 4.6.1-alpha01 new features: netCDF4 provenance attributes';git push --tags
+
+2016-05-15  Charlie Zender  <zender@uci.edu>
+
+	* Add ncap2 hyperbolic function support to MACOSX
+
+2016-05-14  Charlie Zender  <zender@uci.edu>
+
+	* Support reporting _NCProperties, _IsNetcdf4, _SuperblockVersion in netCDF 4.4.1+
+
+2016-05-12  Charlie Zender  <zender@uci.edu>
+
+	* Remove ncremap step to fix lon dimension in HIRDLS/MLS files since ncpdq now works as expected
+
+	* Fix ncclimo regression test (sought non-existent area variable) and new ncap2 regression test (sought mis-spelled file)
+
+	* NCO 4.6.0 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.0 final changes';git push
+	git tag -a 4.6.0 -m 'Version 4.6.0 new features: ncclimo, ncap2	vlists, climatology bounds, CF, terraref, ncpdq fixes';git push --tags
+
+2016-05-12  Henry Butowsky  <henryb@hush.com>
+
+	* Fix nasty bug in out()/att(hyperslab) action for NC_STRING that caused double free() on clang
+
+2016-05-11  Charlie Zender  <zender@uci.edu>
+
+	* Allow for "coordinates"-ordering opposite to storage (LRV->MRV) order, e.g., "coordinates=[longitude,latitude]" instead of "coordinates=[longitude,latitude]"
+
+2016-05-09  Charlie Zender  <zender@uci.edu>
+
+	* Shorten unique name suffix in ncremap
+
+	* Add -V var_rgr option to ncremap to invoke --rgr_var=var_rgr for CF grid inferral and remapping
+
+2016-05-06  Charlie Zender  <zender@uci.edu>
+
+	* Pedro committed ncpdq patches that fix vexing longstanding problems permuting in group hierarchies
+
+2016-05-05  Henry Butowsky  <henryb@hush.com>
+
+	* Add space ' ' to allowed chars in a quoted var or att which can be:
+	  VAR_NM_QT: (LPHDGT|'-'|'+'|'.'|'('|')'|':'|' ' )+  ;
+	  Full NetCDF specification for ID includes UTF8 characters (save that for another day)
+
+2016-05-04  Charlie Zender  <zender@uci.edu>
+
+	* Fix nces tabs regression test
+
+2016-05-03  Charlie Zender  <zender@uci.edu>
+
+	* Successfully used CF-coordinate method in both nco_rgr_map() and nco_grd_nfr() when triggered by --rgr_var option
+
+	* Improve and simplify nco_grd_nfr() logic for grid determination, introduce and respect lon_dmn and lat_dmn options for dimension names
+
+	* Inferring grids from CF "coordinates" attribute works, now remapping needs same logic...
+
+	* Check units of coordinate variables
+
+	* Add stubs to check CF "coordinates" attribute to infer grid
+
+2016-05-02  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.0-beta05 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.0-beta05 final changes';git push
+	git tag -a 4.6.0-beta05 -m 'Version 4.6.0-beta05 new features: ncclimo/ncremap rgr, netCDF4 grids, upk MOD13, SLURM_NODELIST';git push --tags
+
+	* ncpdq: initialize REDEFINED_RECORD_DIMENSION=False only once, before variable loop (bug caught by Pedro)
+
+	* ncpdq: change "break;" to "continue;" (bug caught by Pedro)
+
+	* Fix non-interactive batch mode on SLURM to expand SLURM_NODELIST and store as file like PBS and Cobalt
+
+2016-05-01  Charlie Zender  <zender@uci.edu>
+
+	* Change --upk switch. Was flag and synonym for -U, --unpack (ncpdq only)
+	Now --upk arg where arg=[0,1,2]=[netCDF=MOD04,MOD10,MOD13] unpacking algorithm
+
+	* Expand HDF4 hdf_upk logic to nco_upk_HDF_MOD10, nco_upk_HDF_MOD13 for MODIS MOD10CM and MOD13C2 datasets
+
+	* Correct order of shuffle,deflate in nco_var_def_deflate()
+
+	* Respect fl_fm_out and dfl_lvl in nco_grd_mk(), nco_grd_nfr(), nco_rgr_map()
+
+2016-04-29  Charlie Zender  <zender@uci.edu>
+
+	* Add ncremap and ncclimo regression tests when $USER=zender
+
+2016-04-29  Henry Butowsky  <henryb@hush.com>
+
+	* Add has_miss() to the _miss() familty in utl_cls()
+
+2016-04-28  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.0-beta04 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.0-beta04 final changes';git push
+	git tag -a 4.6.0-beta04 -m 'Version 4.6.0-beta04 new features: TMPDIR, var=var.double(), c2b, grid_mapping';git push --tags
+
+	* Finish first pass at documenting ncclimo
+
+2016-04-28  Henry Butowsky  <henryb@hush.com>
+
+	* IMPORTANT: revert mods in 4.5.4. Once again variables in input can be redefined in output without a cast:
+	  time=time.int() is once again exactly equivalent to time[$time]=time.int()
+
+	* Add to regular assign statement conformance of RHS, e.g, n2[time,lat,lon]=10.0;n2=time; // stretches time to conform to n2
+
+2016-04-28  Henry Butowsky  <henryb@hush.com>
+
+        * Add bsc_tst.nco to ncap2 perl test suite. Currently tests casting, hyperslabbing, and intrinsic functions.
+
+2016-04-28  Henry Butowsky  <henryb@hush.com>
+
+	* Changed RAM variables that represent netCDF types from __FLOAT, __DOUBLE ... to
+          NC_NAT, NC_BYTE, NC_UBYTE, ... NC_FLOAT, NC_DOUBLE
+	  Use these with the type() method,  e.g, if(var.type() == NC_FLOAT) var=var.double()
+
+2016-04-27  Charlie Zender  <zender@uci.edu>
+
+	* ncremap fix drc_tmp logic to work without $TMPDIR
+
+	* ncremap search for ERWG, Tempest before trying to execute them
+
+	* ncclimo add debugging info for MPI node list
+
+2016-04-26  Charlie Zender  <zender@uci.edu>
+
+	* Reset rcd handling in CF bounds logic
+
+	* Add ncclimo support for "generic" datasets (like NASA MERRA) with YYYYMM format
+
+2016-04-22  Charlie Zender  <zender@uci.edu>
+
+	* Document --cb, --c2b
+
+2016-04-20  Charlie Zender  <zender@uci.edu>
+
+	* Treat as coordinates all variables listed in a "grid_mapping" attribute
+
+	* Default source code download links now point to GitHub not SF
+
+2016-04-18  Charlie Zender  <zender@uci.edu>
+
+	* Excise old CF-handling from ncclimo
+
+	* NCO 4.6.0-beta03 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.0-beta03 final changes';git push
+	git tag -a 4.6.0-beta03 -m 'Version 4.6.0-beta03 new features: ncclimo, climatology bounds';git push --tags
+
+	* Turn-off dysfunctional legible (lgb) print-formatting until it works
+
+	* Coordinate cell_methods with climatology bounds
+
+	* Copy missing calendar to temporal bounds so ncdump -t prints correct date
+
+2016-04-17  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.0-beta02 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.0-beta02 final changes';git push
+	git tag -a 4.6.0-beta02 -m 'Version 4.6.0-beta02 new features: ncclimo, climatology bounds';git push --tags
+
+	* Copy missing units to temporal bounds so ncdump -t prints correct date
+
+2016-04-16  Charlie Zender  <zender@uci.edu>
+
+	* Work on climatology_bounds for ACME...
+
+2016-04-15  Henry Butowsky  <henryb@hush.com>
+
+	* Modify out() and assign() so ASSIGN familiy of operands and '++', -- operands a value is returned only if needed
+
+	* Fix bug introduced in 4.5.4: Regular assign statements in two-parse operations did not propagate missing values from RHS to LHS. Following test now works ncap2 -v -O -S gsl_sf.in in.nc foo.nc
+
+2016-04-12  Charlie Zender  <zender@uci.edu>
+
+	* Print blank line after global attributes in CDL mode in nco_prn_att()
+
+2016-04-08  Henry Butowsky  <henryb@hush.com>
+
+	* Modify ncap_var_var_op() and ncap_var_var_inc() so two operand functions need not stretch or conform scalars
+
+2016-04-07  Charlie Zender  <zender@uci.edu>
+
+	* Split cori from edison binary locations to allow for different system libraries
+
+2016-04-06  Charlie Zender  <zender@uci.edu>
+
+	* Add skeleton structure to implement climatology_bnds convention in ncra
+
+2016-04-04  Charlie Zender  <zender@uci.edu>
+
+	* Clarify ncks -H documentation, say clearly that it toggles
+
+2016-04-01  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.0-beta01 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.0-beta01 final changes';git push
+	git tag -a 4.6.0-beta01 -m 'Version 4.6.0-beta01 new features: Terraref works well';git push --tags
+
+	* Change default temporary directory (for intermediate files) from $drc_out to $TMPDIR
+
+	* Trim trailing slash from drc_out, drc_tmp so $TMPDIR looks right
+
+2016-03-31  Charlie Zender  <zender@uci.edu>
+
+	* Make FORCE_APPEND I/O in nco_fl_out_open(), and set to true when user interactively selects append
+	This ensures specifying -A follows same code path as interactively selecting append. Fixes bug reported by Parker Norton.
+
 2016-03-31  Henry Butowsky  <henryb@hush.com>
-	* Mods to LHC casting so "pathalogical" expressions like 
-	 'three_dmn_var_dbl[time,lon,lat]=three_dmn_var_dbl.int()' 
-	  work !!
-	
+
+	* Modify LHC casting so "pathological" expressions like 'three_dmn_var_dbl[time,lon,lat]=three_dmn_var_dbl.int()' work
+
 2016-03-30  Charlie Zender  <zender@uci.edu>
 
 	* NCO 4.5.6-alpha06 release procedure:

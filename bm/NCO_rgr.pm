@@ -30,7 +30,7 @@ use vars qw(
 	    $foo_fl $foo_tst $foo_x_fl $foo_xy_fl
 	    $foo_xymyx_fl $foo_y_fl $foo_yx_fl $mpi_prc $nco_D_flg $localhostname
 	    $nsr_xpc $omp_flg $opr_nm $opr_rgr_mpi $fl_out_rgn
-	    $fl_out $pth_rmt_scp_tst $prsrv_fl @tst_cmd $USER %NCO_RC
+	    $fl_out $pth_rmt_scp_tst $prsrv_fl @tst_cmd $HOME $DATA $USER %NCO_RC
 	    );
 
 sub tst_rgr {
@@ -110,11 +110,195 @@ sub tst_rgr {
   if($exit_value == 433){print "netCDF version 4.3.3 detected\n";}
   if($exit_value == 440){print "netCDF version 4.4.0 detected\n";}
   if($exit_value == 441){print "netCDF version 4.4.1 detected\n";}
+  if($exit_value == 442){print "netCDF version 4.4.2 detected\n";}
 
   if($exit_value >= 400){$RUN_NETCDF4_TESTS=1;}
   if($exit_value >= 431){$RUN_NETCDF4_TESTS_VERSION_GE_431=1;}
 }
 print "\n";
+
+####################
+#### ncclimo tests #
+####################
+    $opr_nm="ncclimo";
+    $USER=$ENV{'USER'};
+    $DATA=$ENV{'DATA'};
+    $HOME=$ENV{'HOME'};
+if($USER eq 'zender'){
+# NB: area variable is not in ACME cube-sphere native output so this answer is not area-weighted
+# ncclimo -v FSNT,AODVIS -c famipc5_ne30_v0.3_00003 -s 1980 -e 1983 -i ${DATA}/ne30/raw -o ${DATA}/ne30/clm
+# ncwa -O ${DATA}/ne30/clm/famipc5_ne30_v0.3_00003_ANN_197912_198311_climo.nc ~/foo.nc
+# ncks -O -H -u -C -v FSNT ~/foo.nc
+	$dsc_sng="ncclimo (depends on input files in ${DATA}/ne30/raw)";
+	$tst_cmd[0]="ncclimo -v FSNT,AODVIS -c famipc5_ne30_v0.3_00003 -s 1980 -e 1983 -i ${DATA}/ne30/raw -o ${DATA}/ne30/clm > ${HOME}/foo.ncclimo";
+	$tst_cmd[1]="ncwa -O $fl_fmt $nco_D_flg ${DATA}/ne30/clm/famipc5_ne30_v0.3_00003_ANN_197912_198311_climo.nc %tmp_fl_00%";
+	$tst_cmd[2]="ncks -O $fl_fmt $nco_D_flg -H -u -C -v FSNT %tmp_fl_00%";
+	$tst_cmd[3]="FSNT = 235.965 W/m2";
+	$tst_cmd[4]="SS_OK";
+	NCO_bm::tst_run(\@tst_cmd);
+	$#tst_cmd=0; # Reset array
+} # !zender
+
+####################
+#### ncremap tests #
+####################
+    $opr_nm="ncremap";
+####################
+    $USER=$ENV{'USER'};
+    $DATA=$ENV{'DATA'};
+    $HOME=$ENV{'HOME'};
+if($USER eq 'zender'){
+	# Regridding regression tests
+	# valgrind --leak-check=yes --show-reachable=yes --suppressions=${HOME}/nco/doc/valgrind.txt --tool=memcheck ncks -O -D 5 --map=${DATA}/maps/map_ne30np4_to_fv129x256_aave.150418.nc ${DATA}/ne30/rgr/ne30_tst.nc ~/foo.nc > ~/foo 2>&1
+	# ncks -O -D 5 --map=${DATA}/maps/map_ne30np4_to_fv129x256_aave.150418.nc ${DATA}/ne30/rgr/ne30_tst.nc ~/foo.nc
+	# ncwa -O -w area ~/foo.nc ~/foo2.nc
+	# ncks -H -u -C -v FSNT ~/foo2.nc
+	# ncwa -O -y ttl -v area ~/foo.nc ~/foo3.nc
+	# ncks -H -u -C -v area ~/foo3.nc
+	
+	$dsc_sng="ncks regrid FSNT 1D->2D to test conservation (does SSH/scp to dust.ess.uci.edu)";
+	$tst_cmd[0]="scp dust.ess.uci.edu:data/maps/map_ne30np4_to_fv129x256_aave.20150901.nc .";
+	$tst_cmd[1]="scp dust.ess.uci.edu:data/ne30/rgr/ne30_tst.nc .";
+	$tst_cmd[2]="ncks -O $fl_fmt $nco_D_flg --map=map_ne30np4_to_fv129x256_aave.20150901.nc ne30_tst.nc %tmp_fl_00%";
+#	my $pwd=`pwd`; chomp $pwd; print $pwd;
+#	$dsc_sng="ncks regrid FSNT to regridding conservation (does wget to dust.ess.uci.edu)";
+#	$tst_cmd[0]="wget -c -P $drc_dat http://dust.ess.uci.edu/maps/map_ne30np4_to_fv129x256_aave.20150901.nc";
+#	$tst_cmd[1]="wget -c -P $drc_dat http://dust.ess.uci.edu/ne30/rgr/ne30_tst.nc";
+#	$tst_cmd[2]="ncks -h -O $fl_fmt $nco_D_flg --map=".$drc_dat."/map_ne30np4_to_fv129x256_aave.20150901.nc ".$drc_dat."/ne30_tst.nc %tmp_fl_00%";
+	$tst_cmd[3]="/bin/cp -f %tmp_fl_00% ne30_2D.nc";
+	$tst_cmd[4]="ncwa -O $fl_fmt $nco_D_flg -w area %tmp_fl_00% %tmp_fl_01%";
+	$tst_cmd[5]="ncks -O $fl_fmt $nco_D_flg -H -u -C -v FSNT %tmp_fl_01%";
+	$tst_cmd[6]="FSNT = 244.124 W/m2";
+	$tst_cmd[7]="SS_OK";
+	NCO_bm::tst_run(\@tst_cmd);
+	$#tst_cmd=0; # Reset array
+
+	$dsc_sng="ncks regrid AODVIS 1D->2D to test missing value treatment";
+	$tst_cmd[0]="ncks -O $fl_fmt $nco_D_flg -H -u -C -v AODVIS %tmp_fl_01%";
+	$tst_cmd[1]="AODVIS = 0.151705";
+	$tst_cmd[2]="SS_OK";
+	NCO_bm::tst_run(\@tst_cmd);
+	$#tst_cmd=0; # Reset array
+
+	$dsc_sng="ncks regrid area 1D->2D to test grid area integral/normalization";
+	$tst_cmd[0]="ncks -O $fl_fmt $nco_D_flg --map=${drc_dat}/map_ne30np4_to_fv129x256_aave.20150901.nc ${drc_dat}/ne30_tst.nc %tmp_fl_00%";
+	$tst_cmd[1]="ncwa -O $fl_fmt $nco_D_flg -y ttl -v area %tmp_fl_00% %tmp_fl_02%";
+	$tst_cmd[2]="ncks -O $fl_fmt $nco_D_flg -H -u -C -v area %tmp_fl_02%";
+	$tst_cmd[3]="area = 12.5663706144 steradian";
+	$tst_cmd[4]="SS_OK";
+	NCO_bm::tst_run(\@tst_cmd);
+	$#tst_cmd=0; # Reset array
+
+	$dsc_sng="ncks regrid FSNT 1D->2D to test bilinear remapping (does SSH/scp to dust.ess.uci.edu)";
+	$tst_cmd[0]="scp dust.ess.uci.edu:data/maps/map_ne30np4_to_fv257x512_bilin.20150901.nc .";
+	$tst_cmd[1]="scp dust.ess.uci.edu:data/ne30/rgr/ne30_tst.nc .";
+	$tst_cmd[2]="ncks -O $fl_fmt $nco_D_flg --map=map_ne30np4_to_fv257x512_bilin.20150901.nc ne30_tst.nc %tmp_fl_00%";
+	$tst_cmd[3]="ncwa -O $fl_fmt $nco_D_flg -w gw %tmp_fl_00% %tmp_fl_01%";
+	$tst_cmd[4]="ncks -O $fl_fmt $nco_D_flg -H -u -C -v FSNT %tmp_fl_01%";
+	$tst_cmd[5]="FSNT = 244.237 W/m2";
+	$tst_cmd[6]="SS_OK";
+	NCO_bm::tst_run(\@tst_cmd);
+	$#tst_cmd=0; # Reset array
+
+	$dsc_sng="ncks regrid FSNT 2D->1D to test conservation (does SSH/scp to dust.ess.uci.edu)";
+	$tst_cmd[0]="scp dust.ess.uci.edu:data/maps/map_fv129x256_to_ne30np4_aave.20150901.nc .";
+	$tst_cmd[1]="ncks -O $fl_fmt $nco_D_flg --map=map_fv129x256_to_ne30np4_aave.20150901.nc ne30_2D.nc %tmp_fl_00%";
+	$tst_cmd[2]="ncwa -O $fl_fmt $nco_D_flg -w area %tmp_fl_00% %tmp_fl_01%";
+	$tst_cmd[3]="ncks -O $fl_fmt $nco_D_flg -H -u -C -v FSNT %tmp_fl_01%";
+	$tst_cmd[4]="FSNT = 244.124 W/m2";
+	$tst_cmd[5]="SS_OK";
+	NCO_bm::tst_run(\@tst_cmd);
+	$#tst_cmd=0; # Reset array
+
+	$dsc_sng="ncks regrid FSNT 2D->2D to test conservation (does SSH/scp to dust.ess.uci.edu)";
+	$tst_cmd[0]="scp dust.ess.uci.edu:data/maps/map_fv129x256_to_fv257x512_aave.20150901.nc .";
+	$tst_cmd[1]="scp dust.ess.uci.edu:data/ne30/rgr/ne30_2D.nc .";
+	$tst_cmd[2]="ncks -O $fl_fmt $nco_D_flg --map=map_fv129x256_to_fv257x512_aave.20150901.nc ne30_2D.nc %tmp_fl_00%";
+	$tst_cmd[3]="ncwa -O $fl_fmt $nco_D_flg -w area %tmp_fl_00% %tmp_fl_01%";
+	$tst_cmd[4]="ncks -O $fl_fmt $nco_D_flg -H -u -C -v FSNT %tmp_fl_01%";
+	$tst_cmd[5]="FSNT = 244.124 W/m2";
+	$tst_cmd[6]="SS_OK";
+	NCO_bm::tst_run(\@tst_cmd);
+	$#tst_cmd=0; # Reset array
+
+	$dsc_sng="ncks regrid FSNT 1D->1D to test identity mapping and conservation (does SSH/scp to dust.ess.uci.edu)";
+	$tst_cmd[0]="scp dust.ess.uci.edu:data/maps/map_ne30np4_to_ne30np4_aave.20150603.nc .";
+	$tst_cmd[1]="scp dust.ess.uci.edu:data/ne30/rgr/ne30_tst.nc .";
+	$tst_cmd[2]="ncks -O $fl_fmt $nco_D_flg --map=map_ne30np4_to_ne30np4_aave.20150603.nc ne30_tst.nc %tmp_fl_00%";
+	$tst_cmd[3]="ncwa -O $fl_fmt $nco_D_flg -w area %tmp_fl_00% %tmp_fl_01%";
+	$tst_cmd[4]="ncks -O $fl_fmt $nco_D_flg -H -u -C -v FSNT %tmp_fl_01%";
+	$tst_cmd[5]="FSNT = 244.124 W/m2";
+	$tst_cmd[6]="SS_OK";
+	NCO_bm::tst_run(\@tst_cmd);
+	$#tst_cmd=0; # Reset array
+
+# ncks -O --rgr grid=~/foo_grid.nc --rgr latlon=64,128 --rgr lat_typ=gss --rgr lon_typ=Grn_ctr ~/nco/data/in.nc ~/foo.nc
+# ncks -O -H -u -C -s %18.15f -d grid_size,0 -v grid_center_lat ~/foo_grid.nc
+# 20151205: using %tmp_fl_00% in arguments like "--rgr grid=%tmp_fl_00%" leads to epic fail, so hard-code filenames that are arguments
+	$dsc_sng="ncks generate T42 gridfile";
+	$tst_cmd[0]="ncks -O $fl_fmt $nco_D_flg --rgr grid=foo_grid.nc --rgr latlon=64,128 --rgr lat_typ=gss --rgr lon_typ=Grn_ctr $in_pth_arg in.nc %tmp_fl_01%";
+	$tst_cmd[1]="ncks -O $fl_fmt $nco_D_flg -H -u -C -s %18.15f -d grid_size,0 -v grid_center_lat foo_grid.nc";
+	$tst_cmd[2]="-87.863798839232629";
+	$tst_cmd[3]="SS_OK";
+	NCO_bm::tst_run(\@tst_cmd);
+	$#tst_cmd=0; # Reset array
+
+# ncks -O -D 1 --rgr skl=~/foo_skl.nc --rgr grid=~/foo_grid.nc --rgr latlon=64,128 --rgr lat_typ=gss --rgr lon_typ=Grn_ctr ~/nco/data/in.nc ~/foo.nc
+# ncks -O -H -u -C -s %g -d lat,0 -v gw ~/foo_skl.nc
+	$dsc_sng="ncks generate T42-grid skeleton file";
+	$tst_cmd[0]="ncks -O $fl_fmt $nco_D_flg --rgr skl=foo_skl.nc --rgr grid=foo_grid.nc --rgr latlon=64,128 --rgr lat_typ=gss --rgr lon_typ=Grn_ctr $in_pth_arg in.nc %tmp_fl_02%";
+	$tst_cmd[1]="ncks -O $fl_fmt $nco_D_flg -H -u -C -s %g -d lat,0 -v gw foo_skl.nc";
+	$tst_cmd[2]="0.00178328";
+	$tst_cmd[3]="SS_OK";
+	NCO_bm::tst_run(\@tst_cmd);
+	$#tst_cmd=0; # Reset array
+
+# ncks -O --rgr nfr=y --rgr grid=~/foo_grid.nc ~/nco/data/ne30_2D.nc ~/foo.nc
+# ncks -O -H -u -C -s %8.5f -d grid_size,256 -v grid_center_lat ~/foo_grid.nc
+# 20151205: using %tmp_fl_00% in arguments like "--rgr grid=%tmp_fl_00%" leads to epic fail, so hard-code filenames that are arguments
+	$dsc_sng="ncks infer 129x256 FV gridfile (does SSH/scp to dust.ess.uci.edu)";
+	$tst_cmd[0]="scp dust.ess.uci.edu:data/ne30/rgr/ne30_2D.nc .";
+	$tst_cmd[1]="ncks -O $fl_fmt $nco_D_flg --rgr nfr=y --rgr grid=foo_grid.nc ne30_2D.nc %tmp_fl_01%";
+	$tst_cmd[2]="ncks -O $fl_fmt $nco_D_flg -H -u -C -s %8.5f -d grid_size,256 -v grid_center_lat foo_grid.nc";
+	$tst_cmd[3]="-88.59375";
+	$tst_cmd[4]="SS_OK";
+	NCO_bm::tst_run(\@tst_cmd);
+	$#tst_cmd=0; # Reset array
+
+	$dsc_sng="ncremap regrid FSNT 1D->2D to test conservation (depends on SSH/scp to dust.ess.uci.edu)";
+	$tst_cmd[0]="scp dust.ess.uci.edu:data/maps/map_ne30np4_to_fv129x256_aave.20150901.nc .";
+	$tst_cmd[1]="scp dust.ess.uci.edu:data/ne30/rgr/ne30_tst.nc .";
+	$tst_cmd[2]="ncremap -i ne30_tst.nc -m map_ne30np4_to_fv129x256_aave.20150901.nc -o %tmp_fl_00%";
+	$tst_cmd[3]="ncwa -O $fl_fmt $nco_D_flg -w area %tmp_fl_00% %tmp_fl_01%";
+	$tst_cmd[4]="ncks -O $fl_fmt $nco_D_flg -H -u -C -v FSNT %tmp_fl_01%";
+	$tst_cmd[5]="FSNT = 244.124 W/m2";
+	$tst_cmd[6]="SS_OK";
+	NCO_bm::tst_run(\@tst_cmd);
+	$#tst_cmd=0; # Reset array
+
+# ncremap generate T42 dataset, populate with test field, conservatively regrid to 2x2, verify conservation
+# ncks -O --rgr skl=~/skl_t42.nc --rgr grid=~/grd_t42.nc --rgr latlon=64,128 --rgr lat_typ=gss --rgr lon_typ=Grn_ctr ~/nco/data/in.nc ~/foo.nc
+# ncks -O --rgr grid=~/grd_2x2.nc --rgr latlon=90,180 --rgr lat_typ=eqa --rgr lon_typ=Grn_wst ~/nco/data/in.nc ~/foo.nc
+# ncap2 -O -s 'tst[lat,lon]=1.0f' ~/skl_t42.nc ~/dat_t42.nc
+# /bin/rm -f ~/foo_map_t42_to_2x2.nc
+# ncremap -a conserve -s ~/grd_t42.nc -g ~/grd_2x2.nc -m ~/map_t42_to_2x2.nc
+# ncremap -i ~/dat_t42.nc -m ~/map_t42_to_2x2.nc -o ~/dat_2x2.nc
+# ncwa -O ~/dat_2x2.nc ~/dat_avg.nc
+# ncks -C -H -v tst ~/dat_avg.nc
+	$dsc_sng="ncremap generate fake T42 dataset, conservatively regrid to 2x2";
+	$tst_cmd[0]="ncks -O $fl_fmt $nco_D_flg --rgr skl=foo_skl_t42.nc --rgr grid=foo_grd_t42.nc --rgr latlon=64,128 --rgr lat_typ=gss --rgr lon_typ=Grn_ctr $in_pth_arg in.nc %tmp_fl_00%";
+	$tst_cmd[1]="ncks -O $fl_fmt $nco_D_flg --rgr grid=foo_grd_2x2.nc --rgr latlon=90,180 --rgr lat_typ=eqa --rgr lon_typ=Grn_wst $in_pth_arg in.nc %tmp_fl_00%";
+	$tst_cmd[2]="ncap2 -O $fl_fmt $nco_D_flg -s 'tst[lat,lon]=1.0f' foo_skl_t42.nc foo_dat_t42.nc";
+        $tst_cmd[3]="/bin/rm -f foo_map_t42_to_2x2.nc";
+	$tst_cmd[4]="ncremap -a conserve -s foo_grd_t42.nc -g foo_grd_2x2.nc -m foo_map_t42_to_2x2.nc";
+	$tst_cmd[5]="ncremap -i foo_dat_t42.nc -m foo_map_t42_to_2x2.nc -o foo_dat_2x2.nc";
+	$tst_cmd[6]="ncwa -O $fl_fmt $nco_D_flg foo_dat_2x2.nc foo_dat_avg.nc";
+	$tst_cmd[7]="ncks -C -H -v tst foo_dat_avg.nc";
+	$tst_cmd[8]="tst = 1";
+	$tst_cmd[9]="SS_OK";
+	NCO_bm::tst_run(\@tst_cmd);
+	$#tst_cmd=0; # Reset array
+} # !zender
 
 ####################
 #### ncap2 tests ####
@@ -241,128 +425,24 @@ print "\n";
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
 
+    $dsc_sng="Run script to to test casting, hyperslabbing and intrinsic functions";
+    $tst_cmd[0]="ncap2 -h -O $fl_fmt $nco_D_flg -v -S '../data/bsc_tst.nco' $in_pth_arg in.nc %tmp_fl_00%";
+    $tst_cmd[1]="ncks -C -H -v nbr_err_ttl -s '%d' %tmp_fl_00%";
+    $tst_cmd[2]="0";
+    $tst_cmd[3]="SS_OK";
+    NCO_bm::tst_run(\@tst_cmd);
+    $#tst_cmd=0; # Reset array
+
+# ncap2 -O -v -S ~/nco/data/vpointer-tst.nco ~/nco/data/in.nc ~/foo.nc
+   $dsc_sng="Run script to test conversion of input vars to type NC_DOUBLE using var-pointers";
+    $tst_cmd[0]="ncap2 -h -O $fl_fmt $nco_D_flg -v -S '../data/vpointer-tst.nco' $in_pth_arg in.nc %tmp_fl_00%";
+    $tst_cmd[1]="ncks -C -H -v nbr_err -s '%d' %tmp_fl_00%";
+    $tst_cmd[2]="0";
+    $tst_cmd[3]="SS_OK";
+    NCO_bm::tst_run(\@tst_cmd);
+    $#tst_cmd=0; # Reset array
 
 
-
-    $USER=$ENV{'USER'};
-    if($USER eq 'zender'){
-	# Regridding regression tests
-	# valgrind --leak-check=yes --show-reachable=yes --suppressions=${HOME}/nco/doc/valgrind.txt --tool=memcheck ncks -O -D 5 --map=${DATA}/maps/map_ne30np4_to_fv129x256_aave.150418.nc ${DATA}/ne30/rgr/ne30_tst.nc ~/foo.nc > ~/foo 2>&1
-	# ncks -O -D 5 --map=${DATA}/maps/map_ne30np4_to_fv129x256_aave.150418.nc ${DATA}/ne30/rgr/ne30_tst.nc ~/foo.nc
-	# ncwa -O -w area ~/foo.nc ~/foo2.nc
-	# ncks -H -u -C -v FSNT ~/foo2.nc
-	# ncwa -O -y ttl -v area ~/foo.nc ~/foo3.nc
-	# ncks -H -u -C -v area ~/foo3.nc
-	
-	$dsc_sng="Regridding FSNT 1D->2D to test conservation (uses SSH/scp to dust.ess.uci.edu)";
-	$tst_cmd[0]="scp dust.ess.uci.edu:data/maps/map_ne30np4_to_fv129x256_aave.20150901.nc .";
-	$tst_cmd[1]="scp dust.ess.uci.edu:data/ne30/rgr/ne30_tst.nc .";
-	$tst_cmd[2]="ncks -O $fl_fmt $nco_D_flg --map=map_ne30np4_to_fv129x256_aave.20150901.nc ne30_tst.nc %tmp_fl_00%";
-#	my $pwd=`pwd`; chomp $pwd; print $pwd;
-#	$dsc_sng="Regridding FSNT to regridding conservation (uses wget to dust.ess.uci.edu)";
-#	$tst_cmd[0]="wget -c -P $drc_dat http://dust.ess.uci.edu/maps/map_ne30np4_to_fv129x256_aave.20150901.nc";
-#	$tst_cmd[1]="wget -c -P $drc_dat http://dust.ess.uci.edu/ne30/rgr/ne30_tst.nc";
-#	$tst_cmd[2]="ncks -h -O $fl_fmt $nco_D_flg --map=".$drc_dat."/map_ne30np4_to_fv129x256_aave.20150901.nc ".$drc_dat."/ne30_tst.nc %tmp_fl_00%";
-	$tst_cmd[3]="/bin/cp -f %tmp_fl_00% ne30_2D.nc";
-	$tst_cmd[4]="ncwa -O $fl_fmt $nco_D_flg -w area %tmp_fl_00% %tmp_fl_01%";
-	$tst_cmd[5]="ncks -O $fl_fmt $nco_D_flg -H -u -C -v FSNT %tmp_fl_01%";
-	$tst_cmd[6]="FSNT = 244.124 W/m2";
-	$tst_cmd[7]="SS_OK";
-	NCO_bm::tst_run(\@tst_cmd);
-	$#tst_cmd=0; # Reset array
-
-	$dsc_sng="Regridding AODVIS 1D->2D to test missing value treatment";
-	$tst_cmd[0]="ncks -O $fl_fmt $nco_D_flg -H -u -C -v AODVIS %tmp_fl_01%";
-	$tst_cmd[1]="AODVIS = 0.151705";
-	$tst_cmd[2]="SS_OK";
-	NCO_bm::tst_run(\@tst_cmd);
-	$#tst_cmd=0; # Reset array
-
-	$dsc_sng="Regridding area 1D->2D to test grid area integral/normalization";
-	$tst_cmd[0]="ncks -O $fl_fmt $nco_D_flg --map=${drc_dat}/map_ne30np4_to_fv129x256_aave.20150901.nc $drc_dat/ne30_tst.nc %tmp_fl_00%";
-	$tst_cmd[1]="ncwa -O $fl_fmt $nco_D_flg -y ttl -v area %tmp_fl_00% %tmp_fl_02%";
-	$tst_cmd[2]="ncks -O $fl_fmt $nco_D_flg -H -u -C -v area %tmp_fl_02%";
-	$tst_cmd[3]="area = 12.5663706144 steradian";
-	$tst_cmd[4]="SS_OK";
-	NCO_bm::tst_run(\@tst_cmd);
-	$#tst_cmd=0; # Reset array
-
-	$dsc_sng="Regridding FSNT 1D->2D to test bilinear remapping (uses SSH/scp to dust.ess.uci.edu)";
-	$tst_cmd[0]="scp dust.ess.uci.edu:data/maps/map_ne30np4_to_fv257x512_bilin.20150901.nc .";
-	$tst_cmd[1]="scp dust.ess.uci.edu:data/ne30/rgr/ne30_tst.nc .";
-	$tst_cmd[2]="ncks -O $fl_fmt $nco_D_flg --map=map_ne30np4_to_fv257x512_bilin.20150901.nc ne30_tst.nc %tmp_fl_00%";
-	$tst_cmd[3]="ncwa -O $fl_fmt $nco_D_flg -w gw %tmp_fl_00% %tmp_fl_01%";
-	$tst_cmd[4]="ncks -O $fl_fmt $nco_D_flg -H -u -C -v FSNT %tmp_fl_01%";
-	$tst_cmd[5]="FSNT = 244.237 W/m2";
-	$tst_cmd[6]="SS_OK";
-	NCO_bm::tst_run(\@tst_cmd);
-	$#tst_cmd=0; # Reset array
-
-	$dsc_sng="Regridding FSNT 2D->1D to test conservation (uses SSH/scp to dust.ess.uci.edu)";
-	$tst_cmd[0]="scp dust.ess.uci.edu:data/maps/map_fv129x256_to_ne30np4_aave.20150901.nc .";
-	$tst_cmd[1]="ncks -O $fl_fmt $nco_D_flg --map=map_fv129x256_to_ne30np4_aave.20150901.nc ne30_2D.nc %tmp_fl_00%";
-	$tst_cmd[2]="ncwa -O $fl_fmt $nco_D_flg -w area %tmp_fl_00% %tmp_fl_01%";
-	$tst_cmd[3]="ncks -O $fl_fmt $nco_D_flg -H -u -C -v FSNT %tmp_fl_01%";
-	$tst_cmd[4]="FSNT = 244.124 W/m2";
-	$tst_cmd[5]="SS_OK";
-	NCO_bm::tst_run(\@tst_cmd);
-	$#tst_cmd=0; # Reset array
-
-	$dsc_sng="Regridding FSNT 2D->2D to test conservation (uses SSH/scp to dust.ess.uci.edu)";
-	$tst_cmd[0]="scp dust.ess.uci.edu:data/maps/map_fv129x256_to_fv257x512_aave.20150901.nc .";
-	$tst_cmd[1]="scp dust.ess.uci.edu:data/ne30/rgr/ne30_2D.nc .";
-	$tst_cmd[2]="ncks -O $fl_fmt $nco_D_flg --map=map_fv129x256_to_fv257x512_aave.20150901.nc ne30_2D.nc %tmp_fl_00%";
-	$tst_cmd[3]="ncwa -O $fl_fmt $nco_D_flg -w area %tmp_fl_00% %tmp_fl_01%";
-	$tst_cmd[4]="ncks -O $fl_fmt $nco_D_flg -H -u -C -v FSNT %tmp_fl_01%";
-	$tst_cmd[5]="FSNT = 244.124 W/m2";
-	$tst_cmd[6]="SS_OK";
-	NCO_bm::tst_run(\@tst_cmd);
-	$#tst_cmd=0; # Reset array
-
-	$dsc_sng="Regridding FSNT 1D->1D to test identity mapping and conservation (uses SSH/scp to dust.ess.uci.edu)";
-	$tst_cmd[0]="scp dust.ess.uci.edu:data/maps/map_ne30np4_to_ne30np4_aave.20150603.nc .";
-	$tst_cmd[1]="scp dust.ess.uci.edu:data/ne30/rgr/ne30_tst.nc .";
-	$tst_cmd[2]="ncks -O $fl_fmt $nco_D_flg --map=map_ne30np4_to_ne30np4_aave.20150603.nc ne30_tst.nc %tmp_fl_00%";
-	$tst_cmd[3]="ncwa -O $fl_fmt $nco_D_flg -w area %tmp_fl_00% %tmp_fl_01%";
-	$tst_cmd[4]="ncks -O $fl_fmt $nco_D_flg -H -u -C -v FSNT %tmp_fl_01%";
-	$tst_cmd[5]="FSNT = 244.124 W/m2";
-	$tst_cmd[6]="SS_OK";
-	NCO_bm::tst_run(\@tst_cmd);
-	$#tst_cmd=0; # Reset array
-
-# ncks -O --rgr grid=~/foo_grid.nc --rgr latlon=64,128 --rgr lat_typ=gss --rgr lon_typ=Grn_ctr ~/nco/data/in.nc ~/foo.nc
-# ncks -O -H -u -C -s %18.15f -d grid_size,0 -v grid_center_lat ~/foo_grid.nc
-# 20151205: using %tmp_fl_00% in arguments like "--rgr grid=%tmp_fl_00%" leads to epic fail, so hard-code filenames that are arguments
-	$dsc_sng="Generate T42 gridfile";
-	$tst_cmd[0]="ncks -O $fl_fmt $nco_D_flg --rgr grid=foo_grid.nc --rgr latlon=64,128 --rgr lat_typ=gss --rgr lon_typ=Grn_ctr $in_pth_arg in.nc %tmp_fl_01%";
-	$tst_cmd[1]="ncks -O $fl_fmt $nco_D_flg -H -u -C -s %18.15f -d grid_size,0 -v grid_center_lat foo_grid.nc";
-	$tst_cmd[2]="-87.863798839232629";
-	$tst_cmd[3]="SS_OK";
-	NCO_bm::tst_run(\@tst_cmd);
-	$#tst_cmd=0; # Reset array
-
-# ncks -O -D 1 --rgr skl=~/foo_skl.nc --rgr grid=~/foo_grid.nc --rgr latlon=64,128 --rgr lat_typ=gss --rgr lon_typ=Grn_ctr ~/nco/data/in.nc ~/foo.nc
-# ncks -O -H -u -C -s %g -d lat,0 -v gw ~/foo_skl.nc
-	$dsc_sng="Generate T42-grid skeleton file";
-	$tst_cmd[0]="ncks -O $fl_fmt $nco_D_flg --rgr skl=foo_skl.nc --rgr grid=foo_grid.nc --rgr latlon=64,128 --rgr lat_typ=gss --rgr lon_typ=Grn_ctr $in_pth_arg in.nc %tmp_fl_02%";
-	$tst_cmd[1]="ncks -O $fl_fmt $nco_D_flg -H -u -C -s %g -d lat,0 -v gw foo_skl.nc";
-	$tst_cmd[2]="0.00178328";
-	$tst_cmd[3]="SS_OK";
-	NCO_bm::tst_run(\@tst_cmd);
-	$#tst_cmd=0; # Reset array
-
-# ncks -O --rgr nfr=y --rgr grid=~/foo_grid.nc ~/nco/data/ne30_2D.nc ~/foo.nc
-# ncks -O -H -u -C -s %8.5f -d grid_size,256 -v grid_center_lat ~/foo_grid.nc
-# 20151205: using %tmp_fl_00% in arguments like "--rgr grid=%tmp_fl_00%" leads to epic fail, so hard-code filenames that are arguments
-	$dsc_sng="Infer 129x256 FV gridfile (uses SSH/scp to dust.ess.uci.edu)";
-	$tst_cmd[0]="scp dust.ess.uci.edu:data/ne30/rgr/ne30_2D.nc .";
-	$tst_cmd[1]="ncks -O $fl_fmt $nco_D_flg --rgr nfr=y --rgr grid=foo_grid.nc ne30_2D.nc %tmp_fl_01%";
-	$tst_cmd[2]="ncks -O $fl_fmt $nco_D_flg -H -u -C -s %8.5f -d grid_size,256 -v grid_center_lat foo_grid.nc";
-	$tst_cmd[3]="-88.59375";
-	$tst_cmd[4]="SS_OK";
-	NCO_bm::tst_run(\@tst_cmd);
-	$#tst_cmd=0; # Reset array
-    } # !zender
     
     if($dodap eq "FALSE"){
 ####################
@@ -1199,7 +1279,7 @@ print "\n";
     $dsc_sng="Test tabs on coordinate";
     $tst_cmd[0]="ncra -Y ncfe -y tabs -v lond $omp_flg -O $fl_fmt $nco_D_flg $in_pth_arg in.nc in.nc %tmp_fl_00%";
     $tst_cmd[1]="ncks -C -H -v lon -d lon,3 %tmp_fl_00%";
-    $tst_cmd[2]="lon[3] = 270";
+    $tst_cmd[2]="lon[3]=270";
     $tst_cmd[3]="SS_OK";
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array	
@@ -1939,6 +2019,7 @@ print "\n";
     $#tst_cmd=0; # Reset array 							
 	
 #ncks #42 Extract associated coordinates test 1 (netCDF3 file) 
+#This tests that coordinate rlev is extracted with rz
     $dsc_sng="Extract associated coordinates test 1 (netCDF3 file) ";
     $tst_cmd[0]="ncks -O $fl_fmt $nco_D_flg -v rz $in_pth_arg in.nc %tmp_fl_00%";
     $tst_cmd[1]="ncks -v rlev %tmp_fl_00% | grep -o -w rlev";
@@ -1948,10 +2029,13 @@ print "\n";
     $#tst_cmd=0; # Reset array 
 	
 #ncks #43 Extract associated coordinates test 2 (netCDF3 file) 
+#This tests that coordinate rlev is not extracted with rz when -C switch is used
+#ncks -O -C -v rz ~/nco/data/in.nc ~/foo.nc
+#ncks -v rz ~/foo.nc | wc | cut -d ' ' -f 6
     $dsc_sng="Extract associated coordinates test 2 (netCDF3 file) ";
     $tst_cmd[0]="ncks -O $fl_fmt $nco_D_flg -C -v rz $in_pth_arg in.nc %tmp_fl_00%";
-    $tst_cmd[1]="ncks -v rlev %tmp_fl_00% | grep -w /rlev";
-    $tst_cmd[2]="";
+    $tst_cmd[1]="ncks -v rz %tmp_fl_00% | wc | cut -d ' ' -f 6";
+    $tst_cmd[2]="11";
     $tst_cmd[3]="SS_OK";
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array 	
@@ -3316,19 +3400,52 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
 
 #ncpdq #41
 #ncpdq -O -a -lat -g g23,g24 ~/nco/data/in_grp_3.nc ~/foo.nc
-   $dsc_sng="(Groups) Reverse -a lat -g g24 several groups (expect failure TODO)";
+   $dsc_sng="(Groups) Reverse -a lat -g g24 several groups";
    $tst_cmd[0]="ncpdq $omp_flg $fl_fmt $nco_D_flg -O -a -lat -g g23,g24 $in_pth_arg in_grp_3.nc %tmp_fl_00%";
    $tst_cmd[1]="ncks -v lat -g g24 %tmp_fl_00%";
    $tst_cmd[2]="lat[1]=-60 degrees_north";
    $tst_cmd[3]="SS_OK";
    if($mpi_prc == 0 || ($mpi_prc > 0 && !($localhostname =~ /pbs/))){NCO_bm::tst_run(\@tst_cmd);} # ncpdq hangs with MPI TODO nco772
-   $#tst_cmd=0; # Reset array      
+   $#tst_cmd=0; # Reset array    
+
+#ncpdq #42
+#ncpdq -O -v lat,lon -a -lat,-lon -g g1,g2 ~/nco/data/in_grp_8.nc out1.nc
+#ncks -H out1.nc
+   $dsc_sng="(Groups) Reverse -a -lat,-lon several groups";
+   $tst_cmd[0]="ncpdq $omp_flg $fl_fmt $nco_D_flg -O -a -lat,-lon -g g1,g2 $in_pth_arg in_grp_8.nc %tmp_fl_00%";
+   $tst_cmd[1]="ncks -H -v lon -g g2 %tmp_fl_00%";
+   $tst_cmd[2]="lon[2]=0";
+   $tst_cmd[3]="SS_OK";
+   if($mpi_prc == 0 || ($mpi_prc > 0 && !($localhostname =~ /pbs/))){NCO_bm::tst_run(\@tst_cmd);} # ncpdq hangs with MPI TODO nco772
+   $#tst_cmd=0; # Reset array    
+
+#ncpdq #43
+#ncpdq -O -v lat,lon -a lat,-lon -g g1,g2 ~/nco/data/in_grp_8.nc out1.nc
+#ncks -H out1.nc
+   $dsc_sng="(Groups) Reverse -a lat,-lon several groups";
+   $tst_cmd[0]="ncpdq $omp_flg $fl_fmt $nco_D_flg -O -a lat,-lon -g g1,g2 $in_pth_arg in_grp_8.nc %tmp_fl_00%";
+   $tst_cmd[1]="ncks -H -v lon -g g2 %tmp_fl_00%";
+   $tst_cmd[2]="lon[2]=0";
+   $tst_cmd[3]="SS_OK";
+   if($mpi_prc == 0 || ($mpi_prc > 0 && !($localhostname =~ /pbs/))){NCO_bm::tst_run(\@tst_cmd);} # ncpdq hangs with MPI TODO nco772
+   $#tst_cmd=0; # Reset array  
+
+#ncpdq #44
+#ncpdq -O -v lat,lon -a -lat,lon -g g1,g2 ~/nco/data/in_grp_8.nc out1.nc
+#ncks -H out1.nc
+   $dsc_sng="(Groups) Reverse -a -lat,lon several groups";
+   $tst_cmd[0]="ncpdq $omp_flg $fl_fmt $nco_D_flg -O -a -lat,lon -g g1,g2 $in_pth_arg in_grp_8.nc %tmp_fl_00%";
+   $tst_cmd[1]="ncks -H -v lon -g g2 %tmp_fl_00%";
+   $tst_cmd[2]="lon[2]=2";
+   $tst_cmd[3]="SS_OK";
+   if($mpi_prc == 0 || ($mpi_prc > 0 && !($localhostname =~ /pbs/))){NCO_bm::tst_run(\@tst_cmd);} # ncpdq hangs with MPI TODO nco772
+   $#tst_cmd=0; # Reset array               
 
 #####################
 #### ncpdq PACK GROUP tests 
 #####################   
 
-#ncpdq #42
+#ncpdq #45
 #ncpdq -h -O -P all_new -v upk in.nc ~/foo.nc
 #ncpdq -h -O -P upk -v upk ~/foo.nc ~/foo.nc
 #ncks -C -H -s '%g' -v upk ~/foo.nc
@@ -3342,7 +3459,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
    if($mpi_prc == 0 || ($mpi_prc > 0 && !($localhostname =~ /pbs/))){NCO_bm::tst_run(\@tst_cmd);} # ncpdq hangs with MPI TODO nco772
    $#tst_cmd=0; # Reset array  
 
-#ncpdq #43
+#ncpdq #46
 # same as ncpdq #30
 # ncpdq -g g19g4 -h -O -C -P upk -v rec_var_dbl_mss_val_dbl_pck -d time,0,4 -d time,6 in_grp_3.nc ~/foo.nc
 # ncks -g g19g4 -C -H -s '%f' -v rec_var_dbl_mss_val_dbl_pck -d time,5 ~/foo.nc
@@ -3356,7 +3473,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
    if($mpi_prc == 0 || ($mpi_prc > 0 && !($localhostname =~ /pbs/))){NCO_bm::tst_run(\@tst_cmd);} # ncpdq hangs with MPI TODO nco772
    $#tst_cmd=0; # Reset array  
    	
-#ncpdq #44
+#ncpdq #47
 # ncpdq -O -4 -a lon,lat --cnk_min=1 --cnk_plc=xpl --cnk_dmn lat,1 --cnk_dmn lon,2 -v lat_2D_rct ~/nco/data/in.nc ~/foo.nc
 # ncks -m ~/foo.nc | grep 'lat_2D_rct dimension 0'
    $dsc_sng="Chunking -a lon,lat --cnk_min=1 --cnk_plc=xpl --cnk_dmn lat,1 --cnk_dmn lon,2 -v lat_2D_rct";
@@ -3369,7 +3486,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
 	
 } ##### Group tests	
 	
-#ncpdq #45
+#ncpdq #48
     $dsc_sng="Unpack 1D variable twice to verify first unpacking does not inadvertently store packing attributes";
     $tst_cmd[0]="ncpdq $omp_flg -h -O -C $fl_fmt $nco_D_flg -P upk -v pck_7 $in_pth_arg in.nc %tmp_fl_00%";
     $tst_cmd[1]="ncpdq $omp_flg -h -O -C $fl_fmt $nco_D_flg -P upk -v pck_7 %tmp_fl_00% %tmp_fl_01%";
@@ -3379,7 +3496,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
     if($mpi_prc == 0 || ($mpi_prc > 0 && !($localhostname =~ /pbs/))){NCO_bm::tst_run(\@tst_cmd);} # ncpdq hangs with MPI TODO nco772
     $#tst_cmd=0; # Reset array
 	
-#ncpdq #46
+#ncpdq #49
     $dsc_sng="Unpack 1D variable with netCDF convention";
     $tst_cmd[0]="ncpdq $omp_flg -h -O -C $fl_fmt $nco_D_flg -P upk -v pck_7 $in_pth_arg in.nc %tmp_fl_00%";
     $tst_cmd[1]="ncks -C -H -s '%f' -v pck_7 %tmp_fl_00%";
@@ -3388,7 +3505,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
     if($mpi_prc == 0 || ($mpi_prc > 0 && !($localhostname =~ /pbs/))){NCO_bm::tst_run(\@tst_cmd);} # ncpdq hangs with MPI TODO nco772
     $#tst_cmd=0; # Reset array
 	
-#ncpdq #47
+#ncpdq #50
     $dsc_sng="Unpack 1D variable with HDF convention";
     $tst_cmd[0]="ncpdq $omp_flg -h -O -C $fl_fmt $nco_D_flg -P upk --hdf_upk -v pck_7 $in_pth_arg in.nc %tmp_fl_00%";
     $tst_cmd[1]="ncks -C -H -s '%f' -v pck_7 %tmp_fl_00%";
@@ -3397,7 +3514,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
     if($mpi_prc == 0 || ($mpi_prc > 0 && !($localhostname =~ /pbs/))){NCO_bm::tst_run(\@tst_cmd);} # ncpdq hangs with MPI TODO nco772
     $#tst_cmd=0; # Reset array
 	
-#ncpdq #48
+#ncpdq #51
     $dsc_sng="Re-pack 1D variable from HDF convention to netCDF convention";
     $tst_cmd[0]="ncpdq $omp_flg -h -O -C $fl_fmt $nco_D_flg -P xst_new --hdf_upk -v pck_7 $in_pth_arg in.nc %tmp_fl_00%";
     $tst_cmd[1]="ncpdq $omp_flg -h -O -C $fl_fmt $nco_D_flg -P upk -v pck_7 %tmp_fl_00% %tmp_fl_01%";
@@ -5516,7 +5633,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
 #ncrename -O -d lev,z -d lat,y -d lon,x ~/nco/data/in_grp.nc ~/foo.nc
 #ncks -H -s %d -v one ~/foo.nc
 # Check for corruption after simultaneously renaming multiple dimensions in netCDF4 file
-    $dsc_sng="netCDF4: Simultaneously rename multiple dimensions (requires netCDF 4.4.1)";
+    $dsc_sng="netCDF4: Simultaneously rename multiple dimensions (requires netCDF 4.4.2)";
     $tst_cmd[0]="ncrename -O $fl_fmt $nco_D_flg -d lev,z -d lat,y -d lon,x $in_pth_arg in_grp.nc %tmp_fl_00%";
     $tst_cmd[1]="ncks -H -s %d -v one %tmp_fl_00%";
     $tst_cmd[2]="1";

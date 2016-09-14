@@ -1065,10 +1065,10 @@ void
 nco_xtr_cf_var_add /* [fnc] Add variables associated (via CF) with specified variable to extraction list */
 (const int nc_id, /* I [ID] netCDF file ID */
  const trv_sct * const var_trv, /* I [sct] Variable (object) */
- const char * const cf_nm, /* I [sng] CF convention ("ancillary_variables", "bounds", "climatology", or "coordinates") */
+ const char * const cf_nm, /* I [sng] CF convention ("ancillary_variables", "bounds", "climatology", "coordinates", and "grid_mapping") */
  trv_tbl_sct * const trv_tbl) /* I/O [sct] GTT (Group Traversal Table) */
 {
-  /* Detect associated variables specified by CF "ancillary_variables", "bounds", "climatology", or "coordinates" convention
+  /* Detect associated variables specified by CF "ancillary_variables", "bounds", "climatology", "coordinates", and "grid_mapping" convention
      Private routine called by nco_xtr_cf_add()
      http://cfconventions.org/1.6.html#ancillary-data
      http://cf-pcmdi.llnl.gov/documents/cf-conventions/1.1/cf-conventions.html#coordinate-system */ 
@@ -1080,7 +1080,7 @@ nco_xtr_cf_var_add /* [fnc] Add variables associated (via CF) with specified var
 
   int grp_id; /* [id] Group ID */
   int nbr_att; /* [nbr] Number of attributes */
-  int nbr_cf; /* [nbr] Number of variables specified in CF attribute ("ancillary_variables", "bounds", "climatology", or "coordinates") */
+  int nbr_cf; /* [nbr] Number of variables specified in CF attribute ("ancillary_variables", "bounds", "climatology", "coordinates", and "grid_mapping") */
   int var_id; /* [id] Variable ID */
 
   assert(var_trv->nco_typ == nco_obj_typ_var);
@@ -1114,7 +1114,7 @@ nco_xtr_cf_var_add /* [fnc] Add variables associated (via CF) with specified var
       /* Split list into separate coordinate names
 	 Use nco_lst_prs_sgl_2D() not nco_lst_prs_2D() to avert TODO nco944 */
       cf_lst=nco_lst_prs_sgl_2D(att_val,dlm_sng,&nbr_cf);
-      /* ...for each variable in CF convention attribute, i.e., for each variable listed in "ancillary_variables", or in "bounds", or in "coordinates"... */
+      /* ...for each variable in CF convention attribute, i.e., for each variable listed in "ancillary_variables", or in "bounds", or in "coordinates", or in "grid_mapping", ... */
       for(int idx_cf=0;idx_cf<nbr_cf;idx_cf++){
         char *cf_lst_var=cf_lst[idx_cf];
         if(!cf_lst_var) continue;
@@ -2825,16 +2825,14 @@ nco_crd_var_dmn_scp                    /* [fnc] Is coordinate variable in dimens
   size_t var_nm_fll_lng;                     /* [nbr] Length of full variable name */
   size_t dmn_nm_fll_lng;                     /* [nbr] Length of of full dimension name */
   
-  /* Coordinate variables are 1D */
-  if(var_trv->nbr_dmn !=1 ){
-    return False;
-  }
+  /* True Coordinate variables are 1D */
+  if(var_trv->nbr_dmn != 1) return False;
   
-  /* Most common case is for the unique dimension full name to match the full variable name   */
+  /* Most common case is that unique dimension full name matches full variable name */
   if(!strcmp(var_trv->nm_fll,dmn_trv->nm_fll)){
     if(nco_dbg_lvl_get() == nco_dbg_old) (void)fprintf(stdout,"%s: INFO %s found absolute match of variable <%s> and dimension <%s>:\n",nco_prg_nm_get(),fnc_nm,var_trv->nm_fll,dmn_trv->nm_fll);
     return True;
-  }
+  } /* !strcmp() */
   
   /* Deal with in-scope cases */
   var_nm_fll_lng=strlen(var_trv->nm_fll);
@@ -4105,16 +4103,16 @@ nco_var_fll_trv                       /* [fnc] Allocate variable structure and f
   } /* Check variable for duplicate dimensions */
 
   /* Treat variables associated with "bounds", "climatology", and "coordinates" attributes as coordinates */
-  if(nco_is_spc_in_bnd_att(var->nc_id,var->id)) var->is_crd_var=True;
-  if(nco_is_spc_in_clm_att(var->nc_id,var->id)) var->is_crd_var=True;
-  if(nco_is_spc_in_crd_att(var->nc_id,var->id)) var->is_crd_var=True;
+  if(nco_is_spc_in_cf_att(var->nc_id,"bounds",var->id)) var->is_crd_var=True;
+  if(nco_is_spc_in_cf_att(var->nc_id,"climatology",var->id)) var->is_crd_var=True;
+  if(nco_is_spc_in_cf_att(var->nc_id,"coordinates",var->id)) var->is_crd_var=True;
 
   /* Portions of variable structure depend on packing properties, e.g., typ_upk nco_pck_dsk_inq() fills in these portions harmlessly */
   (void)nco_pck_dsk_inq(grp_id,var);
 
   /* Set deflate and chunking to defaults */  
   var->dfl_lvl=NCO_DFL_LVL_UNDEFINED; /* [enm] Deflate level */
-  var->shuffle=NC_NOSHUFFLE; /* [flg] Turn on shuffle filter */
+  var->shuffle=NC_NOSHUFFLE; /* [flg] Turn-on shuffle filter */
 
   for(int idx=0;idx<var->nbr_dim;idx++) var->cnk_sz[idx]=(size_t)0L;
 
@@ -4481,7 +4479,7 @@ nco_cpy_var_dfn_trv                 /* [fnc] Define specified variable in output
               /* ... output file adheres to netCDF3 API so there can be only one record dimension.
 		 In other words, define all other dimensions as fixed, non-record dimensions, even
 		 if they are a record dimension in the input file ... */
-              if(CRR_DMN_IS_REC_IN_INPUT) (void)fprintf(stderr,"%s: INFO %s is defining dimension %s as fixed (non-record) in output file even though it is a record dimension in the input file. This is necessary to satisfy user request that %s be the record dimension in the output file which adheres to the netCDF3 API where the record dimension, if any, must be a variable's first dimension.\n",nco_prg_nm_get(),fnc_nm,dmn_nm,rec_dmn_nm);
+	      if(CRR_DMN_IS_REC_IN_INPUT && nco_dbg_lvl_get() >= nco_dbg_std) (void)fprintf(stderr,"%s: INFO %s is defining dimension %s as fixed (non-record) in output file even though it is a record dimension in the input file. This is necessary to satisfy user request that %s be the record dimension in the output file which adheres to the netCDF3 API where the record dimension, if any, must be a variable's first dimension.\n",nco_prg_nm_get(),fnc_nm,dmn_nm,rec_dmn_nm);
               DFN_CRR_DMN_AS_REC_IN_OUTPUT=False;
             } /* !netCDF4 */
 
@@ -4629,13 +4627,11 @@ nco_cpy_var_dfn_trv                 /* [fnc] Define specified variable in output
     for(int idx_dmn=0;idx_dmn<nbr_dmn_var;idx_dmn++)
       dmn_out_id[dmn_idx_in_out[idx_dmn]]=dmn_out_id_tmp[idx_dmn];
 
-    if (nco_dbg_lvl_get() >= nco_dbg_dev){
+    if(nco_dbg_lvl_get() >= nco_dbg_dev){
       (void)fprintf(stdout, "%s: DEBUG %s dimensions for %s:\n",nco_prg_nm_get(),fnc_nm,var_trv->nm_fll);
-      for (int idx_dmn=0; idx_dmn<nbr_dmn_var;idx_dmn++){
-        char *dmm_nm_fll=nco_get_dmn_nm_fll(dmn_out_id[idx_dmn],dmn_cmn,nbr_dmn_var);
-        (void)fprintf(stdout, "%s %d\n",dmm_nm_fll,dmn_cmn[idx_dmn].id);
-      }
-    }
+      for (int idx_dmn=0; idx_dmn<nbr_dmn_var;idx_dmn++)
+        (void)fprintf(stdout, "%s %d\n",nco_get_dmn_nm_fll(dmn_out_id[idx_dmn],dmn_cmn,nbr_dmn_var),dmn_cmn[idx_dmn].id);
+    } /* !dbg */
   } /* !var_trv->rdr */
 
   if(nco_prg_id == ncecat && rec_dmn_nm && var_trv->enm_prc_typ == prc_typ){ 
@@ -4756,9 +4752,9 @@ nco_cpy_var_dfn_trv                 /* [fnc] Define specified variable in output
 
     /* Deflation */
     if(nbr_dmn_var > 0){
-      int deflate; /* [flg] Turn on deflate filter */
+      int deflate; /* [flg] Turn-on deflate filter */
       int dfl_lvl_in; /* [enm] Deflate level [0..9] */
-      int shuffle; /* [flg] Turn on shuffle filter */
+      int shuffle; /* [flg] Turn-on shuffle filter */
       rcd=nco_inq_var_deflate(grp_in_id,var_in_id,&shuffle,&deflate,&dfl_lvl_in);
       /* Copy original deflation settings */
       if(deflate || shuffle) (void)nco_def_var_deflate(grp_out_id,var_out_id,shuffle,deflate,dfl_lvl_in);
@@ -4883,8 +4879,8 @@ nco_dfn_dmn                            /* [fnc] Define dimension size and ID in 
 
 } /* nco_dmn_dfn */
 
-char *
-nco_get_dmn_nm_fll                     /* [fnc] Return dimension name with input id (debug) */
+const char *
+nco_get_dmn_nm_fll                     /* [fnc] Return name corresponding to input dimension ID (debug) */
 (const int dmn_id,                     /* I [id] ID of dimension */
  const dmn_cmn_sct * const dmn_cmn,    /* I [sct] Dimension structure array */
  const int nbr_dmn)                    /* I [nbr] Number of dimensions (size of above array) */
@@ -4909,18 +4905,16 @@ nco_var_dmn_rdr_mtd_trv /* [fnc] Set new dimensionality in metadata of each re-o
  const nco_bool *dmn_rvr_rdr)         /* I [flg] Reverse dimension */
 {
   /* Purpose: Determine and set new dimensionality in metadata of each re-ordered variable
-     Based in nco_var_dmn_rdr_mtd(). 
-     NB: first record dimension for object variable is used
+     Based on nco_var_dmn_rdr_mtd()
+     NB: first record dimension for target variable is used
      Test case: ncpdq -O -a lev,time -v two_dmn_rec_var in.nc out.nc
      Mark lev as record and un-mark time as record (by setting record name to lev) */
 
   char *rec_dmn_nm_out_crr; /* [sng] Name of record dimension, if any, required by re-order */
   char *rec_dmn_nm_in; /* [sng] Record dimension name, original */
   char *rec_dmn_nm_out; /* [sng] Record dimension name, re-ordered */
-  int dmn_idx_out_in[NC_MAX_DIMS]; /* [idx] Dimension correspondence, output->input (Stored in GTT) */
   int nco_prg_id; /* [enm] Program ID */
   nco_bool REDEFINED_RECORD_DIMENSION; /* [flg] Re-defined record dimension */
-  nco_bool dmn_rvr_in[NC_MAX_DIMS]; /* [flg] Reverse dimension (Stored in GTT) */
   nm_lst_sct *rec_dmn_nm; /* [sct] Record dimension names array */
 
   /* Get Program ID */
@@ -4928,17 +4922,20 @@ nco_var_dmn_rdr_mtd_trv /* [fnc] Set new dimensionality in metadata of each re-o
   assert(nco_prg_id == ncpdq);
   CEWI_unused(nco_prg_id);
   
+  /* Initialize for this variable */
+  REDEFINED_RECORD_DIMENSION=False;
+
   /* Loop processed variables */
   for(int idx_var_prc=0;idx_var_prc<nbr_var_prc;idx_var_prc++){
+
+    int *dmn_idx_out_in=NULL; /* [idx] Dimension correspondence, output->input CEWI */
+    nco_bool *dmn_rvr_in=NULL; /* [flg] Reverse dimension */
 
     /* Obtain variable GTT *pointer using full variable name */
     trv_sct *var_trv=trv_tbl_var_nm_fll(var_prc[idx_var_prc]->nm_fll,trv_tbl);
 
     assert(var_trv->flg_xtr); 
     assert(var_trv->nbr_dmn == var_prc_out[idx_var_prc]->nbr_dim);
-
-    /* Initialize for this variable */
-    REDEFINED_RECORD_DIMENSION=False;
 
     /* Mark re-order flag */
     var_trv->flg_rdr=True;
@@ -4958,24 +4955,14 @@ nco_var_dmn_rdr_mtd_trv /* [fnc] Set new dimensionality in metadata of each re-o
       rec_dmn_nm_out=(char *)strdup(rec_dmn_nm->lst[0].nm);
     } /* !rec_dmn_nm->lst */
 
-#ifdef FXM_PVN
-    nco_bool dmn_rvr_rdr_[NC_MAX_DIMS]; /* [flg] Reverse dimension */
-    /* Define a local dmn_rvr_rdr array upon reverse flag defined in dimensions for variable */
-    for(int idx_dmn=0;idx_dmn<var_trv->nbr_dmn;idx_dmn++){
-      dmn_rvr_rdr_[idx_dmn]=False;
-      if(var_trv->var_dmn[idx_dmn].flg_rvr == True){
-        dmn_rvr_rdr_[idx_dmn]=True;
-      }
-    }
-#endif
-
+    dmn_idx_out_in=(int *)nco_malloc(var_prc[idx_var_prc]->nbr_dim*sizeof(int));
+    dmn_rvr_in=(nco_bool *)nco_malloc(var_prc[idx_var_prc]->nbr_dim*sizeof(nco_bool));
     /* nco_var_dmn_rdr_mtd() does re-order heavy lifting */
     rec_dmn_nm_out_crr=nco_var_dmn_rdr_mtd(var_prc[idx_var_prc],var_prc_out[idx_var_prc],dmn_rdr,dmn_rdr_nbr,dmn_idx_out_in,dmn_rvr_rdr,dmn_rvr_in);
 
+    /* Transfer dimension structures to be re-ordered into GTT */
     var_trv->dmn_idx_out_in=(int *)nco_malloc(var_trv->nbr_dmn*sizeof(int));
     var_trv->dmn_rvr_in=(nco_bool *)nco_malloc(var_trv->nbr_dmn*sizeof(nco_bool));
-
-    /* Transfer dimension structures to be re-ordered into GTT */
     for(int idx_dmn=0;idx_dmn<var_trv->nbr_dmn;idx_dmn++){
       var_trv->dmn_idx_out_in[idx_dmn]=dmn_idx_out_in[idx_dmn];
       var_trv->dmn_rvr_in[idx_dmn]=dmn_rvr_in[idx_dmn];
@@ -4990,7 +4977,7 @@ nco_var_dmn_rdr_mtd_trv /* [fnc] Set new dimensionality in metadata of each re-o
         if(REDEFINED_RECORD_DIMENSION){
           /* ...then requested re-order requires multiple record dimensions... */
           if(nco_dbg_lvl_get() >= nco_dbg_std) (void)fprintf(stdout,"%s: WARNING Re-order requests multiple record dimensions\n. Only first request will be honored (netCDF3 allows only one record dimension). Record dimensions involved [original,first change request (honored),latest change request (made by variable %s)]=[%s,%s,%s]\n",nco_prg_nm_get(),var_prc[idx_var_prc]->nm,rec_dmn_nm_in,rec_dmn_nm_out,rec_dmn_nm_out_crr);
-          break;
+          continue;
         }else{ /* !REDEFINED_RECORD_DIMENSION */
           /* ...otherwise, update output record dimension name... */
           rec_dmn_nm_out=rec_dmn_nm_out_crr;
@@ -5013,6 +5000,9 @@ nco_var_dmn_rdr_mtd_trv /* [fnc] Set new dimensionality in metadata of each re-o
       rec_dmn_nm=(nm_lst_sct *)nco_free(rec_dmn_nm);
     } /* !rec_dmn_nm */
 
+    /* Free current dimension correspondence */
+    dmn_idx_out_in=(int *)nco_free(dmn_idx_out_in);
+    dmn_rvr_in=(nco_bool *)nco_free(dmn_rvr_in);
     if(rec_dmn_nm_in)rec_dmn_nm_in=(char *)nco_free(rec_dmn_nm_in);
     if(rec_dmn_nm_out)rec_dmn_nm_out=(char *)nco_free(rec_dmn_nm_out);
 
@@ -5080,6 +5070,9 @@ nco_var_dmn_rdr_mtd_trv /* [fnc] Set new dimensionality in metadata of each re-o
     /* Update is_rec_var flag for var_prc */
     for(int idx_var_prc=0;idx_var_prc<nbr_var_prc;idx_var_prc++){
 
+      int *dmn_idx_out_in=NULL; /* [idx] Dimension correspondence, output->input CEWI */
+      dmn_idx_out_in=(int *)nco_malloc(var_prc[idx_var_prc]->nbr_dim*sizeof(int));
+
       /* Match by full variable name  */
       if(strcmp(var_prc_out[idx_var_prc]->nm_fll,var_trv.nm_fll) == 0){
 
@@ -5122,8 +5115,8 @@ nco_var_dmn_rdr_mtd_trv /* [fnc] Set new dimensionality in metadata of each re-o
               if(NEEDS_REORDER){
 
                 /* NB:
-		   --- use found index of processed idx_var_prc_out
-		   --- use search index of GTT idx_var_mrk */
+                 --- use found index of processed idx_var_prc_out
+                 --- use search index of GTT idx_var_mrk */
 
                 /* Find index of processed variables that corresponds to found GTT variable */
                 nco_var_prc_idx_trv(var_trv_mrk.nm_fll,var_prc_out,nbr_var_prc,&idx_var_prc_out);        
@@ -5141,8 +5134,8 @@ nco_var_dmn_rdr_mtd_trv /* [fnc] Set new dimensionality in metadata of each re-o
                 if(dmn_out_idx == var_prc_out[idx_var_prc_out]->nbr_dim){
                   /* ...No. Variable will be non-record---does this change its status?... */
                   if(nco_dbg_lvl_get() >= nco_dbg_var)
-		    if(var_prc_out[idx_var_prc_out]->is_rec_var) 
-		      (void)fprintf(stdout,"%s: INFO Requested re-order will change variable %s from record to non-record variable\n",nco_prg_nm_get(),var_prc_out[idx_var_prc_out]->nm);
+                    if(var_prc_out[idx_var_prc_out]->is_rec_var)
+                      (void)fprintf(stdout, "%s: INFO Requested re-order will change variable %s from record to non-record variable\n", nco_prg_nm_get(), var_prc_out[idx_var_prc_out]->nm);
                   /* Assign record flag dictated by re-order */
                   var_prc_out[idx_var_prc_out]->is_rec_var=False; 
                 }else{ /* ...otherwise variable will be record variable... */
@@ -5210,10 +5203,14 @@ nco_var_dmn_rdr_mtd_trv /* [fnc] Set new dimensionality in metadata of each re-o
           } /* NEEDS_REORDER */
         } /* ...look if there is a record name to find  */
       } /* Match by full variable name  */
+      /* Free current dimension correspondence */
+      dmn_idx_out_in=(int *)nco_free(dmn_idx_out_in);
     } /* end loop over var_prc */
   } /* Loop table */
 
   /* Final step: search for all redefined record dimension variables and mark other variables */
+
+  if(nco_dbg_lvl_get() == nco_dbg_dev) trv_tbl_prn_dbg("nco_var_dmn_rdr_mtd_trv", trv_tbl);
 
   /* Loop table */
   for(unsigned idx_var=0;idx_var<trv_tbl->nbr;idx_var++){
@@ -5241,21 +5238,26 @@ nco_var_dmn_rdr_mtd_trv /* [fnc] Set new dimensionality in metadata of each re-o
             dmn_trv_sct *dmn_trv;
 
             /* Store name of record dimension on output */
-            if(!strcmp(var_trv_mrk.var_dmn[idx_dmn].dmn_nm,rec_dmn_nm_out))
+            if(!strcmp(var_trv_mrk.var_dmn[idx_dmn].dmn_nm, rec_dmn_nm_out)){
               trv_tbl->lst[idx_var_mrk].rec_dmn_nm_out=(char *)strdup(rec_dmn_nm_out);
+            }
 
             /* Get unique dimension object from unique dimension ID, in input list */
             dmn_trv=nco_dmn_trv_sct(var_trv_mrk.var_dmn[idx_dmn].dmn_id,trv_tbl);
 
             /* Is record? */
             /* Store record dimension name on output */
-            if(dmn_trv->is_rec_dmn) trv_tbl->lst[idx_var_mrk].rec_dmn_nm_out=(char *)strdup(rec_dmn_nm_out);
+            if(dmn_trv->is_rec_dmn){
+              trv_tbl->lst[idx_var_mrk].rec_dmn_nm_out=(char *)strdup(rec_dmn_nm_out);
+            }
 
           } /* Loop variable dimensions */
         } /* Avoid same */
       } /* Loop table */
     } /* Has re-defined record dimension */
   } /* Loop table */
+
+  if(nco_dbg_lvl_get() == nco_dbg_dev) trv_tbl_prn_dbg("nco_var_dmn_rdr_mtd_trv", trv_tbl);
 
   return;
 
@@ -5723,7 +5725,7 @@ nco_dmn_msa_tbl                       /* [fnc] Update all GTT dimensions with hy
               /* ... output file adheres to netCDF3 API so there can be only one record dimension.
 		 In other words, define all other dimensions as fixed, non-record dimensions, even
 		 if they are a record dimension in the input file ... */
-              if(CRR_DMN_IS_REC_IN_INPUT) (void)fprintf(stderr,"%s: INFO %s is defining dimension %s as fixed (non-record) in output file even though it is a record dimension in the input file. This is necessary to satisfy user request that %s be the record dimension in the output file which adheres to the netCDF3 API where the record dimension, if any, must be a variable's first dimension.\n",nco_prg_nm_get(),fnc_nm,dmn_nm,rec_dmn_nm);
+              if(CRR_DMN_IS_REC_IN_INPUT && nco_dbg_lvl_get() >= nco_dbg_std) (void)fprintf(stderr,"%s: INFO %s is defining dimension %s as fixed (non-record) in output file even though it is a record dimension in the input file. This is necessary to satisfy user request that %s be the record dimension in the output file which adheres to the netCDF3 API where the record dimension, if any, must be a variable's first dimension.\n",nco_prg_nm_get(),fnc_nm,dmn_nm,rec_dmn_nm);
               DFN_CRR_DMN_AS_REC_IN_OUTPUT=False;
             } /* !netCDF4 */
           } /* !FIX_REC_DMN */
@@ -5983,29 +5985,8 @@ nco_dmn_avg_mk                         /* [fnc] Build dimensions to average(ncwa
           /* Dimension name relative */
           char *dmn_nm=trv_obj.var_dmn[idx_var_dmn].dmn_nm;
 
-          char *sng_dmn=NULL;
-
-          trv_tbl->lst[idx_tbl].var_dmn[idx_var_dmn].flg_rvr=False;
-
-          /* Option -a '-' (minus), reverse dimesnion Strip-out '-' and compare name */
-          if (usr_sng[0] == '-'){
-            sng_dmn=(char *)strdup(usr_sng+1L);
-            if (!strcmp(sng_dmn,dmn_nm)){
-              trv_tbl->lst[idx_tbl].var_dmn[idx_var_dmn].flg_rvr=True;
-            }
-          }else{ /* Not -a '-', duplicate user string to use in nco_pth_mch() */
-            sng_dmn=(char *)strdup(usr_sng);
-          }
-
           /* Must meet necessary flags */
-          nco_bool pth_mth=nco_pth_mch(dmn_nm_fll,dmn_nm,sng_dmn); 
-
-          /* If does not meet criteria, reverse flag */
-          if(!pth_mth){
-            trv_tbl->lst[idx_tbl].var_dmn[idx_var_dmn].flg_rvr=False;
-          }
-
-          sng_dmn=(char *)nco_free(sng_dmn);
+          nco_bool pth_mth=nco_pth_mch(dmn_nm_fll,dmn_nm,usr_sng);
 
           if(pth_mth){
             int idx_dmn_out; /* [idx] Index for output dimensions */
@@ -6511,16 +6492,18 @@ nco_bld_trv_tbl                       /* [fnc] Construct GTT, Group Traversal Ta
     CNV_CCM_CCSM_CF=True;
   } /* endif */
   if(CNV_CCM_CCSM_CF && EXTRACT_ASSOCIATED_COORDINATES){
-    /* Implement CF "ancillary_variables", "bounds", "climatology", and "coordinates" */
+    /* Implement CF "ancillary_variables", "bounds", "climatology", "coordinates", and "grid_mapping" */
     (void)nco_xtr_cf_add(nc_id,"ancillary_variables",trv_tbl);
     (void)nco_xtr_cf_add(nc_id,"bounds",trv_tbl);
     (void)nco_xtr_cf_add(nc_id,"climatology",trv_tbl);
     (void)nco_xtr_cf_add(nc_id,"coordinates",trv_tbl);
-    /* Do all twice, so that, e.g., auxiliary coordinates retrieved because of "coordinates" come with their bounds variables */
+    (void)nco_xtr_cf_add(nc_id,"grid_mapping",trv_tbl);
+    /* Do all twice, so that, e.g., auxiliary coordinates retrieved because of "coordinates" come with their "bounds" variables */
     (void)nco_xtr_cf_add(nc_id,"ancillary_variables",trv_tbl);
     (void)nco_xtr_cf_add(nc_id,"climatology",trv_tbl);
     (void)nco_xtr_cf_add(nc_id,"coordinates",trv_tbl);
     (void)nco_xtr_cf_add(nc_id,"bounds",trv_tbl);
+    (void)nco_xtr_cf_add(nc_id,"grid_mapping",trv_tbl);
   } /* CNV_CCM_CCSM_CF */
 
   /* Mark extracted dimensions */
@@ -7185,13 +7168,13 @@ nco_grp_var_lst                        /* [fnc] Export list of variable names fo
 } /* end nco_grp_var_lst() */
 
 char * /* O [sng] Name of variable   */
-nco_var_has_cf /* [fnc] Variable has CF-compliant attributes ("ancillary_variables", "bounds", "climatology", or "coordinates") */
+nco_var_has_cf /* [fnc] Variable has CF-compliant attributes ("ancillary_variables", "bounds", "climatology", "coordinates" and "grid_mapping") */
 (const int nc_id, /* I [ID] netCDF file ID */
  const trv_sct * const var_trv, /* I [sct] Variable (object) */
- const char * const cf_nm, /* I [sng] CF convention ("ancillary_variables", "bounds", "climatology", or "coordinates") */
+ const char * const cf_nm, /* I [sng] CF convention ("ancillary_variables", "bounds", "climatology", "coordinates", and "grid_mapping") */
  nco_bool *flg_cf_fnd) /* I/O [flg] CF variable was found */
 {
-  /* Detect associated variables specified by CF "ancillary_variables", "bounds", "climatology", or "coordinates" convention
+  /* Detect associated variables specified by CF "ancillary_variables", "bounds", "climatology", "coordinates", and "grid_mapping" conventions
      http://cf-pcmdi.llnl.gov/documents/cf-conventions/1.1/cf-conventions.html#coordinate-system */ 
 
   const char dlm_sng[]=" "; /* [sng] Delimiter string */
@@ -7201,7 +7184,7 @@ nco_var_has_cf /* [fnc] Variable has CF-compliant attributes ("ancillary_variabl
 
   int grp_id; /* [id] Group ID */
   int nbr_att; /* [nbr] Number of attributes */
-  int nbr_cf; /* [nbr] Number of coordinates specified in "bounds" or "coordinates" attribute */
+  int nbr_cf; /* [nbr] Number of coordinates specified in "bounds" or "coordinates" attributes */
   int var_id; /* [id] Variable ID */
 
   assert(var_trv->nco_typ == nco_obj_typ_var);
@@ -7249,7 +7232,7 @@ nco_var_has_cf /* [fnc] Variable has CF-compliant attributes ("ancillary_variabl
       /* Split list into separate coordinate names
 	 Use nco_lst_prs_sgl_2D() not nco_lst_prs_2D() to avert TODO nco944 */
       cf_lst=nco_lst_prs_sgl_2D(att_val,dlm_sng,&nbr_cf);
-      /* ...for each associated variable in CF convention attribute, i.e., "ancillary_variables", "bounds", "climatology", or "coordinates"... */
+      /* ...for each associated variable in CF convention attribute, i.e., "ancillary_variables", "bounds", "climatology", "coordinates", and "grid_mapping", ... */
       for(int idx_cf=0;idx_cf<nbr_cf;idx_cf++){
         char *cf_lst_var=cf_lst[idx_cf];
         if(!cf_lst_var) continue;
@@ -7323,7 +7306,7 @@ nco_prs_aux_crd                       /* [fnc] Parse auxiliary coordinates */
         for(int idx_dmn=0;idx_dmn<var_trv.nbr_dmn;idx_dmn++){
           /* Has 'latitude' auxiliary coordinates */
           if(var_trv.var_dmn[idx_dmn].nbr_lat_crd){
-            /* Use the coordinate with lower group depth (index 0) (These were already sorted ) */
+            /* Use coordinate with lower group depth (index 0) (These were already sorted) */
             lat_trv=trv_tbl_var_nm_fll(var_trv.var_dmn[idx_dmn].lat_crd[0].nm_fll,trv_tbl);
             dmn_idx_fnd=idx_dmn;
             dmn_id_fnd_lat=var_trv.var_dmn[idx_dmn].lat_crd[0].dmn_id;
@@ -7335,7 +7318,7 @@ nco_prs_aux_crd                       /* [fnc] Parse auxiliary coordinates */
         for(int idx_dmn=0;idx_dmn<var_trv.nbr_dmn;idx_dmn++){
           /* Has 'longitude' auxiliary coordinates */
           if(var_trv.var_dmn[idx_dmn].nbr_lon_crd){
-            /* Use the coordinate with lower group depth (index 0) (These were already sorted ) */
+            /* Use coordinate with lower group depth (index 0) (These were already sorted) */
             lon_trv=trv_tbl_var_nm_fll(var_trv.var_dmn[idx_dmn].lon_crd[0].nm_fll,trv_tbl);
             dmn_idx_fnd=idx_dmn;
             dmn_id_fnd_lon=var_trv.var_dmn[idx_dmn].lon_crd[0].dmn_id;
@@ -7365,7 +7348,6 @@ nco_prs_aux_crd                       /* [fnc] Parse auxiliary coordinates */
 
           /* Found limits */
           if(aux_lmt_nbr > 0){
-
             if(nco_dbg_lvl_get() >= nco_dbg_dev) (void)fprintf(stdout,"%s: DEBUG %s variable <%s> (%d) limits\n",nco_prg_nm_get(),fnc_nm,trv_tbl->lst[idx_tbl].nm_fll,aux_lmt_nbr); 
 
             lmt_sct **lmt=aux;
@@ -7378,22 +7360,20 @@ nco_prs_aux_crd                       /* [fnc] Parse auxiliary coordinates */
             /* Apply limits to variable in table */
             (void)nco_lmt_aux_tbl(nc_id,lmt,lmt_dmn_nbr,var_trv.nm_fll,dmn_id_fnd_lat,FORTRAN_IDX_CNV,MSA_USR_RDR,trv_tbl);
 
-            /* Apply limits to *all* 'latitude', 'longitude' variables that share the same ID */
+            /* Apply limits to *all* 'latitude', 'longitude' variables that share same ID */
             (void)nco_lmt_std_att_lat_lon(nc_id,lmt,lmt_dmn_nbr,dmn_id_fnd_lat,FORTRAN_IDX_CNV,MSA_USR_RDR,trv_tbl);   
 
             /* Get unique dimension object from unique dimension ID (e.g., 'gds_crd) */
             dmn_trv_sct *dmn_trv=nco_dmn_trv_sct(dmn_id_fnd_lat,trv_tbl);
 
-            /* The dimension IDs of both 'latitude' and 'longitude' must refer to the same dimemsion (e.g., 'gds_crd) */
+            /* Dimension IDs of both 'latitude' and 'longitude' must refer to same dimemsion (e.g., gds_crd) */
             assert(dmn_id_fnd_lon == dmn_trv->dmn_id);
 
-            /*  Apply limits to the coordinate (e.g., 'gds_crd) */
+            /* Apply limits to coordinate (e.g., gds_crd) */
             (void)nco_lmt_aux_tbl(nc_id,lmt,lmt_dmn_nbr,dmn_trv->nm_fll,dmn_id_fnd_lat,FORTRAN_IDX_CNV,MSA_USR_RDR,trv_tbl);
 
-            if(nco_dbg_lvl_get() == nco_dbg_old) 
-            {
-              for(int idx_lmt=0;idx_lmt<lmt_dmn_nbr;idx_lmt++)
-              {
+            if(nco_dbg_lvl_get() == nco_dbg_old){
+              for(int idx_lmt=0;idx_lmt<lmt_dmn_nbr;idx_lmt++){
                 (void)fprintf(stdout,"\nlimit index %d\n",idx_lmt);
                 nco_lmt_prt(lmt[idx_lmt]);
               }
@@ -7477,8 +7457,7 @@ nco_lmt_aux                           /* [fnc] Apply auxiliary -X limits (Auxili
 {
 
   /* a) case where the dimension has coordinate variables */
-  if(trv_tbl->lst[idx_tbl].var_dmn[idx_dmn].crd)
-  {
+  if(trv_tbl->lst[idx_tbl].var_dmn[idx_dmn].crd){
 
     /* For this call (-X) the *same* limits are applied to all coordinates, and other variables might apply
     them too, so make sure they are applied only once by setting -1 in lmt_crr */
@@ -7582,15 +7561,8 @@ nco_lmt_aux                           /* [fnc] Apply auxiliary -X limits (Auxili
     } /* Loop limits */
   } /* a) case where the dimension has coordinate variables */
 
-
   /* b) Dimension only (no coordinate variable for this dimension) */
-  else if(trv_tbl->lst[idx_tbl].var_dmn[idx_dmn].ncd)
-  {
-
-    if(nco_dbg_lvl_get() >= nco_dbg_dev)
-    {
-
-    }
+  else if(trv_tbl->lst[idx_tbl].var_dmn[idx_dmn].ncd){
 
     /* For this call (-X) the *same* limits are applied to all coordinates, and other variables might apply
     them too, so make sure they are applied only once by setting -1 in lmt_crr */
@@ -8289,7 +8261,7 @@ nco_nsm_dfn_wrt                      /* [fnc] Define OR write ensemble fixed var
 
       /* Define variable  */
       if(flg_def){
-        int var_out_id=nco_cpy_var_dfn_trv(nc_id, nc_out_id, cnk, grp_out_fll, dfl_lvl, gpe, NULL, var_trv, NULL, 0, trv_tbl);
+        int var_out_id=nco_cpy_var_dfn_trv(nc_id,nc_out_id,cnk,grp_out_fll,dfl_lvl,gpe,NULL,var_trv,NULL,0,trv_tbl);
         /* Copy attributes */
         (void)nco_wrt_atr(nc_id,grp_id_out,var_out_id,var_trv);
       } /* endif */
@@ -9743,7 +9715,6 @@ nco_rad                                /* [fnc] Retain all dimensions */
     } /* Dimension not found, make it */
   } /* Loop unique dimensions list */
 } /* nco_rad() */
-
 
 void                                               
 nco_prc_cmn_nsm_att                    /* [fnc] Process (define, write) variables belonging to ensembles in both files (ncbo) */

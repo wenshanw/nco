@@ -749,8 +749,6 @@ nco_var_lst_convert /* [fnc] Make variable structure list from variable name ID 
 
 } /* end nco_var_lst_convert() */
 
-
-
 int /* O [enm] Return code */
 nco_var_lst_mrg /* [fnc] Merge two variable lists into same order */
 (var_sct *** var_1_ptr, /* I/O [sct] Variable list 1 */
@@ -912,8 +910,7 @@ nco_var_lst_dvd /* [fnc] Divide input lists into output lists */
     if((var_typ == NC_CHAR) || (var_typ == NC_STRING)) var_typ_fnk=True; else var_typ_fnk=False;
 
     /* Many operators should not process coordinate variables, or auxiliary coordinate variables (lat, lon, time, latixy, longxy, ...) and bounds (lat_bnds, lon_bnds, ...)
-       20130112: As of today set is_crd_var true in nco_var_fll() when either of these conditions is true 
-       so no longer need to specify these conditions separately. 
+       20130112: As of today set is_crd_var true in nco_var_fll() when either of these conditions is true so no longer need to specify these conditions separately. 
        20150519: Add nco_is_spc_in_clm_att() to this list
        Keep this old code here as a reminder that is_crd_var also incorporates these conditions
        is_spc_in_clm_att=nco_is_spc_in_clm_att(var[idx]->nc_id,var[idx]->id);
@@ -1135,7 +1132,9 @@ nco_var_lst_dvd_trv                          /* [fnc] Divide input lists into ou
      20130112: As of today set is_crd_var true in nco_var_fll() when either of these conditions is true 
      so no longer need to specify these conditions separately. 
      20150519: Add nco_is_spc_in_clm_att() to this list
+     20160420: Add nco_is_spc_in_grd_att() to this list
      Keep this old code here as a reminder that is_crd_var also incorporates these conditions
+     is_spc_in_grd_att=nco_is_spc_in_grd_att(var[idx]->nc_id,var[idx]->id);
      is_spc_in_clm_att=nco_is_spc_in_clm_att(var[idx]->nc_id,var[idx]->id);
      is_spc_in_crd_att=nco_is_spc_in_crd_att(var[idx]->nc_id,var[idx]->id);
      is_spc_in_bnd_att=nco_is_spc_in_bnd_att(var[idx]->nc_id,var[idx]->id); */
@@ -1226,13 +1225,9 @@ nco_var_lst_dvd_trv                          /* [fnc] Divide input lists into ou
       var_op_typ=fix_typ;
 
   if(CNV_CCM_CCSM_CF){
-
-    nco_bool var_is_fix;  /* [fnc] Variable should be treated as a fixed variable */
-
+    nco_bool var_is_fix;  /* [fnc] Treat variable as a fixed variable */
     var_is_fix=nco_var_is_fix(var_nm,nco_prg_id,nco_pck_plc);  
-
-    if (var_is_fix) var_op_typ=fix_typ;
-
+    if(var_is_fix) var_op_typ=fix_typ;
   } /* end if CNV_CCM_CCSM_CF */
 
   /* Warn about any expected weird behavior */

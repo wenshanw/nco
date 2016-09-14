@@ -376,9 +376,10 @@
        err_prn(fnc_nm,styp+" \""+sfnm+"\" has been called with no arguments"); 
      
      // deal with is_miss in a seperate function     
-     if(fdx==NUM_MISS)
+     if(fdx==NUM_MISS||fdx==HAS_MISS)
        return is_fnd(is_mtd, vtr_args,fmc_obj,walker);           
-   
+     if(fdx==GET_MISS)       
+       return get_fnd(is_mtd, vtr_args,fmc_obj,walker);             
   
 
     if( fdx==SET_MISS || fdx==CH_MISS) {
@@ -411,39 +412,6 @@
 
 
     /* Deal with GET_MISS as its different from other methods */
-    if(fdx==GET_MISS){
-      var_sct *var_tmp=NULL_CEWI;
-      var_sct *var_ret=NULL_CEWI;
-   
-      var_tmp=prs_arg->ncap_var_init(va_nm,false);
-
-      // Initial scan
-      if(prs_arg->ntl_scn) 
-        if(var_tmp)  
-	  var_ret= ncap_sclr_var_mk(SCS ("~utility_function"),var_tmp->type,false);
-        else
-	  var_ret=ncap_var_udf("~utility_function");
-
-      // Final scan
-      if(!prs_arg->ntl_scn){
-        if(var_tmp){
-           // nb ncap_sclr_var_mk() calls nco_mss_val_mk() and fills var_ret with the default fill value
-           // for that type.  So if the var has no missing value then this is the value returned 
-           // Default fill  values are defined in  netcdf.h . 
-           var_ret=ncap_sclr_var_mk(SCS("~utility_function"),var_tmp->type,true);
-           if(var_tmp->has_mss_val)
-             (void)memcpy(var_ret->val.vp, var_tmp->mss_val.vp,nco_typ_lng(var_tmp->type)); 
-        }else{          
-        /* Cant find variable blow out */ 
-          serr=sfnm+ " Unable to locate missing value for "+ va_nm;
-          err_prn(fnc_nm,serr);
-        } 
-      } // end else
- 
-      if(var_tmp) var_tmp=nco_var_free(var_tmp);
-
-      return var_ret; 	
-     } // end GET_MISS 
 
 
     if(prs_arg->ntl_scn) {
@@ -602,8 +570,12 @@ var_sct * utl_cls::is_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &
        return ncap_sclr_var_mk(SCS("~utility_function"),styp,false);         
     }  
 
-    // from now on dealing with a final scan !!
-    if(var->has_mss_val){
+    if(!var->has_mss_val)      
+      icnt=0; 
+    else if( fdx==HAS_MISS)    
+      icnt=1; 
+    else if( fdx==NUM_MISS)   
+    {
       char *cp_out=(char*)var->val.vp; 
       long idx;
       size_t slb_sz;  
@@ -611,15 +583,13 @@ var_sct * utl_cls::is_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &
       icnt=0;       
 
       slb_sz=nco_typ_lng(var->type); 
-      for(idx=0 ;idx<var->sz;idx++){
+      for(idx=0 ;idx<var->sz;idx++)
+      {
         if( !memcmp(cp_out,var->mss_val.vp,slb_sz))
 	  icnt++;
         cp_out+=(ptrdiff_t)slb_sz;
       }   
-    }else{
-       icnt=0; 
-    }     
-
+    }
     nco_var_free(var); 
 
     if(styp==NC_UINT64) 
@@ -627,7 +597,89 @@ var_sct * utl_cls::is_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &
     else 
       return ncap_sclr_var_mk(SCS("~utility_function"),(nco_int)icnt);
 }  
-    
+
+ 
+// custom function for GET_MISS
+var_sct * utl_cls::get_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker){
+  const std::string fnc_nm("srt_cls::imap_fnd");
+    int nbr_args;
+    int fdx=fmc_obj.fdx();
+    var_sct *var=NULL_CEWI;
+    var_sct *var_ret=NULL_CEWI;
+    std::string sfnm =fmc_obj.fnm(); //method name
+    vtl_typ lcl_typ;
+    std::string va_nm;
+    std::string susg;
+    std::string serr;
+    prs_cls *prs_arg=walker.prs_arg;    
+
+
+    nbr_args=args_vtr.size(); 
+
+    if(nbr_args ==0) 
+       err_prn(fnc_nm," \""+sfnm+"\" has been called with no arguments"); 
+
+
+      
+    lcl_typ=expr_typ(args_vtr[0]);         
+
+    if(lcl_typ != VVAR &&  lcl_typ != VPOINTER ) 
+    {
+      serr="The first operand of the " + sfnm+ " must be a variable identifier or a variable pointer only.";
+      err_prn(fnc_nm,serr);
+    }
+
+    if(lcl_typ==VVAR )       
+       va_nm=args_vtr[0]->getText();
+    else if(lcl_typ==VPOINTER)
+    { 
+      // get contents of att for var-pointer  
+      std::string att_nm=args_vtr[0]->getFirstChild()->getText();
+      va_nm=ncap_att2var(prs_arg,att_nm);
+    }
+
+
+    if(va_nm.size())
+       var=prs_arg->ncap_var_init(va_nm,false);
+
+    // Initial scan
+    if(prs_arg->ntl_scn) 
+    {
+        if(var)  
+	  var_ret= ncap_sclr_var_mk(SCS ("~utility_function"),var->type,false);
+        else
+	  var_ret=ncap_var_udf("~utility_function");
+
+        nco_var_free(var);  
+        return var_ret;      
+    }     
+
+    // Final scan
+    if(var)
+    {
+        // nb ncap_sclr_var_mk() calls nco_mss_val_mk() and fills var_ret with the default fill value
+	// for that type.  So if the var has no missing value then this is the value returned 
+	// Default fill  values are defined in  netcdf.h . 
+	var_ret=ncap_sclr_var_mk(SCS("~utility_function"),var->type,true);
+        if(var->has_mss_val)
+	  (void)memcpy(var_ret->val.vp, var->mss_val.vp,nco_typ_lng(var->type)); 
+    }
+    else
+    {          
+        /* Cant find variable blow out */ 
+        serr=sfnm+ " Unable to locate missing value for "+ va_nm;
+        err_prn(fnc_nm,serr);
+    } 
+
+ 
+    if(var) 
+      var=nco_var_free(var);
+
+    return var_ret; 	
+
+} 
+
+
 
 
 
@@ -639,6 +691,7 @@ var_sct * utl_cls::is_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &
       fmc_vtr.push_back( fmc_cls("size",this,(int)PSIZE));
       fmc_vtr.push_back( fmc_cls("type",this,(int)PTYPE));
       fmc_vtr.push_back( fmc_cls("ndims",this,(int)PNDIMS));
+      fmc_vtr.push_back( fmc_cls("getdims",this,(int)PGETDIMS));
       fmc_vtr.push_back( fmc_cls("exists",this,(int)PEXISTS));
 
     }
@@ -646,7 +699,7 @@ var_sct * utl_cls::is_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &
 
   var_sct *bsc_cls::fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker){
   const std::string fnc_nm("bsc_cls::fnd");
-
+  bool is_mtd;
     int fdx=fmc_obj.fdx();   //index
     int nbr_args;
     std::string va_nm;
@@ -690,7 +743,9 @@ var_sct * utl_cls::is_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &
     } 
       
      nbr_args=vtr_args.size();  
-
+   
+     is_mtd=(expr ? true: false);
+  
 
     // no arguments - bomb out
     if(nbr_args==0){    
@@ -700,7 +755,10 @@ var_sct * utl_cls::is_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &
 	// more than one arg -- only print message once 
     } else if(nbr_args >1 && !prs_arg->ntl_scn)
         wrn_prn(sfnm,"Function has been called with more than one argument");
-           
+     
+    // custom functiom
+    if(fdx==PGETDIMS)
+      return getdims_fnd(is_mtd, vtr_args,fmc_obj, walker); 
 
     tr=vtr_args[0];  
 
@@ -784,6 +842,89 @@ var_sct * utl_cls::is_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &
       return var;		 
   }       
 
+
+var_sct * bsc_cls::getdims_fnd(bool &is_mtd, std::vector<RefAST> &vtr_args, fmc_cls &fmc_obj, ncoTree &walker)
+{
+  const std::string fnc_nm("bsc_cls::getndims_fnd");
+    int nbr_args;
+    int fdx=fmc_obj.fdx();
+    var_sct *var=NULL_CEWI;
+    var_sct *var_att=NULL_CEWI;
+    std::string sfnm =fmc_obj.fnm(); //method name
+    vtl_typ lcl_typ;
+    std::string va_nm;
+    std::string susg;
+    std::string serr;
+    prs_cls *prs_arg=walker.prs_arg;    
+
+
+    nbr_args=vtr_args.size(); 
+
+    if(nbr_args ==0) 
+       err_prn(fnc_nm," \""+sfnm+"\" has been called with no arguments"); 
+
+
+      
+    lcl_typ=expr_typ(vtr_args[0]);         
+
+    // If initial scan
+    if(prs_arg->ntl_scn){
+
+      // Evaluate argument on first scan for side-effects eg var1++ or var1+=10 etc 
+      if( lcl_typ!=VVAR && lcl_typ !=VPOINTER)
+      {
+        var=walker.out(vtr_args[0]) ;
+        var=nco_var_free(var);
+      }
+      return ncap_var_udf("~zz@getndims");          
+    }
+       
+    // from here on dealing with final scan
+    if(lcl_typ==VVAR )
+    {       
+       va_nm=vtr_args[0]->getText();
+       var=prs_arg->ncap_var_init(va_nm,false); 
+    }
+    else if(lcl_typ==VPOINTER)
+    { // get contents of att for var-pointer  
+      std::string att_nm=vtr_args[0]->getFirstChild()->getText();
+      va_nm=ncap_att2var(prs_arg,att_nm);
+      var=prs_arg->ncap_var_init(va_nm,false); 
+    }
+    else
+      var=walker.out(vtr_args[0]) ;
+
+    // blow out if scalar var or is att
+    if(var->nbr_dim==0 || ncap_var_is_att(var) )      
+      err_prn(sfnm,"Cannot get dim names from a scalar var or an att\n"); 
+
+    // do heavy lifting
+    { 
+      int ndims;
+      int idx;
+ 
+      ndims=var->nbr_dim;
+     
+      var_att=ncap_sclr_var_mk("~zz@getndims",NC_STRING,false);
+
+      var_att->val.vp=(void*)nco_malloc(ndims* nco_typ_lng(NC_STRING));         
+      var_att->sz=ndims; 
+
+      (void)cast_void_nctype((nc_type)NC_STRING,&var_att->val);                  
+      for(idx=0;idx<ndims;idx++)     
+	var_att->val.sngp[idx]=strdup(var->dim[idx]->nm);
+
+
+      (void)cast_nctype_void((nc_type)NC_STRING,&var_att->val); 
+    }
+
+    nco_free(var);   
+
+    return var_att;
+}
+
+
+
   
 //Math Functions /******************************************/
   mth_cls::mth_cls(bool flg_dbg){
@@ -827,8 +968,9 @@ var_sct * utl_cls::is_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &
        /* Hyperbolic trigonometric: acosh, asinh, atanh, cosh, sinh, tanh
 	  20020703: AIX, SGI*, WIN32 do not define acoshf, asinhf, atanhf
 	  20050610: C99 mandates support for acosh(), asinh(), atanh(), cosh(), sinh(), tanh()
+	  20160515: Add hyperbolic function support to MACOSX
 	  Eventually users without C99 will forego ncap */
-#if defined(LINUX) || defined(LINUXAMD64)
+#if defined(LINUX) || defined(LINUXAMD64) || defined(MACOSX)
       sym_vtr.push_back(sym_cls("acosh",acosh,acoshf));
       sym_vtr.push_back(sym_cls("asinh",asinh,asinhf));
       sym_vtr.push_back(sym_cls("atanh",atanh,atanhf));
@@ -1739,8 +1881,10 @@ var_sct * srt_cls::srt_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls 
           case NC_CHAR: 
 	    (void)ncap_sort_and_map<nco_char>(var1,var2,bdirection);    
             break;  
-           case NC_STRING: break; /* Do nothing */
-             
+           case NC_STRING: 
+	     (void)ncap_sort_and_map<nco_string>(var1,var2,bdirection);    
+            break;
+  
            default: nco_dfl_case_nc_type_err(); break;
             
 	} // end big switch
@@ -2196,6 +2340,7 @@ var_sct * srt_cls::mst_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls 
   std::string sfnm=fmc_obj.fnm();
 
   RefAST tr;
+  RefAST aRef;;
   std::vector<RefAST> args_vtr; 
   std::vector<std::string> cst_vtr;              
 
@@ -2217,7 +2362,7 @@ var_sct * srt_cls::mst_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls 
       
   nbr_args=args_vtr.size();  
 
-  susg="usage: var_out="+sfnm+"(start_exp,inc_exp,$dim|var)"; 
+  susg="usage: var_out="+sfnm+"(start_exp,inc_exp,$dim|dim_list|var)"; 
 
   
   if(nbr_args<3)
@@ -2256,7 +2401,23 @@ var_sct * srt_cls::mst_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls 
    // convert to type of first arg
    var_ret=nco_var_cnf_typ(var1->type,var_ret);  
 
-  }else{
+  }
+  else if( args_vtr[2]->getType()==DMN_ARG_LIST)
+  {
+    aRef=args_vtr[2]->getFirstChild();
+    while(aRef) 
+    {           
+      cst_vtr.push_back(aRef->getText());    
+      aRef=aRef->getNextSibling();  
+    } 
+
+    var_ret=ncap_cst_mk(cst_vtr,prs_arg);   
+    // convert to type of first arg
+    var_ret=nco_var_cnf_typ(var1->type,var_ret);  
+
+  }
+  else
+  {
     // assume third argument is var - interested in only using its shape !!  
     var_ret=walker.out(args_vtr[2]);
     
@@ -2349,6 +2510,212 @@ var_sct * srt_cls::mst_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls 
 
   } 
 
+// Bounds function - calculates bounds of a 1D coordinate variable
+  bnds_cls::bnds_cls(bool flg_dbg){
+    //Populate only on  constructor call
+    if(fmc_vtr.empty()){
+          fmc_vtr.push_back( fmc_cls("make_bounds",this,PBOUNDS)); 
+
+    }		      
+  } 
+  var_sct * bnds_cls::fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker){
+  const std::string fnc_nm("arr_cls::fnd");
+  int fdx;
+  int nbr_args;
+  int idx;
+  int nbr_dim;
+  nc_type itype;
+  dmn_sct **dim;
+  var_sct *var1=NULL_CEWI;
+  var_sct *var_txt=NULL_CEWI;
+  var_sct *var_ret;
+           
+  std::string susg;
+  std::string sfnm=fmc_obj.fnm();
+
+  RefAST tr;
+  std::vector<RefAST> args_vtr; 
+  std::vector<std::string> cst_vtr;              
+
+  // de-reference 
+  prs_cls *prs_arg=walker.prs_arg;            
+  vtl_typ lcl_typ;
+
+  fdx=fmc_obj.fdx();
+ 
+
+  if(expr)
+      args_vtr.push_back(expr);
+
+   if(tr=fargs->getFirstChild()) 
+   {
+      do  
+	args_vtr.push_back(tr);
+      while(tr=tr->getNextSibling());    
+   } 
+      
+  nbr_args=args_vtr.size();  
+
+  susg="usage: var_out="+sfnm+"(coordinate_var,$dim, string_nm ?"; 
+
+  
+  if(nbr_args<2)
+      err_prn(sfnm,"Function has been called with less than two arguments\n"+susg); 
+
+
+
+  if(nbr_args >4 &&!prs_arg->ntl_scn) 
+      wrn_prn(sfnm,"Function been called with more than three arguments"); 
+
+
+   
+  
+  var1=walker.out(args_vtr[0]);  
+  if(nbr_args >=3)
+    var_txt=walker.out(args_vtr[2]); 
+
+
+  /* second argument must be a single dimension */
+  if(args_vtr[1]->getType() != DIM_ID ) 
+     err_prn(sfnm,"Second argument must be a dimension\n"+susg); 
+
+  // cast a var from using the dim arg
+  if(var1->undefined==False &&  args_vtr[1]->getType() == DIM_ID   ) 
+  {
+    for(idx=0;idx<var1->nbr_dim;idx++)    
+      cst_vtr.push_back( var1->dim[idx]->nm);     
+
+   cst_vtr.push_back(args_vtr[1]->getText());
+     
+   var_ret=ncap_cst_mk(cst_vtr,prs_arg);
+
+   // use coordinate var name so we get attribute propagation
+   nco_free(var_ret->nm);
+   var_ret->nm=strdup(var1->nm);      
+
+   // convert to type of first arg
+   var_ret=nco_var_cnf_typ(var1->type,var_ret);  
+
+  }
+
+
+  if(prs_arg->ntl_scn)
+  {
+    if(var_txt) 
+      nco_var_free(var_txt);    
+
+    if(var1->undefined) 
+      return var1; 
+    else 
+    {     
+      var1=nco_var_free(var1);
+      return var_ret;    
+    }
+  }
+
+  if(var_txt)
+  {
+    std::string att_nm;
+    NcapVar *Nvar;
+
+    if(var_txt->type !=NC_CHAR && var_txt->type !=NC_STRING)     
+      wrn_prn(fnc_nm,"Third argument is the bounds name and must be a  text type");  
+    else
+    {
+      att_nm=var_ret->nm;att_nm+="@bounds";
+      Nvar=new NcapVar(var_txt,att_nm);
+      prs_arg->var_vtr.push_ow(Nvar);       
+    }       
+
+  }
+
+
+  // if type less than float then promote to double do calculation the convert back to original type
+  // else if float then leave as is 
+  itype=var1->type;   
+
+  if( itype !=NC_FLOAT && itype !=NC_DOUBLE) 
+  {  
+    nco_var_cnf_typ(NC_DOUBLE, var1);
+    nco_var_cnf_typ(NC_DOUBLE, var_ret);
+  }  
+
+  
+  (void)cast_void_nctype(var1->type,&var1->val);
+  (void)cast_void_nctype(var_ret->type,&var_ret->val);
+
+
+   // allocate space for results 
+  void *vp=nco_malloc( var_ret->sz * nco_typ_lng(var_ret->type)); 
+  var_ret->val.vp=vp;
+
+
+ 
+  // do the heavy lifting 
+  if(var1->type==NC_DOUBLE)
+  {  
+    long sz; 
+    double *idp;
+    double *rdp;
+    double dprev;
+
+
+    // reduce indrection 
+    idp=var1->val.dp;
+    rdp=var_ret->val.dp;
+    
+    sz=var1->sz;
+
+    dprev=2* idp[0]-idp[1];     
+    for(idx=0;idx<sz;idx++)  
+    {
+      rdp[2*idx]= 0.5*(dprev+idp[idx]);                                                                                   
+      if(idx>0)  
+	rdp[2*idx-1] = rdp[2*idx];
+
+      dprev=idp[idx]; 
+    }
+    // calculate final value 
+    rdp[2*sz-1]= 2*dprev-rdp[2*sz-2]; 
+
+
+  }
+  else if(var1->type==NC_FLOAT)
+  {  
+    long sz; 
+    float *ifp;
+    float *rfp;
+    float fprev;
+
+    ifp=var1->val.fp;
+    rfp=var_ret->val.fp;
+    
+    sz=var1->sz;
+
+    fprev=2* ifp[0]-ifp[1];     
+    for(idx=0;idx<sz;idx++)  
+    {
+      rfp[2*idx]= 0.5*(fprev+ifp[idx]);                                                                                   
+      if(idx>0)  
+	rfp[2*idx-1] = rfp[2*idx];
+
+      fprev=ifp[idx]; 
+    }
+    // calculate final value 
+    rfp[2*sz-1]= 2*fprev-rfp[2*sz-2]; 
+
+  }
+
+  (void)cast_nctype_void(var1->type,&var1->val);
+  (void)cast_nctype_void(var_ret->type,&var_ret->val);
+  
+  // convert results back to orignal type
+  nco_var_cnf_typ(itype,var_ret);  
+  nco_var_free(var1);
+
+  return var_ret;
+
+  }
 
 
 //Bilinear  Interpolation Functions /****************************************/
@@ -3436,27 +3803,7 @@ var_sct *vlist_cls::push_fnd(bool &is_mtd, std::vector<RefAST> &vtr_args, fmc_cl
   if(nbr_args!=2)
     err_prn(sfnm, " Function has been called with wrong number of arguments arguments\n"+susg); 
 
-  // get var to push -maybe a call by ref
-  if(vtr_args[1]->getType() == CALL_REF )     
-  {
-    nco_string val_string;
-    std::string add_nm=vtr_args[1]->getFirstChild()->getText();      
-
-    var_add=ncap_sclr_var_mk(SCS("~zz@string"), NC_STRING,false ); 
-
-    // malloc space directly if final scan
-    if(!prs_arg->ntl_scn)
-    {   
-       var_add->val.vp=(void*)nco_malloc(nco_typ_lng(NC_STRING));
-       cast_void_nctype(NC_STRING, &var_add->val);        
-       var_add->val.sngp[0]=strdup(add_nm.c_str());   
-       cast_nctype_void(NC_STRING, &var_add->val);        
-    }
-           
-
-  }
-  else 
-   var_add=walker.out(vtr_args[1]);
+  var_add=walker.out(vtr_args[1]);
              
 
 
@@ -3674,7 +4021,7 @@ var_sct *vlist_cls::push_fnd(bool &is_mtd, std::vector<RefAST> &vtr_args, fmc_cl
 
     if(vtype==NC_STRING)
     {  
-       xtr_nbr=var_regexp->sz;
+      xtr_nbr=var_regexp->sz;
        xtr_lst=nco_var_lst_mk(fl_id, nbr_var_fl, var_regexp->val.sngp  , False, False, &xtr_nbr);    
     }
 
@@ -3700,7 +4047,9 @@ var_sct *vlist_cls::push_fnd(bool &is_mtd, std::vector<RefAST> &vtr_args, fmc_cl
     var=ncap_sclr_var_mk(SCS("~zz@string"), NC_STRING,false );  
 
 
-    wrn_prn(sfnm,"nbr_var_fl="+nbr2sng(nbr_var_fl)+" xtr_nbr="+nbr2sng(xtr_nbr));
+
+    if(nco_dbg_lvl_get() >= nco_dbg_scl)     
+          wrn_prn(sfnm,"nbr_var_fl="+nbr2sng(nbr_var_fl)+" xtr_nbr="+nbr2sng(xtr_nbr));
 
     if(xtr_nbr==0) 
     {   
@@ -4182,7 +4531,18 @@ var_sct *vlist_cls::push_fnd(bool &is_mtd, std::vector<RefAST> &vtr_args, fmc_cl
   
   if(lcl_type == VVAR && fdx==PPRINT)  
     var_att=NULL;
-  else
+  else if(lcl_type==VSTRING)
+  {
+    char *cp;
+    nco_string val_string;
+
+    cp = strdup(vtr_args[0]->getText().c_str());          
+    (void)sng_ascii_trn(cp);            
+    val_string=cp; 
+    var_att=ncap_sclr_var_mk("~zz@print_methods", val_string); 
+
+  }
+  else  
     var_att=walker.out(vtr_args[0]);       
 
 
@@ -4295,7 +4655,7 @@ var_sct *vlist_cls::push_fnd(bool &is_mtd, std::vector<RefAST> &vtr_args, fmc_cl
        sz=strlen(cp);  
        var=ncap_sclr_var_mk("~zz@print_methods",NC_STRING,true);    
        cast_void_nctype(NC_STRING,&var->val);
-       var->val.sngp[0]=cp;   
+       var->val.sngp[0]=(nco_string)cp;   
        cast_nctype_void(NC_STRING,&var->val);            
        var->sz=1; 
      }
@@ -4303,7 +4663,8 @@ var_sct *vlist_cls::push_fnd(bool &is_mtd, std::vector<RefAST> &vtr_args, fmc_cl
 
  }
 
- nco_var_free(var_att);
+ if(var_att)
+    nco_var_free(var_att);
 
  if(fmt_sng)
    nco_free(fmt_sng);

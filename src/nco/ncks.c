@@ -264,6 +264,8 @@ main(int argc,char **argv)
   nco_bool flg_rgr=False; /* [flg] Regrid */
   nco_bool flg_trr=False; /* [flg] Terraref */
 
+  nco_dmn_dne_t *flg_dne=NULL; /* [lst] Flag to check if input dimension -d "does not exist" */
+
   size_t bfr_sz_hnt=NC_SIZEHINT_DEFAULT; /* [B] Buffer size hint */
   size_t cnk_min_byt=NCO_CNK_SZ_MIN_BYT_DFL; /* [B] Minimize size of variable to chunk */
   size_t cnk_sz_byt=0UL; /* [B] Chunk size in bytes */
@@ -271,8 +273,6 @@ main(int argc,char **argv)
   size_t hdr_pad=0UL; /* [B] Pad at end of header section */
 
   trv_tbl_sct *trv_tbl=NULL; /* [lst] Traversal table */
-
-  nco_dmn_dne_t *flg_dne=NULL; /* [lst] Flag to check if input dimension -d "does not exist" */
 
 #ifdef ENABLE_MPI
   /* Declare all MPI-specific variables here */
@@ -592,7 +592,14 @@ main(int argc,char **argv)
 	sld_nfo=(kvm_sct *)nco_malloc(BUFSIZ*sizeof(kvm_sct));
         nco_scrip_read(fl_scrip,sld_nfo);
       } /* endif "scrip" */
-      if(!strcmp(opt_crr,"mk_rec_dmn") || !strcmp(opt_crr,"mk_rec_dim")) rec_dmn_nm=strdup(optarg);
+      if(!strcmp(opt_crr,"mk_rec_dmn") || !strcmp(opt_crr,"mk_rec_dim")){
+	if(strchr(optarg,',')){
+	  (void)fprintf(stdout,"%s: ERROR record dimension name %s contains a comma and appears to be a list\n",nco_prg_nm_get(),optarg);
+	  (void)fprintf(stdout,"%s: HINT --mk_rec_dmn currently accepts only one dimension name as an argument (relaxing this limit is TODO nco1129, let us know if this is important to you). To change multiple dimensions into record dimensions, run ncks multiple times and change one dimension each time. Be sure the output file format is netCDF4.\n",nco_prg_nm_get());
+	  nco_exit(EXIT_FAILURE);
+	} /* endif */
+	rec_dmn_nm=strdup(optarg);
+      } /* !mk_rec_dmn */
       if(!strcmp(opt_crr,"mpi_implementation")){
         (void)fprintf(stdout,"%s\n",nco_mpi_get());
         nco_exit(EXIT_SUCCESS);
@@ -1019,7 +1026,9 @@ main(int argc,char **argv)
       rgr_in=(char *)strdup(fl_in);
       rgr_out=(char *)strdup(fl_out);
       rgr_nfo=nco_rgr_ini(cmd_ln,in_id,rgr_arg,rgr_nbr,rgr_in,rgr_out,rgr_grd_src,rgr_grd_dst,rgr_map,rgr_var,wgt_vld_thr,xtn_lst_in,xtn_nbr);
-      rgr_nfo->fl_out_tmp=nco_fl_out_open(rgr_nfo->fl_out,FORCE_APPEND,FORCE_OVERWRITE,fl_out_fmt,&bfr_sz_hnt,RAM_CREATE,RAM_OPEN,WRT_TMP_FL,&out_id);
+      rgr_nfo->fl_out_fmt=fl_out_fmt;
+      rgr_nfo->dfl_lvl=dfl_lvl;
+      rgr_nfo->fl_out_tmp=nco_fl_out_open(rgr_nfo->fl_out,&FORCE_APPEND,FORCE_OVERWRITE,fl_out_fmt,&bfr_sz_hnt,RAM_CREATE,RAM_OPEN,WRT_TMP_FL,&out_id);
 
       /* Copy Global Metadata */
       rgr_nfo->out_id=out_id;
@@ -1052,13 +1061,13 @@ main(int argc,char **argv)
       (void)nco_fl_fmt_vet(fl_out_fmt,cnk_nbr,dfl_lvl);
       
       /* Open output file */
-      fl_out_tmp=nco_fl_out_open(fl_out,FORCE_APPEND,FORCE_OVERWRITE,fl_out_fmt,&bfr_sz_hnt,RAM_CREATE,RAM_OPEN,WRT_TMP_FL,&out_id);
+      fl_out_tmp=nco_fl_out_open(fl_out,&FORCE_APPEND,FORCE_OVERWRITE,fl_out_fmt,&bfr_sz_hnt,RAM_CREATE,RAM_OPEN,WRT_TMP_FL,&out_id);
     
       /* Initialize chunking from user-specified inputs */
       if(fl_out_fmt == NC_FORMAT_NETCDF4 || fl_out_fmt == NC_FORMAT_NETCDF4_CLASSIC) rcd+=nco_cnk_ini(in_id,fl_out,cnk_arg,cnk_nbr,cnk_map,cnk_plc,cnk_min_byt,cnk_sz_byt,cnk_sz_scl,&cnk);
 
       /* Define extracted groups, variables, and attributes in output file */
-      CPY_GRP_METADATA = FORCE_APPEND ? False : PRN_GLB_METADATA;
+      CPY_GRP_METADATA=PRN_GLB_METADATA;
       (void)nco_xtr_dfn(in_id,out_id,&cnk,dfl_lvl,gpe,md5,CPY_GRP_METADATA,PRN_VAR_METADATA,RETAIN_ALL_DIMS,nco_pck_plc_nil,rec_dmn_nm,trv_tbl);
 
       /* Catenate time-stamped command line to "history" global attribute */

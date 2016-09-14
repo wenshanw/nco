@@ -114,14 +114,14 @@ nco_trr_ini /* [fnc] Initialize Terraref structure */
   /* Parse key-value properties */
   char *sng_cnv_rcd=NULL_CEWI; /* [sng] strtol()/strtoul() return code */
   for(trr_var_idx=0;trr_var_idx<trr_var_nbr;trr_var_idx++){
-    if(!strcasecmp(trr_lst[trr_var_idx].key,"ntl_typ_in")){
+    if(!strcasecmp(trr_lst[trr_var_idx].key,"ntl_in")){
       trr->ntl_typ_in=nco_trr_sng_ntl(trr_lst[trr_var_idx].val);
       continue;
-    } /* !ntl_typ_in */
-    if(!strcasecmp(trr_lst[trr_var_idx].key,"ntl_typ_out")){
+    } /* !ntl_in */
+    if(!strcasecmp(trr_lst[trr_var_idx].key,"ntl_out")){
       trr->ntl_typ_out=nco_trr_sng_ntl(trr_lst[trr_var_idx].val);
       continue;
-    } /* !ntl_typ_out */
+    } /* !ntl_out */
     if(!strcasecmp(trr_lst[trr_var_idx].key,"ttl")){
       trr->ttl=(char *)strdup(trr_lst[trr_var_idx].val);
       continue;
@@ -130,11 +130,11 @@ nco_trr_ini /* [fnc] Initialize Terraref structure */
       trr->var_nm=(char *)strdup(trr_lst[trr_var_idx].val);
       continue;
     } /* !var_nm */
-    if(!strcasecmp(trr_lst[trr_var_idx].key,"var_typ_in")){
+    if(!strcasecmp(trr_lst[trr_var_idx].key,"typ_in")){
       trr->var_typ_in=nco_sng2typ(trr_lst[trr_var_idx].val);
       continue;
     } /* !var_typ_in */
-    if(!strcasecmp(trr_lst[trr_var_idx].key,"var_typ_out")){
+    if(!strcasecmp(trr_lst[trr_var_idx].key,"typ_out")){
       trr->var_typ_out=nco_sng2typ(trr_lst[trr_var_idx].val);
       continue;
     } /* !var_typ_out */
@@ -191,7 +191,7 @@ nco_trr_ini /* [fnc] Initialize Terraref structure */
   if(!trr->wvl_nm) trr->wvl_nm=(char *)strdup("wavelength"); /* [sng] Name of wavelength dimension */
   if(!trr->xdm_nm) trr->xdm_nm=(char *)strdup("x"); /* [sng] Name of x-coordinate dimension */
   if(!trr->ydm_nm) trr->ydm_nm=(char *)strdup("y"); /* [sng] Name of y-coordinate dimension */
-  if(!trr->var_nm) trr->var_nm=(char *)strdup("exposure"); /* [sng] Variable containing imagery */
+  if(!trr->var_nm) trr->var_nm=(char *)strdup("xps_img"); /* [sng] Variable containing imagery */
   if(!trr->wvl_bnd_nm) trr->wvl_bnd_nm=(char *)strdup("wvl_bnds"); /* [sng] Name of dimension to employ for wavelength bounds */
   if(!trr->xdm_bnd_nm) trr->xdm_bnd_nm=(char *)strdup("x_bnds"); /* [sng] Name of dimension to employ for x-coordinate bounds */
   if(!trr->ydm_bnd_nm) trr->ydm_bnd_nm=(char *)strdup("y_bnds"); /* [sng] Name of dimension to employ for y-coordinate bounds */
@@ -390,7 +390,7 @@ nco_trr_read /* [fnc] Read, parse, and print contents of TERRAREF file */
   if(var_raw.vp) var_raw.vp=(void *)nco_free(var_raw.vp);
 
   /* Open grid file */  
-  fl_out_tmp=nco_fl_out_open(fl_out,FORCE_APPEND,FORCE_OVERWRITE,fl_out_fmt,&bfr_sz_hnt,RAM_CREATE,RAM_OPEN,WRT_TMP_FL,&out_id);
+  fl_out_tmp=nco_fl_out_open(fl_out,&FORCE_APPEND,FORCE_OVERWRITE,fl_out_fmt,&bfr_sz_hnt,RAM_CREATE,RAM_OPEN,WRT_TMP_FL,&out_id);
 
   /* Define dimensions */
   rcd=nco_def_dim(out_id,wvl_nm,wvl_nbr,&dmn_id_wvl);
@@ -424,11 +424,11 @@ nco_trr_read /* [fnc] Read, parse, and print contents of TERRAREF file */
   (void)nco_def_var(out_id,var_nm,var_typ_out,dmn_nbr_3D,dmn_ids,&var_id);
 
   if(dfl_lvl > 0){
-    int shuffle; /* [flg] Turn on shuffle filter */
-    int deflate; /* [flg] Turn on deflate filter */
+    int shuffle; /* [flg] Turn-on shuffle filter */
+    int deflate; /* [flg] Turn-on deflate filter */
     deflate=(int)True;
     shuffle=NC_SHUFFLE;
-    (void)nco_def_var_deflate(out_id,var_id,deflate,shuffle,dfl_lvl);
+    (void)nco_def_var_deflate(out_id,var_id,shuffle,deflate,dfl_lvl);
   } /* !dfl_lvl */
   
   /* Define "units" attributes */
@@ -477,7 +477,7 @@ nco_trr_read /* [fnc] Read, parse, and print contents of TERRAREF file */
   if(att_val) att_val=(char *)nco_free(att_val);
   
   att_nm=strdup("long_name");
-  att_val=strdup("Exposure");
+  att_val=strdup("Exposure counts");
   aed_mtd.att_nm=att_nm;
   aed_mtd.var_nm=var_nm;
   aed_mtd.id=var_id;
@@ -490,7 +490,7 @@ nco_trr_read /* [fnc] Read, parse, and print contents of TERRAREF file */
   if(att_val) att_val=(char *)nco_free(att_val);
   
   att_nm=strdup("meaning");
-  att_val=strdup("Exposure on scale from 0 to 2^16-1 = 65535");
+  att_val=strdup("Counts on scale from 0 to 2^16-1 = 65535");
   aed_mtd.att_nm=att_nm;
   aed_mtd.var_nm=var_nm;
   aed_mtd.id=var_id;
@@ -538,8 +538,6 @@ nco_trr_sng_ntl /* [fnc] Convert user-supplied string to interleave-type enum */
 (const char * const typ_sng) /* I [sng] String indicating interleave-type */
 {
   /* Purpose: Convert user-supplied string to interleave-type */
-  const char fnc_nm[]="nco_trr_sng_ntl()";
-  
   if(!strcasecmp(typ_sng,"bsq") || !strcasecmp(typ_sng,"band_sequential")) return nco_trr_ntl_bsq;
   else if(!strcasecmp(typ_sng,"bip") || !strcasecmp(typ_sng,"band_interleaved_by_pixel")) return nco_trr_ntl_bip;
   else if(!strcasecmp(typ_sng,"bil") || !strcasecmp(typ_sng,"band_interleaved_by_line")) return nco_trr_ntl_bil;

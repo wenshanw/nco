@@ -51,7 +51,7 @@
 
 # Process configure input with autoconf to produce configure script
 # (package name,version,bug-report-address,tarball name)
-AC_INIT([NCO netCDF Operators],[4.5.6-alpha06],[nco-bugs@lists.sourceforge.net],[nco])
+AC_INIT([NCO netCDF Operators],[4.6.2-alpha01],[nco-bugs@lists.sourceforge.net],[nco])
 
 # Print GNU copyright in configure script
 AC_COPYRIGHT
@@ -73,8 +73,10 @@ AC_CANONICAL_TARGET
 
 # Get NCO version
 if test -r doc/VERSION; then
-    nco_version=`cat doc/VERSION`
-#  AC_DEFINE_UNQUOTED(NCO_VERSION,${nco_version},NCO Version)
+#    nco_version=`cat doc/VERSION`
+##  AC_DEFINE_UNQUOTED(NCO_VERSION,${nco_version},NCO Version)
+    NCO_VERSION=`cat doc/VERSION`
+    AC_SUBST(NCO_VERSION)
 fi
 
 # Set egrep
@@ -517,9 +519,9 @@ fi
 AC_ARG_ENABLE(nco_cplusplus,AS_HELP_STRING([--enable-nco_cplusplus],[Build NCO C++ interface library [[default=yes]]]),enable_nco_cxx=${enableval},enable_nco_cxx=yes)
 # End nco_c++
 
-echo "########################################"
-echo "#     Testing for ESMF support          #"
-echo "########################################"
+echo "##################################################"
+echo "# Testing for ESMF support (only for developers) #"
+echo "##################################################"
 # Begin ESMF
 
 # Begin mandatory link test with libnetcdf.a
@@ -531,7 +533,7 @@ AC_ARG_VAR(ESMF_LIB,Location of ESMF library (compile-time))
 # Store pre-ESMF LIBS value to restore from later
 nco_LIBS_no_ESMF="${LIBS}"
 nco_CPPFLAGS_no_ESMF="${CPPFLAGS}"
-AC_ARG_ENABLE(esmf,AS_HELP_STRING([--enable-esmf],[Build-in ESMF support for integrated (instead of off-line) regridding. WARNING: Development code = Unsupported (and not necessary for regridding! Dragons lurk here.) [[default=yes]]]),enable_esmf=${enableval},enable_esmf=yes)
+AC_ARG_ENABLE(esmf,AS_HELP_STRING([--enable-esmf],[Build-in ESMF support for integrated (instead of off-line) regridding. WARNING: Development code = Unsupported (and not necessary for regridding! Dragons lurk here.) [[default=no]]]),enable_esmf=${enableval},enable_esmf=no)
 if test "${enable_esmf}" != 'yes'; then
     enable_esmf='no'
 fi
@@ -725,9 +727,11 @@ if test "${enable_udunits2}" != 'no'; then
 	fi
     elif test "${NETCDF_INC}"; then
 	nco_udunits2_xml="${NETCDF_INC}/../share/udunits/udunits2.xml"
-    else
+    fi
+    if test "${UDUNITS2_PATH}" = ''; then
 	# NO UDUNITS2_PATH section
 	# Fedora 1.7 has /usr/include/udunits2/udunits2.h
+	# 20160418 FC23 has /usr/include/udunits2/udunits2.h
 	# Add this path to CPPFLAGS if it exists, otherwise do nothing
 	AC_CHECK_FILE([/usr/include/udunits2/udunits2.h], [CPPFLAGS="$CPPFLAGS -I/usr/include/udunits2"], [])
 	# Ubuntu
@@ -1132,6 +1136,8 @@ fi
 # Tell GNU C compiler to use C99 standard (older gcc versions default to C89)
 # fxm: only do this for gcc, not g++
 if test $ac_compiler_gnu = 'yes'; then
+    # _BSD_SOURCE needed for backward compatibility with old GCC
+    # 20160418: default cori gcc is 4.3.4 from 2008!
     CFLAGS="${CFLAGS} -std=c99 -D_BSD_SOURCE -D_POSIX_SOURCE"
     case ${host} in
 # MacOSX does not understand shared libraries

@@ -38,6 +38,15 @@ nco_aed_prc_wrp /* [fnc] Expand regular expressions then pass attribute edits to
     return flg_chg; /* [flg] Attribute was altered */
   } /* !rx */
 
+  if(aed.att_nm && strpbrk(aed.att_nm,".*^$[]()<>+{}") && !strpbrk(aed.att_nm,"?|\\")){
+    /* If attribute name contains special character that could indicate regular expression,
+       and that could also be legal in a CDL name, and contains no characters that are illegal
+       in CDL names, then attempt attribute edit based on verbatim name string 
+       before attempting to expand regular expression. */
+    flg_chg|=nco_aed_prc(nc_id,var_id,aed);
+    if(flg_chg) return flg_chg; /* [flg] Attribute was altered */
+  } /* !rx */
+
   aed_sct aed_swp; /* [sct] Attribute-edit information */
   char **att_nm_lst;
   int att_idx;
@@ -146,7 +155,7 @@ nco_aed_prc_wrp /* [fnc] Expand regular expressions then pass attribute edits to
   if(att_nm_lst) att_nm_lst=nco_sng_lst_free(att_nm_lst,att_nbr);
 
   return flg_chg; /* [flg] Attribute was altered */
-} /* end nco_aed_prc() */
+} /* end nco_aed_prc_wrp() */
 
 nco_bool /* [flg] Attribute was changed */
 nco_aed_prc /* [fnc] Process single attribute edit for single variable */
@@ -1944,14 +1953,14 @@ nco_glb_att_add /* [fnc] Add global attributes */
     /* nco_sng2kvm() converts argument "--gaa one,two=3" into kvm.key="one,two" and kvm.val=3
        Then nco_lst_prs_2D() converts kvm.key into two items, "one" and "two", with the same value, 3 */
     if(kvm.key){
-      int att_idx; /* [idx] Index over qattribute names in current GAA argument */
+      int att_idx; /* [idx] Index over attribute names in current GAA argument */
       int att_nbr; /* [nbr] Number of attribute names in current GAA argument */
       char **att_lst;
       att_lst=nco_lst_prs_2D(kvm.key,",",&att_nbr);
       for(att_idx=0;att_idx<att_nbr;att_idx++){ /* Expand multi-attribute-name specification */
         gaa_lst[gaa_nbr].key=strdup(att_lst[att_idx]);
-	/* 20160324: fxm: can next line break when kvm.val is NULL? */
-	gaa_lst[gaa_nbr].val=strdup(kvm.val);
+	/* 20160714: Allow for empty arguments by only using strdup() on non-NULL pointers */
+	gaa_lst[gaa_nbr].val= kvm.val ? strdup(kvm.val) : NULL;
         gaa_nbr++;
       } /* end for */
       att_lst=nco_sng_lst_free(att_lst,att_nbr);

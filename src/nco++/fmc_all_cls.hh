@@ -96,16 +96,18 @@ public:
   utl_cls(bool flg_dbg);
   var_sct *fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker);
   var_sct *is_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker);  
+  var_sct *get_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker);  
 };
 
 //Basic Functions /****************************************/
 class bsc_cls: public vtl_cls {
 private:
-  enum {PSIZE,PTYPE,PNDIMS,PEXISTS };
+  enum {PSIZE,PTYPE,PNDIMS,PEXISTS,PGETDIMS };
    bool _flg_dbg;
 public:
   bsc_cls(bool flg_dbg);
   var_sct *fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker);
+  var_sct *getdims_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker);  
 };
 
 //Maths Functions /****************************************/
@@ -191,6 +193,7 @@ private:
    enum {PABS,PSQR };
    bool _flg_dbg;
 public:
+
   unr_cls(bool flg_dbg);
   var_sct *fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker);
 };
@@ -204,6 +207,18 @@ public:
   arr_cls(bool flg_dbg);
   var_sct *fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker);
 };
+
+//Array Function /****************************************/
+class  bnds_cls: public vtl_cls {
+private:
+   enum {PBOUNDS };
+   bool _flg_dbg;
+public:
+  bnds_cls(bool flg_dbg);
+  var_sct *fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker);
+};
+
+
 
 //Bilinear  Interpolation Functions /****************************************/
 class bil_cls: public vtl_cls {

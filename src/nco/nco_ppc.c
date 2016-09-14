@@ -230,7 +230,7 @@ nco_ppc_set_dflt /* Set PPC value for all non-coordinate variables for --ppc def
 	int var_id;
 	nco_inq_grp_full_ncid(nc_id,trv_tbl->lst[idx_tbl].grp_nm_fll,&grp_id);
 	nco_inq_varid(grp_id,trv_tbl->lst[idx_tbl].nm,&var_id);
-	if(!nco_is_spc_in_bnd_att(grp_id,var_id) && !nco_is_spc_in_clm_att(grp_id,var_id) && !nco_is_spc_in_crd_att(grp_id,var_id)){
+	if(!nco_is_spc_in_cf_att(grp_id,"bounds",var_id) && !nco_is_spc_in_cf_att(grp_id,"climatology",var_id) && !nco_is_spc_in_cf_att(grp_id,"coordinates",var_id)){
 	  trv_tbl->lst[idx_tbl].ppc=ppc_val;
 	  trv_tbl->lst[idx_tbl].flg_nsd=flg_nsd;
 	} /* endif */
@@ -560,7 +560,7 @@ nco_ppc_bitmask /* [fnc] Mask-out insignificant bits of significand */
   
   /* Rounding is currently defined as op1:=bitmask(op1,ppc) */  
   
-  /* Number of Significant Digits (NSD) algorithm
+  /* This routine implements the Bit Grooming Number of Significant Digits (NSD) algorithm
      NSD based on absolute precision, i.e., number of digits in significand and in decimal scientific notation
      DSD based on precision relative to decimal point, i.e., number of digits before/after decimal point
      DSD is more often used colloquially, e.g., "thermometers measure temperature accurate to 1 degree C" 
@@ -629,10 +629,10 @@ nco_ppc_bitmask /* [fnc] Mask-out insignificant bits of significand */
   //prc_bnr_xpl_rqr=prc_bnr_ceil-1;
   //prc_bnr_xpl_rqr=prc_bnr_ceil;
   prc_bnr_xpl_rqr=prc_bnr_ceil+1;
-  if(type == NC_DOUBLE) prc_bnr_xpl_rqr++; /* Seems necessary for double-precision ppc=array(1.234567,1.e-6,$dmn) */
+  if(type == NC_DOUBLE) prc_bnr_xpl_rqr++; /* Seems necessary for double-precision ppc=array(1.234567,1.0e-6,$dmn) */
   /* 20150128: Hand-tuning shows we can sacrifice one or two more bits for almost all cases
      20150205: However, small integers are an exception. In fact they require two more bits, at least for NSD=1.
-     Thus minimum threshold to preserve half of least significant digit (LSD) is prc_bnr_xpl_rqr=prc_bnr_ceil.
+     Thus minimum threshold to preserve half of least significant digit (LSD) is prc_bnr_xpl_rqr=prc_bnr_ceil
      Decrementing prc_bnr_xpl_rqr by one or two more bits produces maximum errors that exceed half the LSD
      ncra -4 -O -C --ppc default=1 --ppc one=1 -p ~/nco/data in.nc in.nc ~/foo.nc 
      ncks -H -v Q.. --cdl ~/foo.nc | m */

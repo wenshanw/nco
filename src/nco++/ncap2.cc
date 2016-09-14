@@ -377,7 +377,7 @@ main(int argc,char **argv)
         hdr_pad=strtoul(optarg,&sng_cnv_rcd,NCO_SNG_CNV_BASE10);
         if(*sng_cnv_rcd) nco_sng_cnv_err(optarg,"strtoul",sng_cnv_rcd);
       } /* endif "hdr_pad" */
-      if(!strcmp(opt_crr,"hdf_upk") || !strcmp(opt_crr,"hdf_unpack")) nco_upk_cnv=nco_upk_HDF; /* [flg] HDF unpack convention: unpacked=scale_factor*(packed-add_offset) */
+      if(!strcmp(opt_crr,"hdf_upk") || !strcmp(opt_crr,"hdf_unpack")) nco_upk_cnv=nco_upk_HDF_MOD10; /* [flg] HDF unpack convention: unpacked=scale_factor*(packed-add_offset) */
       if(!strcmp(opt_crr,"lbr") || !strcmp(opt_crr,"library")){
         (void)nco_lbr_vrs_prn();
         nco_exit(EXIT_SUCCESS);
@@ -550,6 +550,8 @@ main(int argc,char **argv)
   vlist_cls vlist_obj(true);
   // string list functions
   print_cls print_obj(true);
+  // string list functions
+  bnds_cls bnds_obj(true);
 
 
   // Populate vector
@@ -572,6 +574,7 @@ main(int argc,char **argv)
   (void)pop_fmc_vtr(fmc_vtr,&misc_obj);
   (void)pop_fmc_vtr(fmc_vtr,&vlist_obj);
   (void)pop_fmc_vtr(fmc_vtr,&print_obj);
+  (void)pop_fmc_vtr(fmc_vtr,&bnds_obj);
 
 #ifdef ENABLE_GSL
 # ifdef ENABLE_NCO_GSL
@@ -662,7 +665,7 @@ main(int argc,char **argv)
   /* Open output file */
   if(FL_OUT_NEW){
     /* Normal case, like rest of NCO, where writes are made to temporary file */
-    fl_out_tmp=nco_fl_out_open(fl_out,FORCE_APPEND,FORCE_OVERWRITE,fl_out_fmt,&bfr_sz_hnt,RAM_CREATE,RAM_OPEN,WRT_TMP_FL,&out_id);
+    fl_out_tmp=nco_fl_out_open(fl_out,&FORCE_APPEND,FORCE_OVERWRITE,fl_out_fmt,&bfr_sz_hnt,RAM_CREATE,RAM_OPEN,WRT_TMP_FL,&out_id);
   }else{ /* Existing file */
     /* ncap2, like ncrename and ncatted, directly modifies fl_in if fl_out is omitted
        If fl_out resolves to _same name_ as fl_in, method above is employed */
@@ -1116,39 +1119,46 @@ ram_vars_add
 {
   var_sct *var1;
   
-  var1=ncap_sclr_var_mk(std::string("__BYTE"),nco_int(NC_BYTE));
+  var1=ncap_sclr_var_mk(std::string("NC_BYTE"),nco_int(NC_NAT));
   prs_arg->ncap_var_write(var1,true);
   
-  var1=ncap_sclr_var_mk(std::string("__CHAR"),nco_int(NC_CHAR));
+  var1=ncap_sclr_var_mk(std::string("NC_BYTE"),nco_int(NC_BYTE));
   prs_arg->ncap_var_write(var1,true);
   
-  var1=ncap_sclr_var_mk(std::string("__SHORT"),nco_int(NC_SHORT));
+  var1=ncap_sclr_var_mk(std::string("NC_CHAR"),nco_int(NC_CHAR));
   prs_arg->ncap_var_write(var1,true);
   
-  var1=ncap_sclr_var_mk(std::string("__INT"),nco_int(NC_INT));
+  var1=ncap_sclr_var_mk(std::string("NC_SHORT"),nco_int(NC_SHORT));
   prs_arg->ncap_var_write(var1,true);
   
-  var1=ncap_sclr_var_mk(std::string("__FLOAT"),nco_int(NC_FLOAT));
+  var1=ncap_sclr_var_mk(std::string("NC_INT"),nco_int(NC_INT));
   prs_arg->ncap_var_write(var1,true);
   
-  var1=ncap_sclr_var_mk(std::string("__DOUBLE"),nco_int(NC_DOUBLE));
+  var1=ncap_sclr_var_mk(std::string("NC_FLOAT"),nco_int(NC_FLOAT));
+  prs_arg->ncap_var_write(var1,true);
+  
+  var1=ncap_sclr_var_mk(std::string("NC_DOUBLE"),nco_int(NC_DOUBLE));
   prs_arg->ncap_var_write(var1,true);
   
 #ifdef ENABLE_NETCDF4
-  var1=ncap_sclr_var_mk(std::string("__UBYTE"),nco_int(NC_UBYTE));
+  var1=ncap_sclr_var_mk(std::string("NC_UBYTE"),nco_int(NC_UBYTE));
   prs_arg->ncap_var_write(var1,true); 
   
-  var1=ncap_sclr_var_mk(std::string("__USHORT"),nco_int(NC_USHORT));
+  var1=ncap_sclr_var_mk(std::string("NC_USHORT"),nco_int(NC_USHORT));
   prs_arg->ncap_var_write(var1,true);
   
-  var1=ncap_sclr_var_mk(std::string("__UINT"),nco_int(NC_UINT));
+  var1=ncap_sclr_var_mk(std::string("NC_UINT"),nco_int(NC_UINT));
   prs_arg->ncap_var_write(var1,true);
   
-  var1=ncap_sclr_var_mk(std::string("__INT64"),nco_int(NC_INT64));
+  var1=ncap_sclr_var_mk(std::string("NC_INT64"),nco_int(NC_INT64));
   prs_arg->ncap_var_write(var1,true);
   
-  var1=ncap_sclr_var_mk(std::string("__UINT64"),nco_int(NC_UINT64));
+  var1=ncap_sclr_var_mk(std::string("NC_UINT64"),nco_int(NC_UINT64));
   prs_arg->ncap_var_write(var1,true);
+
+  var1=ncap_sclr_var_mk(std::string("NC_STRING"),nco_int(NC_STRING));
+  prs_arg->ncap_var_write(var1,true);
+
 #endif // !ENABLE_NETCDF4
   
 #ifdef INFINITY

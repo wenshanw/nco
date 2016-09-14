@@ -22,6 +22,7 @@ nco_prn_att /* [fnc] Print all attributes of single variable or group */
 
   att_sct *att=NULL_CEWI;
 
+  //  const char fnc_nm[]="nco_prn_att()"; /* [sng] Function name  */
   const char spc_sng[]=""; /* [sng] Space string */
 
   char *nm_cdl;
@@ -39,6 +40,7 @@ nco_prn_att /* [fnc] Print all attributes of single variable or group */
   char att_sng_dlm[NCO_MAX_LEN_FMT_SNG];
   char att_sng_pln[NCO_MAX_LEN_FMT_SNG];
   char src_sng[NC_MAX_NAME];
+  char att_nm[NC_MAX_NAME];
   char val_sng[NCO_ATM_SNG_LNG];
 
   double val_dbl;
@@ -63,7 +65,10 @@ nco_prn_att /* [fnc] Print all attributes of single variable or group */
   long sng_lng=long_CEWI; /* [nbr] Length of NC_CHAR string */
   long sng_lngm1=long_CEWI; /* [nbr] Length minus one of NC_CHAR string */
   
+  nc_type att_typ;
   nc_type var_typ;
+
+  nco_bool flg_glb=False; /* [flg] Printing attributes for root-level group */
 
   const nco_bool CDL=prn_flg->cdl; /* [flg] CDL output */
   const nco_bool XML=prn_flg->xml; /* [flg] XML output */
@@ -83,7 +88,8 @@ nco_prn_att /* [fnc] Print all attributes of single variable or group */
     (void)nco_inq(grp_id,(int *)NULL,(int *)NULL,&att_nbr_vsb,(int *)NULL);
     /* Which group is this? */
     rcd=nco_inq_grp_parent_flg(grp_id,&grp_id_prn);
-    if(rcd == NC_ENOGRP) (void)strcpy(src_sng,(CDL) ? "" : "Global"); else (void)strcpy(src_sng,(CDL) ? "" : "Group");
+    if(rcd == NC_ENOGRP) flg_glb=True;
+    if(flg_glb) (void)strcpy(src_sng,(CDL) ? "" : "Global"); else (void)strcpy(src_sng,(CDL) ? "" : "Group");
     if(CDL) prn_ndn+=prn_flg->sxn_fst;
   }else{
     /* Get name and number of attributes for variable */
@@ -136,6 +142,50 @@ nco_prn_att /* [fnc] Print all attributes of single variable or group */
 	  att[idx].val.vp=(void *)nco_malloc(att_sz*nco_typ_lng(att[idx].type));
 	  strncpy(att[idx].val.cp,val_hdn_sng,att_sz);
 	  if(val_hdn_sng) val_hdn_sng=(char *)nco_free(val_hdn_sng);
+	  /* _NCProperties, _IsNetcdf4, _SuperblockVersion only printed for root group
+	     _NCProperties is persistent, added at file creation 
+	     _IsNetcdf4 and _SuperblockVersion are computed by traversing file with HDF5 API, looking for clues
+	     All were introduced in 4.4.1-rc2 on 20160513 */
+	  if(nco_fmt_xtn_get() != nco_fmt_xtn_hdf4 && NC_LIB_VERSION >= 441){
+	    /* 20160514: nc_inq_att() for "_NCProperties" returns type==NC_NAT or random integer, and att_sz is random for files without _NCProperties */
+	    /* 20160514: nc_inq_att() for "_IsNetcdf4" returns random type and size too */
+	    /* 20160719: Above issues were fixed in netCDF 4.4.1 final release */
+	    strcpy(att_nm,"_NCProperties");
+	    rcd=nco_inq_att_flg(grp_id,var_id,att_nm,&att_typ,&att_sz);
+	    if(rcd == NC_NOERR){
+	      idx=att_nbr_ttl++;
+	      att=(att_sct *)nco_realloc(att,att_nbr_ttl*sizeof(att_sct));
+	      att[idx].nm=(char *)strdup(att_nm);
+	      att[idx].type=att_typ;
+	      att[idx].sz=att_sz;
+	      att[idx].val.vp=(void *)nco_malloc(att_sz*nco_typ_lng(att[idx].type));
+	      rcd=nco_get_att(grp_id,var_id,att[idx].nm,att[idx].val.vp,att[idx].type);
+	    } /* !rcd */
+	    /* _IsNetcdf4 */
+	    strcpy(att_nm,"_IsNetcdf4");
+	    rcd=nco_inq_att_flg(grp_id,var_id,att_nm,&att_typ,&att_sz);
+	    if(rcd == NC_NOERR){
+	      idx=att_nbr_ttl++;
+	      att=(att_sct *)nco_realloc(att,att_nbr_ttl*sizeof(att_sct));
+	      att[idx].nm=(char *)strdup(att_nm);
+	      att[idx].type=att_typ;
+	      att[idx].sz=att_sz;
+	      att[idx].val.vp=(void *)nco_malloc(att_sz*nco_typ_lng(att[idx].type));
+	      rcd=nco_get_att(grp_id,var_id,att[idx].nm,att[idx].val.vp,att[idx].type);
+	    } /* !rcd */
+	    /* _SuperblockVersion */
+	    strcpy(att_nm,"_SuperblockVersion");
+	    rcd=nco_inq_att_flg(grp_id,var_id,att_nm,&att_typ,&att_sz);
+	    if(rcd == NC_NOERR){
+	      idx=att_nbr_ttl++;
+	      att=(att_sct *)nco_realloc(att,att_nbr_ttl*sizeof(att_sct));
+	      att[idx].nm=(char *)strdup(att_nm);
+	      att[idx].type=att_typ;
+	      att[idx].sz=att_sz;
+	      att[idx].val.vp=(void *)nco_malloc(att_sz*nco_typ_lng(att[idx].type));
+	      rcd=nco_get_att(grp_id,var_id,att[idx].nm,att[idx].val.vp,att[idx].type);
+	    } /* !rcd */
+	  } /* !441 */
 	} /* !rcd */	
       } /* !xml */
     }else{
@@ -443,6 +493,8 @@ nco_prn_att /* [fnc] Print all attributes of single variable or group */
     
   } /* end loop over attributes */
 
+  /* Print extra line after global attributes */
+  if(CDL && flg_glb) (void)fprintf(stdout,"\n");
   if(!prn_flg->new_fmt && CDL_OR_TRD) (void)fprintf(stdout,"\n");
   (void)fflush(stdout);
   
@@ -1862,7 +1914,15 @@ nco_prn_var_val_trv /* [fnc] Print variable data (GTT version) */
 		/* Are units those of a calendar? */
 		unit_cln_crd=nco_cln_chk_tm(unit_sng_crd);
 		if(nco_dbg_lvl_get() == nco_dbg_crr) (void)fprintf(stdout,"%s: INFO %s reports units string \"%s\" is %sa calendar string\n",nco_prg_nm_get(),fnc_nm,unit_sng_crd,unit_cln_crd ? "" : "not " );
-
+		if(unit_cln_crd){
+#ifdef HAVE_UDUNITS2_H
+		/* 20160418: Even when UDUnits is available, the lgb software produces poor formatting and needs work so turn-off for now */
+		unit_cln_crd=False;
+#else /* !HAVE_UDUNITS2 */
+		  if(nco_dbg_lvl_get() >= nco_dbg_std) (void)fprintf(stdout,"%s: INFO %s reports units string \"%s\" is a calendar string, but UDUNITS2 not built-in, so will not attempt to print calendar dates legibly\n",nco_prg_nm_get(),fnc_nm,unit_sng_crd);
+		  unit_cln_crd=False;
+#endif /* !HAVE_UDUNITS2 */
+                } /* !unit_cln_crd */
 	      } /* end if att_typ */
 	    } /* end if rcd_lcl */
 	  } /* end if True */

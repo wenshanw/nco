@@ -91,7 +91,7 @@ nco_err_exit /* [fnc] Print netCDF error message, routine name, then exit */
 #else /* !ENABLE_NETCDF4 */ 
      (void)fprintf(stdout,"Are your input files netCDF4 format?  (http://nco.sf.net/nco.html#fmt_inq shows how to tell.) If so then installing or re-building a netCDF4-compatible version of NCO should solve this problem. First upgrade netCDF to version 4.x, then install NCO using those netCDF 4.x libraries.\n2. NC_ENOTNC can occur when users attempt to utilize diskless (i.e., RAM) files.  In this case remove the diskless switches (e.g., --ram or --diskless) and then re-issue the command. \n"); 
 #endif /* !ENABLE_NETCDF4 */ 
-     (void)fprintf(stdout,"2. NCO attempts to utilize diskless (i.e., RAM) files.  In this case remove the diskless switches (e.g., --ram or --diskless) and then re-issue the command.\n3. NCO attempts to read other filetypes (HDF4, HDF-EOS2, pnetCDF) for which support must be (but was not) enabled at netCDF build-time. In this case it may be possible to access the input files using NCO if NCO is first re-linked to a version of netCDF configured with the --enable-hdf4 option. This is a non-standard netCDF build option described here: http://www.unidata.ucar.edu/software/netcdf/docs/build_hdf4.html\n4. Access to a DAP URL fails, and the backup method of downloading the URL using wget obtains a data aggregation file (e.g., a .ncml file) instead of an actual netCDF file. In this case the problem is with the DAP server or URL.\n"); break; 
+     (void)fprintf(stdout,"2. NCO attempts to read other filetypes (HDF4, HDF-EOS2, pnetCDF) for which support must be (but was not) enabled at netCDF build-time. NCO can access HDF4 files if NCO is first re-linked to a version of netCDF configured with the --enable-hdf4 option. This is a non-standard netCDF build option described here: http://www.unidata.ucar.edu/software/netcdf/docs/build_hdf4.html. NCO can access pnetCDF files if NCO is first re-linked netCDF version 4.4.0 or later.\n3. NCO attempts to utilize diskless (i.e., RAM) files.  In this case remove the diskless switches (e.g., --ram or --diskless) and then re-issue the command.\n4. Access to a DAP URL fails, and the backup method of downloading the URL using wget obtains a data aggregation file (e.g., a .ncml file) instead of an actual netCDF file. In this case the problem is with the DAP server or URL.\n"); break; 
   case NC_ERANGE: (void)fprintf(stdout,"ERROR NC_ERANGE Result not representable in output file\nHINT: NC_ERANGE errors typically occur after an arithmetic operation results in a value not representible by the output variable type when NCO attempts to write those values to an output file.  Possible workaround: Promote the variable to higher precision before attempting arithmetic.  For example,\nncap2 -O -s \'foo=double(foo);\' in.nc in.nc\nFor more details, see http://nco.sf.net/nco.html#typ_cnv\n"); break; 
   case NC_EUNLIMIT: (void)fprintf(stdout,"ERROR NC_UNLIMIT NC_UNLIMITED size already in use\nHINT: NC_EUNLIMIT errors can occur when attempting to convert netCDF4 classic files that contain multiple record dimensions into a netCDF3 file that allows only one record dimension. In this case, try first fixing the excess record dimension(s) (with, e.g., ncks --fix_rec_dmn) and then convert to netCDF3. For more details, see http://nco.sf.net/nco.html#fix_rec_dmn\n"); break;
   case NC_EVARSIZE: (void)fprintf(stdout,"ERROR NC_EVARSIZE One or more variable sizes violate format constraints\nHINT: NC_EVARSIZE errors can occur when attempting to aggregate netCDF3 classic files together into outputs that exceed the capacity of the netCDF3 classic file format, e.g., a variable with size in excess of 2^31 bytes. In this case, try altering the output file type to netCDF3 classic with 64-bit offsets (with --64) or to netCDF4 (with -4). For more details, see http://nco.sf.net/nco.html#fl_fmt\n"); break;
@@ -125,50 +125,6 @@ nco_err_exit /* [fnc] Print netCDF error message, routine name, then exit */
   exit(EXIT_FAILURE);
 #endif /* !NCO_ABORT_ON_ERROR */
 } /* end nco_err_exit() */
-
-nc_type /* O [enm] netCDF type */
-nco_sng2typ /* [fnc] Convert user-supplied string to netCDF type enum */
-(const char * const typ_sng) /* I [sng] String indicating type */
-{
-  /* Purpose: Convert user-supplied string to netCDF type */
-  const char fnc_nm[]="nco_sng2typ()";
-
-  /* Convert single letter code to type enum */
-  switch(*typ_sng){
-  case 'F':	
-  case 'f': return (nc_type)NC_FLOAT; break;
-  case 'D':	
-  case 'd': return (nc_type)NC_DOUBLE; break;
-  case 'C':	
-  case 'c': return (nc_type)NC_CHAR; break;
-  case 'B':	
-  case 'b': return (nc_type)NC_BYTE; break;
-  default: 
-    /* Ambiguous single letters and extended matches must use full string comparisons */
-    if(!strcasecmp(typ_sng,"float") || !strcasecmp(typ_sng,"float32") || !strcasecmp(typ_sng,"NC_FLOAT")) return (nc_type)NC_FLOAT; 
-    else if(!strcasecmp(typ_sng,"l") || !strcasecmp(typ_sng,"i") || !strcasecmp(typ_sng,"int") || !strcasecmp(typ_sng,"int32") || !strcasecmp(typ_sng,"NC_INT")) return (nc_type)NC_INT; 
-    else if(!strcasecmp(typ_sng,"s") || !strcasecmp(typ_sng,"short") || !strcasecmp(typ_sng,"int16") || !strcasecmp(typ_sng,"NC_SHORT")) return (nc_type)NC_SHORT; 
-#ifdef ENABLE_NETCDF4
-    else if(!strcasecmp(typ_sng,"ub") || !strcasecmp(typ_sng,"ubyte") || !strcasecmp(typ_sng,"uint8") || !strcasecmp(typ_sng,"NC_UBYTE")) return (nc_type)NC_UBYTE; 
-    else if(!strcasecmp(typ_sng,"us") || !strcasecmp(typ_sng,"ushort") || !strcasecmp(typ_sng,"uint16") || !strcasecmp(typ_sng,"NC_USHORT")) return (nc_type)NC_USHORT; 
-    else if(!strcasecmp(typ_sng,"u") || !strcasecmp(typ_sng,"ui") || !strcasecmp(typ_sng,"uint") || !strcasecmp(typ_sng,"uint32") || !strcasecmp(typ_sng,"ul") || !strcasecmp(typ_sng,"NC_UINT")) return (nc_type)NC_UINT; 
-    else if(!strcasecmp(typ_sng,"ll") || !strcasecmp(typ_sng,"int64") || !strcasecmp(typ_sng,"NC_INT64")) return (nc_type)NC_INT64; 
-    else if(!strcasecmp(typ_sng,"ull") || !strcasecmp(typ_sng,"uint64") || !strcasecmp(typ_sng,"NC_UINT64")) return (nc_type)NC_UINT64; 
-    else if(!strcasecmp(typ_sng,"sng") || !strcasecmp(typ_sng,"string") || !strcasecmp(typ_sng,"NC_STRING")) return (nc_type)NC_STRING; 
-    else{
-      (void)fprintf(stderr,"NCO: ERROR `%s' is not a supported netCDF data type\n",typ_sng);
-      (void)fprintf(stderr,"NCO: HINT: Valid data types are `c' = char, `f' = float, `d' = double,`s' = short, `i' = `l' = integer, `b' = byte");
-      (void)fprintf(stderr,", `ub' = unsigned byte, `us' = unsigned short, `u' or `ui' or `ul' = unsigned int,`ll' or `int64' = 64-bit signed integer, `ull' or `uint64` = unsigned 64-bit integer, `sng' or `string' = string");
-      (void)fprintf(stderr,"\n");
-      nco_err_exit(0,fnc_nm);
-    }
-#endif /* ENABLE_NETCDF4 */
-    break;
-  } /* end switch */
-  
-  return (nc_type)NC_NAT;
-
-} /* end nco_sng2typ() */
 
 size_t /* O [B] Native type size */
 nco_typ_lng /* [fnc] Convert netCDF type enum to native type size */
@@ -1431,8 +1387,8 @@ int nco_def_var_chunking
 int nco_def_var_deflate
 (const int nc_id, /* [ID] netCDF ID */
  const int var_id, /* [ID] Variable ID */
- const int shuffle, /* [flg] Turn on shuffle filter */
- const int deflate, /* [flg] Turn on deflate filter */
+ const int shuffle, /* [flg] Turn-on shuffle filter */
+ const int deflate, /* [flg] Turn-on deflate filter */
  const int dfl_lvl) /* [enm] Deflate level [0..9] */
 {
   /* Purpose: Wrapper for nc_def_var_deflate() */
@@ -1481,8 +1437,8 @@ int
 nco_inq_var_deflate
 (const int nc_id, /* I [ID] netCDF ID */
  const int var_id, /* I [ID] Variable ID */
- int * const shuffle, /* O [flg] Turn on shuffle filter */
- int * const deflate, /* O [flg] Turn on deflate filter */
+ int * const shuffle, /* O [flg] Turn-on shuffle filter */
+ int * const deflate, /* O [flg] Turn-on deflate filter */
  int * const dfl_lvl) /* O [enm] Deflate level [0..9] */
 {
   /* Purpose: Wrapper for nc_inq_var_deflate() */

@@ -112,6 +112,7 @@ nco/data/ncap2.in	Sample ncap2 input script
 nco/data/ncap2_tst.nco  ncap2 self-printing test script
 nco/data/ncl.ncl	NCL script to compare to NCO scripts for speed
 nco/data/nco_bnch.sh	Old (deprecated) NCO benchmark script
+nco/data/ncclimo	ncclimo operator
 nco/data/ncremap	ncremap operator
 nco/data/netcdf4.nco	Sample input script for netCDF4-enabled ncap2
 nco/data/obs.cdl 	CDL file to test group broadcasting
@@ -142,23 +143,24 @@ nco/doc/doe.jpg		DOE logo (JPG format)
 nco/doc/endorsements.txt Statements of support for NCO
 nco/doc/help.txt	Advertisement for help with NCO (outdated---from 2000)
 nco/doc/highlights_old.shtml Short summaries of old releases
-nco/doc/index.shtml	NCO website homepage
-nco/doc/logo_srl.png	NCO spiral logo PNG raster format
-nco/doc/logo_srl.svg	NCO spiral logo Scalable Vector Graphic format
-nco/doc/logo_srl.xcf	NCO spiral logo GIMP format
+nco/doc/index.shtml	Website homepage
+nco/doc/logo_srl.png	Spiral logo PNG raster format
+nco/doc/logo_srl.svg	Spiral logo Scalable Vector Graphic format
+nco/doc/logo_srl.xcf	Spiral logo GIMP format
 nco/doc/milestones_old.shtml Milestones in old releases
 nco/doc/mpi.txt		MPI Environments for NCO
 nco/doc/my-bib-macros.texi TeXInfo bibliography macros for nco.texi
 nco/doc/nasa.png	NASA logo (PNG format)
 nco/doc/ncap.txt	Description of the ncap operator (not yet used)
-nco/doc/nco.dvi(v)	NCO User's Guide: DVI format
-nco/doc/nco.html(v)	NCO User's Guide: HTML format
-nco/doc/nco.info(v)	NCO User's Guide: Info format
-nco/doc/nco.pdf(v)	NCO User's Guide: Portable Document Format
-nco/doc/nco.png		NCO Webpage icon (PNG format)
-nco/doc/nco.ps(v)	NCO User's Guide: Postscript format
-nco/doc/nco.texi	NCO User's Guide: TeXInfo format
-nco/doc/nco_news.shtml	NCO news archive
+nco/doc/nco.dvi(v)	User's Guide: DVI format
+nco/doc/nco.html(v)	User's Guide: HTML format
+nco/doc/nco.info(v)	User's Guide: Info format
+nco/doc/nco.pdf(v)	User's Guide: Portable Document Format
+nco/doc/nco.png		Webpage icon (PNG format)
+nco/doc/nco.ps(v)	User's Guide: Postscript format
+nco/doc/nco.texi	User's Guide: TeXInfo format
+nco/doc/nco_news.shtml	News archive
+nco/doc/nco_rfr_crd.pdf(v) Quick Reference Card
 nco/doc/netcdf.h.3.6.3	Version 3.6.X of netcdf.h for backward compatibility
 nco/doc/netcdf4.sh	Install latest netcdf4 and HDF libraries for NCO
 nco/doc/nsf.png		NSF logo (PNG format)
@@ -175,6 +177,7 @@ nco/man/Makefile.in(v)	Autotools-generated Makefile
 nco/man/ncap.1		ncap man page
 nco/man/ncatted.1	ncatted man page
 nco/man/ncbo.1		ncbo man page
+nco/man/ncclimo.1	ncclimo man page
 nco/man/nces.1		nces man page
 nco/man/ncecat.1	ncecat man page
 nco/man/ncflint.1	ncflint man page

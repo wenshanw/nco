@@ -767,7 +767,7 @@ nco_fl_mk_lcl /* [fnc] Retrieve input file and return local filename */
         /* rmt_fch_cmd_sct nrnet={"nrnet msget %s r flnm=%s l mail=FAIL",4,asynchronous,lcl_rmt};*/ /* Deprecated 20110419 */
         /* rmt_fch_cmd_sct rcp={"rcp -p %s %s",4,synchronous,rmt_lcl};*/ /* Deprecated ~2000 */
         /* wget -p: fxm (and enables clobber)
-        wget -r: Turn on recursive retrieving (and enables clobber)
+        wget -r: Turn-on recursive retrieving (and enables clobber)
         wget --tries: Set number of retries. Default is 20. */
         rmt_fch_cmd_sct http={"wget --tries=1 --output-document=%s %s",4,synchronous,lcl_rmt};
         rmt_fch_cmd_sct scp={"scp -p %s %s",4,synchronous,rmt_lcl};
@@ -1175,7 +1175,11 @@ nco_fl_mv /* [fnc] Move first file to second */
   if(nco_dbg_lvl_get() >= nco_dbg_fl) (void)fprintf(stderr,"%s: INFO Moving %s to %s...",nco_prg_nm_get(),fl_src_cdl,fl_dst_cdl);
   (void)sprintf(cmd_mv,cmd_mv_fmt,fl_src_cdl,fl_dst_cdl);
   rcd_sys=system(cmd_mv);
-  if(rcd_sys == -1){
+  /* 20160802: Until today, failure was diagnosed iff rcd == -1
+     Unclear what rcd == -1 actually means to systems, because rcd == 0 always indicates success and
+     Linux rcd     > 0 indicates failure
+     MacOS BSD rcd > 0 indicates failure */
+  if(rcd_sys > 0){
     (void)fprintf(stdout,"%s: ERROR nco_fl_mv() unable to execute mv command \"%s\"\n",nco_prg_nm_get(),cmd_mv);
     nco_exit(EXIT_FAILURE);
   } /* end if */
@@ -1482,7 +1486,7 @@ nco_fl_blocksize /* [fnc] Find blocksize of filesystem will or does contain this
 char * /* O [sng] Name of temporary file actually opened */
 nco_fl_out_open /* [fnc] Open output file subject to availability and user input */
 (const char * const fl_out, /* I [sng] Name of file to open */
- const nco_bool FORCE_APPEND, /* I [flg] Append to existing file, if any */
+ nco_bool * const FORCE_APPEND, /* I/O [flg] Append to existing file, if any */
  const nco_bool FORCE_OVERWRITE, /* I [flg] Overwrite existing file, if any */
  const int fl_out_fmt, /* I [enm] Output file format */
  const size_t * const bfr_sz_hnt, /* I [B] Buffer size hint */
@@ -1532,7 +1536,7 @@ nco_fl_out_open /* [fnc] Open output file subject to availability and user input
   md_create=nco_create_mode_mrg(md_create,fl_out_fmt);
   if(RAM_CREATE) md_create|=NC_DISKLESS|NC_WRITE;
 
-  if(FORCE_OVERWRITE && FORCE_APPEND){
+  if(FORCE_OVERWRITE && *FORCE_APPEND){
     (void)fprintf(stdout,"%s: ERROR FORCE_OVERWRITE and FORCE_APPEND are both set\n",nco_prg_nm_get());
     (void)fprintf(stdout,"%s: HINT: Overwrite (-O) and Append (-A) options are mutually exclusive. Re-run your command, setting at most one of these switches.\n",nco_prg_nm_get());
     nco_exit(EXIT_FAILURE);
@@ -1655,7 +1659,7 @@ nco_fl_out_open /* [fnc] Open output file subject to availability and user input
 
     if(RAM_OPEN) md_open=NC_WRITE|NC_DISKLESS; else md_open=NC_WRITE;
 
-    if(FORCE_APPEND){
+    if(*FORCE_APPEND){
       /* Incur expense of copying current file to temporary file
 	 This is a no-op when files are identical */
       (void)nco_fl_cp(fl_out,fl_out_tmp);
@@ -1673,7 +1677,7 @@ nco_fl_out_open /* [fnc] Open output file subject to availability and user input
 	nco_exit(EXIT_FAILURE);
       } /* end if */
       if(nbr_itr > 1) (void)fprintf(stdout,"%s: ERROR Invalid response.\n",nco_prg_nm_get());
-      (void)fprintf(stdout,"%s: %s exists---`e'xit, `o'verwrite (i.e., delete existing file), or `a'ppend (i.e., replace duplicate variables in, and add metadata and new variables to, existing file) (e/o/a)? ",nco_prg_nm_get(),fl_out);
+      (void)fprintf(stdout,"%s: %s exists---`e'xit, `o'verwrite (i.e., clobber existing file), or `a'ppend (i.e., replace duplicate variables in, and add metadata and new variables to, existing file) (e/o/a)? ",nco_prg_nm_get(),fl_out);
       (void)fflush(stdout);
       /*       fgets() reads (at most one less than NCO_USR_RPL_MAX_LNG) to first newline or EOF */
       rcd_fgets=fgets(usr_rpl,NCO_USR_RPL_MAX_LNG,stdin);
@@ -1713,6 +1717,7 @@ nco_fl_out_open /* [fnc] Open output file subject to availability and user input
       (void)nco_fl_cp(fl_out,fl_out_tmp);
       rcd+=nco_fl_open(fl_out_tmp,md_open,&bfr_sz_hnt_lcl,out_id);
       (void)nco_redef(*out_id);
+      *FORCE_APPEND=True;
       break;
     default: nco_dfl_case_nc_type_err(); break;
     } /* end switch */

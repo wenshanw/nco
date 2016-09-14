@@ -316,20 +316,20 @@ extern "C" {
 # define NCO_VERSION_MAJOR 4
 #endif /* !NCO_VERSION_MAJOR */
 #ifndef NCO_VERSION_MINOR
-# define NCO_VERSION_MINOR 5
+# define NCO_VERSION_MINOR 6
 #endif /* !NCO_VERSION_MINOR */
 #ifndef NCO_VERSION_PATCH
-# define NCO_VERSION_PATCH 6
+# define NCO_VERSION_PATCH 2
 #endif /* !NCO_VERSION_PATCH */
 #ifndef NCO_VERSION_NOTE
-# define NCO_VERSION_NOTE  "alpha06" /* Blank for final versions, non-blank (e.g., "beta37") for pre-release versions */
+# define NCO_VERSION_NOTE "alpha01" /* Blank for final versions, non-blank (e.g., "beta37") for pre-release versions */
 #endif /* !NCO_VERSION_NOTE */
 #ifndef NCO_LIB_VERSION
   /* Define NC_LIB_VERSION as three-digit number for arithmetic comparisons by CPP */
 # define NCO_LIB_VERSION ( NCO_VERSION_MAJOR * 100 + NCO_VERSION_MINOR * 10 + NCO_VERSION_PATCH )
 #endif /* !NCO_LIB_VERSION */
 #ifndef NCO_VERSION
-# define NCO_VERSION "4.5.6-alpha06"
+# define NCO_VERSION "4.6.2-alpha01"
 #endif /* !NCO_VERSION */
 
 /* Compatibility tokens new to netCDF4 netcdf.h: */
@@ -691,11 +691,12 @@ extern "C" {
     nco_baa_set, /* 2 Bit Set (option since 20160117) */
   }; /* end nco_baa_cnv */
 
-  enum nco_upk_cnv{ /* [enm] Unpacking convention to assume */
+  enum nco_upk_cnv{ /* [enm] Unpacking convention to utilize */
     /* netCDF convention  : http://www.unidata.ucar.edu/software/netcdf/docs/netcdf/Attribute-Conventions.html
        HDF/NASA convention: http://modis-atmos.gsfc.nasa.gov/MOD08_D3/faq.html */
     nco_upk_netCDF, /* 0 netCDF unpack convention: unpacked=(scale_factor*packed)+add_offset */
-    nco_upk_HDF     /* 1    HDF unpack convention: unpacked=scale_factor*(packed-add_offset) */
+    nco_upk_HDF_MOD10, /* 1 HDF MODIS MOD10 unpack convention: unpacked=scale_factor*(packed-add_offset) */
+    nco_upk_HDF_MOD13, /* 2 HDF MODIS MOD13 unpack convention: unpacked=(packed-add_offset)/scale_factor */
   }; /* end nco_upk_cnv */
 
   typedef enum aed{ /* [enm] Attribute editor mode */
@@ -992,6 +993,46 @@ extern "C" {
     nco_grd_lon_bb, /* Longitude grid determined by bounding box (lon_wst/lon_est) and gridcell number (lon_nbr) */
   } nco_grd_lon_typ_enm;
 
+  /* CF Coordinates structure (20160503: Used only in ncks.c for to infer grids from CF coordinates convention) */
+  typedef struct{ /* clm_bnd_sct */
+    char *crd_nm[2]; /* [sng] Coordinate names */
+    char *crd_sng; /* [sng] Coordinates attribute value */
+    char *dmn_nm[2]; /* [sng] Dimension names */
+    char *unt_sng[2]; /* [sng] Units strings */
+    char *var_nm; /* [sng] Coordinates variable name */
+    int crd_id[2]; /* [id] Coordinate IDs */
+    int dmn_id[2]; /* [id] Dimension IDs */
+    int var_id; /* [id] Coordinate variable ID */
+    nc_type var_type; /* [enm] Coordinates variable type */
+    nco_bool crd; /* [flg] CF coordinates information is complete */
+  } cf_crd_sct; /* end CF coordinates structure */
+
+  /* Climatology bounds structure (20160503: Used only in ncra.c for climos) */
+  typedef struct{ /* clm_bnd_sct */
+    char *bnd_dmn_nm; /* [sng] Bounds dimension name name */
+    char *clm_bnd_nm; /* [sng] Climatology bounds variable name (to create) */
+    char *tm_bnd_nm; /* [sng] Time bounds variable name (to delete) */
+    char *tm_crd_nm; /* [sng] Name of time coordinate variable */
+    char *cln_val; /* [sng] Bounds calendar value */
+    char *unt_val; /* [sng] Bounds units value */
+    double val[2]; /* [frc] Climatology bounds variable attribute values */
+    int clm_bnd_id_in; /* [id] Variable ID for clm_bnds in input */
+    int clm_bnd_id_out; /* [id] Variable ID for clm_bnds in output */
+    int tm_bnd_id_in; /* [id] Variable ID for tm_bnds in input */
+    int tm_bnd_id_out; /* [id] Variable ID for tm_bnds in output */
+    int tm_crd_id_in; /* [id] Variable ID for tm_crd in input */
+    int tm_crd_id_out; /* [id] Variable ID for tm_crd in output */
+    int dmn_ids[2]; /* [idx] Dimension IDs for new bounds variable */
+    long dmn_srt_srt[2]; /* [idx] Start indices for retrieving start bounds */
+    long dmn_srt_end[2]; /* [idx] Start indices for retrieving end bounds */
+    nc_type type; /* [enm] Type of (time and) climatology bounds variable(s) */
+    nco_bool bnd2clm; /* [flg] Convert time bounds to climatology bounds */
+    nco_bool clm2bnd; /* [flg] Convert climatology bounds to time bounds */
+    nco_bool clm2clm; /* [flg] Convert climatology bounds to climatology bounds */
+    nco_bool clm_bnd_in; /* [flg] Climatology bounds appear in input */
+    nco_bool tm_bnd_in; /* [flg] Time bounds appear in input */
+  } clm_bnd_sct; /* end climatology bounds structure */
+
   /* Terraref structure */
   typedef struct{ /* trr_sct */
     // File names specifiable with individual command line switches
@@ -1019,7 +1060,7 @@ extern "C" {
     int trr_nbr; /* [nbr] Number of Terraref arguments */
     nco_trr_ntl_typ_enm ntl_typ_in; /* [enm] Interleave-type of raw data */
     nco_trr_ntl_typ_enm ntl_typ_out; /* [enm] Interleave-type or output */
-  } trr_sct;
+  } trr_sct; /* end Terraref structure */
 
   /* Regrid structure */
   typedef struct{ /* rgr_sct */
@@ -1041,11 +1082,13 @@ extern "C" {
     char *col_nm_out; /* [sng] Name of horizontal spatial output dimension on unstructured grid */
     char *frc_nm; /* [sng] Name of variable containing gridcell fraction */
     char *lat_bnd_nm; /* [sng] Name of rectangular boundary variable for latitude */
+    char *lat_dmn_nm; /* [sng] Name of latitude dimension in inferred grid */
     char *lat_nm_in; /* [sng] Name of input dimension to recognize as latitude */
     char *lat_nm_out; /* [sng] Name of output dimension for latitude */
     char *lat_vrt_nm; /* [sng] Name of non-rectangular boundary variable for latitude */
     char *lat_wgt_nm; /* [sng] Name of variable containing latitude weights */
     char *lon_bnd_nm; /* [sng] Name of rectangular boundary variable for longitude */
+    char *lon_dmn_nm; /* [sng] Name of longitude dimension in inferred grid */
     char *lon_nm_in; /* [sng] Name of dimension to recognize as longitude */
     char *lon_nm_out; /* [sng] Name of output dimension for longitude */
     char *lon_vrt_nm; /* [sng] Name of non-rectangular boundary variable for longitude */
@@ -1069,6 +1112,8 @@ extern "C" {
     char **xtn_var; /* [sng] Extensive variables */
     char *cmd_ln; /* [sng] Command-line */
     double wgt_vld_thr; /* [frc] Weight threshold for valid destination value */
+    int dfl_lvl; /* [enm] Deflate level */
+    int fl_out_fmt; /* [enm] Output file format */
     int in_id; /* [id] Input netCDF file ID */
     int out_id; /* [id] Output netCDF file ID */
     int rgr_nbr; /* [nbr] Number of regridding arguments */
@@ -1083,7 +1128,7 @@ extern "C" {
     nco_bool flg_nfr; /* [flg] Infer SCRIP-format grid file */
     nco_bool flg_map; /* [flg] User-specified mapping weights */
     nco_bool flg_rnr; /* [flg] Renormalize destination values by valid area */
-  } rgr_sct;
+  } rgr_sct; /* end Regrid structure */
 
   /* Key-value structure */
   typedef struct{
@@ -1140,7 +1185,7 @@ extern "C" {
     int lmt_crr;          /* [nbr] Index of current limit structure being initialized (helper to initialze lmt_sct*) */
   } lmt_msa_sct;
 
-   /* GTT coordinate variable structure; it contains netCDF model fields and an MSA field */
+  /* GTT coordinate variable structure; it contains netCDF model fields and an MSA field */
   typedef struct{ 
     char *crd_nm_fll;       /* [sng] Full coordinate name */
     char *dmn_nm_fll;       /* [sng] Full name of dimension for *this* coordinate  */  
@@ -1199,7 +1244,6 @@ extern "C" {
     /* Following are members only used by transformation operators (non-ncks) */
     nco_bool flg_dmn_avg;    /* [flg] Diferentiate between dimensions to average or keep for this variable (ncwa) */  
     nco_bool flg_rdd;        /* [flg] Retain dimension as degenerate (size 1) (ncwa) */  
-    nco_bool flg_rvr;        /* [flg] Reverse dimension (option -a - of ncpdq) FXM_PVN */
   } var_dmn_sct; 
 
   /* Processing type enumerator */
@@ -1404,7 +1448,7 @@ extern "C" {
     int nc_id; /* [id] File ID */
     int pck_dsk; /* [flg] Variable is packed on disk (valid scale_factor, add_offset, or both attributes exist) */
     int pck_ram; /* [flg] Variable is packed in memory (valid scale_factor, add_offset, or both attributes exist) */
-    int shuffle; /* [flg] Turn on shuffle filter */
+    int shuffle; /* [flg] Turn-on shuffle filter */
     int undefined; /* [flg] Variable is still undefined (in first parser pass) */
     long *cnt; /* [nbr] Contiguous vector of lengths of hyperslab */
     long *end; /* [idx] Contiguous vector of indices to end of hyperslab */
@@ -1428,14 +1472,14 @@ extern "C" {
     struct var_sct_tag *xrf; /* [sct] Cross-reference to associated variable structure (usually structure for variable on output) fxm: deprecate! TODO nco226 */
   } var_sct; /* end var_sct_tag */
 
-   /* Dimension utility structure to share common fields; used in nco_cnk_sz_set_trv() */
+  /* Utility structure to share dimension common fields; used in nco_cnk_sz_set_trv() */
   typedef struct{
     char *nm_fll; /* [sng] Full dimension name */
     char nm[NC_MAX_NAME+1L];/* [sng] Name of dimension/coordinate */
     int id; /* [id] Dimension ID */
     nco_bool NON_HYP_DMN; /* [flg] Limit is same as dimension in input file */
     nco_bool is_rec_dmn; /* [flg] Dimension is unlimited/record dimension */
-    size_t dmn_cnt; /* [nbr] Hyperslabbed size of dimension (= sz iff !NON_HYP_DMN) */
+    size_t dmn_cnt; /* [nbr] Hyperslabbed size of dimension (= sz iff NON_HYP_DMN) */
     size_t sz; /* [nbr] Size (non-hyperslabbed) of dimension */
   } dmn_cmn_sct;
 
