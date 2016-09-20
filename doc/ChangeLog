@@ -1,3 +1,23 @@
+2016-09-18  Charlie Zender  <zender@uci.edu>
+
+	* Add exact solution (untested) for non-spherical area of latitude-triangles
+
+	* Change multi-argument delimiter from colon to hash
+
+	* Add nco_lon_dff_brnch_rdn() to enforce branch-cut rules in area diagnosis
+
+2016-09-16  Charlie Zender  <zender@uci.edu>
+
+	* Provide HINT when dimensions have size mismatch due to degenerate dimension
+
+2016-09-15  Charlie Zender  <zender@uci.edu>
+
+	* Change multi-argument delimiter from semi-colon to colon
+
+2016-09-14  Charlie Zender  <zender@uci.edu>
+
+	* Merge Jerome Mao's update/improvement of multi-argument parsing
+
 2016-09-09  Henry Butowsky  <henryb@hush.com>
 
 	* Updated manual section on ncap2/print (need to finalize form of sprint() & snprint())
