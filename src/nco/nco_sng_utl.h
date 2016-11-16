@@ -48,6 +48,13 @@ extern "C" {
   (const int chr); /* I [enm] Character to check */
 #endif /* !NEED_ISBLANK */
   
+#ifdef NEED_STRSEP
+  char * /* O [sng] String to separate */
+  strsep /* [fnc] Separate strings */
+  (char ** const sng_trg, /* I [sng] String to separate */
+   const char * const sng_dlm); /* I [sng] Delimiter */
+#endif /* !NEED_STRSEP */
+
 #ifdef NEED_STRCASECMP
   int /* O [enm] [-1,0,1] sng_1 [<,=,>] sng_2 */
   strcasecmp /* [fnc] Lexicographical case-insensitive string comparison */
@@ -94,6 +101,11 @@ extern "C" {
   char * /* O [sng] CDL-compatible name */
   nm2sng_cdl /* [fnc] Turn variable/dimension/attribute name into legal CDL */
   (const char * const nm_sng); /* I [sng] Name to CDL-ize */
+
+  char * /* O [sng] JSON -compatible name */
+  nm2sng_jsn /* [fnc] Turn variable/dimension/attribute name into legal JSON */
+  (const char * const nm_sng); /* I [sng] Name to CDL-ize */
+
   
   char * /* O [sng] CDL-compatible name */
   nm2sng_fl /* [fnc] Turn file name into legal string for shell commands */
@@ -106,6 +118,11 @@ extern "C" {
   
   char * /* O [sng] String containing printable result */
   chr2sng_xml /* [fnc] Translate C language character to printable, visible ASCII bytes */
+  (const char chr_val, /* I [chr] Character to process */
+   char * const val_sng); /* I/O [sng] String to stuff printable result into */
+
+  char * /* O [sng] String containing printable result */
+  chr2sng_jsn /* [fnc] Translate C language character to printable, visible ASCII bytes */
   (const char chr_val, /* I [chr] Character to process */
    char * const val_sng); /* I/O [sng] String to stuff printable result into */
   
@@ -125,52 +142,6 @@ extern "C" {
   nc_type /* O [enm] netCDF type */
   nco_sng2typ /* [fnc] Convert user-supplied string to netCDF type enum */
   (const char * const typ_sng); /* I [sng] String indicating type */
-
-  kvm_sct /* O [sct] Key-value pair */
-  nco_sng2kvm /* [fnc] Parse string into key-value pair */
-  (const char *sng); /* I [sng] String to parse, including "=" */
-  
-  char * /* O [sng] Stripped-string */
-  nco_sng_strip /* [fnc] Strip leading and trailing white space */
-  (char *sng); /* I/O [sng] String to strip */
-  
-  kvm_sct * /* O [sct] Pointer to free'd kvm list */
-  nco_kvm_lst_free /* [fnc] Relinquish dynamic memory from list of kvm structures */
-  (kvm_sct *kvm, /* I/O [sct] List of kvm structures */
-   const int kvm_nbr); /* I [nbr] Number of kvm structures */
-  
-  void
-  nco_kvm_prn /* [fnc] Print kvm contents */
-  (kvm_sct kvm); /* [fnc] kvm to print */
-  
-  char** /* O [pointer to sngs] group of splitted sngs*/
-  nco_string_split /* [fnc] split the string by delimiter */
-  (const char *restrict source, /* I [sng] the source string */
-  const char* delimiter);
-
-  int /* O [int] the boolean for the checking result */
-  nco_input_check /* [fnc] check whether the input is legal and give feedback accordingly. */
-  (const char *restrict args); /* O [sng] input arguments */
-
-  void 
-  nco_sng_lst_free_void
-  (char **restrict sng_lst,
-  const int block_num);
-
-  kvm_sct * /* O [kvm_sct] Pointer to first kvm structure */
-  nco_arg_mlt_prs /* [fnc] Main parser, split string and assign to kvm structure */
-  (const char *restrict args); /* I [sng] Input string */
-
-  char * /* O [sng] Joined strings */
-  nco_join_sng /* [fnc] Join strings with delimiter */
-  (const char **restrict sng_lst, /* I [sng] List of strings being connected */
-   const char *dlm_sng, /* I [sng] Delimiter string */
-   const int sng_nbr); /* I [int] Number of strings */
-
-  int
-  nco_count_blocks
-  (const char* args,
-   char* delimiter);
 
 #ifdef __cplusplus
 } /* end extern "C" */

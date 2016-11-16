@@ -98,7 +98,7 @@ case "${HOSTNAME}" in
 	# Why do cori/edison and rhea require workarounds for different packages?
 	module load gsl
 	module load udunits
-	# On cori, module load ncl installs ERWG in ${NCARG_ROOT}/../intel/bin
+	# On cori and edison, module load ncl installs ERWG in ${NCARG_ROOT}/../intel/bin
 	if [ -n "${NCARG_ROOT}" ]; then
             export PATH="${NCARG_ROOT}/bin:${PATH}"
 	fi # !NCARG_ROOT
@@ -107,6 +107,10 @@ case "${HOSTNAME}" in
     edison* )
 	module load gsl
 	module load udunits
+	# On cori and edison, module load ncl installs ERWG in ${NCARG_ROOT}/../intel/bin
+	if [ -n "${NCARG_ROOT}" ]; then
+            export PATH="${NCARG_ROOT}/bin:${PATH}"
+	fi # !NCARG_ROOT
 	export PATH='/global/homes/z/zender/bin_edison'\:${PATH}
         export LD_LIBRARY_PATH='/global/homes/z/zender/lib_edison'\:${LD_LIBRARY_PATH} ; ;;
     pileus* )
@@ -190,7 +194,7 @@ esac # !HOSTNAME
 
 # dbg_lvl: 0 = Quiet, print basic status during evaluation
 #          1 = Print configuration, full commands, and status to output during evaluation
-#          2 = As in dbg_lvl=1, but _do not evaluate commands_
+#          2 = As in dbg_lvl=1, but DO NOT EXECUTE COMMANDS (i.e., pretend to run but do not regrid anything)
 #          3 = As in dbg_lvl=1, and pass debug level through to NCO/ncks
 
 # Set NCO version and directory
@@ -1151,6 +1155,8 @@ fi # !par_typ
 if [ "${cln_flg}" = 'Yes' ]; then
     printf "Cleaning-up intermediate files...\n"
     /bin/rm -f ${att_fl} ${grd_dst_dfl} ${grd_src_dfl} ${map_fl_dfl} ${msh_fl_dfl} ${ncwa_fl} ${pdq_fl} ${tmp_out_fl} ${znl_fl/znl/znl1} ${znl_fl/znl/znl2}
+else # !cln_flg
+    printf "Explicitly instructed not to clean-up intermediate files.\n"
 fi # !cln_flg
 
 date_end=$(date +"%s")

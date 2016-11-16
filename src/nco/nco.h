@@ -218,6 +218,7 @@ extern "C" {
 
   /* Prototype global functions before defining them in next block */
   char *nco_mss_val_sng_get(void); /* [sng] Missing value attribute name */
+  char *nco_mta_dlm_get(void); /* [sng] Multi-argument delimiter */
   char *nco_not_mss_val_sng_get(void); /* [sng] Not missing value attribute name */
   char *nco_prg_nm_get(void);
   int nco_prg_id_get(void);
@@ -228,6 +229,7 @@ extern "C" {
   unsigned short nco_rth_cnv_get(void);
   unsigned short nco_upk_cnv_get(void);
   void nco_fmt_xtn_set(unsigned short nco_fmt_xtn_arg);
+  void nco_mta_dlm_set(char *nco_mta_dlm_arg);
 
 #ifdef MAIN_PROGRAM_FILE /* Current file contains main() */
   
@@ -238,6 +240,11 @@ extern "C" {
   
   char *nco_prg_nm; /* [sng] Program name */
   char *nco_prg_nm_get(void){return nco_prg_nm;} /* [sng] Program name */
+  
+  char *nco_mta_dlm=NULL; /* [sng] Multi-argument delimiter */
+  char *nco_mta_dlm_get(void){if(!nco_mta_dlm){nco_mta_dlm=(char *)strdup("#");}
+    return nco_mta_dlm;} /* [sng] Multi-argument delimiter */
+  void nco_mta_dlm_set(char *nco_mta_dlm_arg){nco_mta_dlm=nco_mta_dlm_arg;} /* [sng] Multi-argument delimiter */
   
   unsigned short nco_baa_cnv=0; /* [enm] Bit-Adjustment Algorithm */
   unsigned short nco_baa_cnv_get(void){return nco_baa_cnv;} /* [enm] Bit-Adjustment Algorithm */
@@ -325,14 +332,14 @@ extern "C" {
 # define NCO_VERSION_PATCH 2
 #endif /* !NCO_VERSION_PATCH */
 #ifndef NCO_VERSION_NOTE
-# define NCO_VERSION_NOTE "alpha01" /* Blank for final versions, non-blank (e.g., "beta37") for pre-release versions */
+# define NCO_VERSION_NOTE "" /* Blank for final versions, non-blank (e.g., "beta37") for pre-release versions */
 #endif /* !NCO_VERSION_NOTE */
 #ifndef NCO_LIB_VERSION
   /* Define NC_LIB_VERSION as three-digit number for arithmetic comparisons by CPP */
 # define NCO_LIB_VERSION ( NCO_VERSION_MAJOR * 100 + NCO_VERSION_MINOR * 10 + NCO_VERSION_PATCH )
 #endif /* !NCO_LIB_VERSION */
 #ifndef NCO_VERSION
-# define NCO_VERSION "4.6.2-alpha01"
+# define NCO_VERSION "4.6.2"
 #endif /* !NCO_VERSION */
 
 /* Compatibility tokens new to netCDF4 netcdf.h: */
@@ -920,6 +927,7 @@ extern "C" {
 
   /* Print flags structure */
   typedef struct{ /* prn_fmt_sct */
+    char *dlm_sng; /* [sng] User specified delimiter string for printed output */
     char *fl_in; /* [sng] Input filename */
     char *fl_stb; /* [sng] Input filename stub */
     char *smr_sng; /* [sng] Summary string */
@@ -938,14 +946,14 @@ extern "C" {
     nco_bool nfo_xtr; /* [flg] Print extra information in CDL/XML mode */
     nco_bool new_fmt; /* [flg] Print in new format */
     nco_bool nwl_pst_val; /* [flg] Print newline after variable values */
+    int fll_pth; /* [nbr] Print full paths */
+    int jsn_att_fmt; /* [enm] JSON format for netCDF attributes: 0 (no object, only data), 1 (data only for string, char, int, and floating-point types, otherwise object), 2 (always object) */ 
     int nbr_zro; /* [nbr] Trailing zeros allowed after decimal point */
     int ndn; /* [nbr] Indentation */
-    int fll_pth; /* [nbr] Print full paths */
-    int tab; /* [nbr] Number of spaces in tab */
     int spc_per_lvl; /* [nbr] Indentation spaces per group level */
     int sxn_fst; /* [nbr] Offset of section from group name */
+    int tab; /* [nbr] Number of spaces in tab */
     int var_fst; /* [nbr] Offset of variable from section name */
-    char *dlm_sng; /* User specified delimiter string for printed output */
     nco_bool ALPHA_BY_FULL_GROUP; /* [flg] Print alphabetically by full group */
     nco_bool ALPHA_BY_FULL_OBJECT; /* [flg] Print alphabetically by full object */
     nco_bool ALPHA_BY_STUB_GROUP; /* [flg] Print alphabetically by stub group */

@@ -3,7 +3,7 @@
 
 #include <antlr/config.hpp>
 #include "ncoParserTokenTypes.hpp"
-/* $ANTLR 2.7.7 (2006-11-01): "ncoGrammer.g" -> "ncoTree.hpp"$ */
+/* $ANTLR 2.7.7 (20130428): "ncoGrammer.g" -> "ncoTree.hpp"$ */
 #include <antlr/TreeParser.hpp>
 
 #line 1 "ncoGrammer.g"
@@ -51,7 +51,7 @@
 #line 52 "ncoTree.hpp"
 class CUSTOM_API ncoTree : public ANTLR_USE_NAMESPACE(antlr)TreeParser, public ncoParserTokenTypes
 {
-#line 662 "ncoGrammer.g"
+#line 691 "ncoGrammer.g"
 
 
 private:
@@ -545,7 +545,9 @@ public:
 	public: var_sct * att_plain(ANTLR_USE_NAMESPACE(antlr)RefAST _t);
 	public:  RefAST  att2var(ANTLR_USE_NAMESPACE(antlr)RefAST _t);
 	public: var_sct * value_list(ANTLR_USE_NAMESPACE(antlr)RefAST _t);
-	public: var_sct * value_list_string(ANTLR_USE_NAMESPACE(antlr)RefAST _t,
+	public: var_sct * value_list_string(ANTLR_USE_NAMESPACE(antlr)RefAST _t);
+	public: var_sct * value_list_old(ANTLR_USE_NAMESPACE(antlr)RefAST _t);
+	public: var_sct * value_list_string_old(ANTLR_USE_NAMESPACE(antlr)RefAST _t,
 		 std::vector<var_sct*> &exp_vtr
 	);
 	public: bool  where_assign(ANTLR_USE_NAMESPACE(antlr)RefAST _t,

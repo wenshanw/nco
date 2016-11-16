@@ -51,7 +51,7 @@
 
 # Process configure input with autoconf to produce configure script
 # (package name,version,bug-report-address,tarball name)
-AC_INIT([NCO netCDF Operators],[4.6.2-alpha01],[nco-bugs@lists.sourceforge.net],[nco])
+AC_INIT([NCO netCDF Operators],[4.6.2],[nco-bugs@lists.sourceforge.net],[nco])
 
 # Print GNU copyright in configure script
 AC_COPYRIGHT
@@ -277,6 +277,7 @@ AC_ARG_VAR([NETCDF_ROOT],[Root of netCDF4 installation] (compile-time))
 # Test if user set NETCDF_ROOT and it exists
 if test "x${enable_netcdf4}" = 'xyes'; then
     if test -z "${NETCDF_ROOT}"; then
+	# 20160901: Branch fails on Fedora Core 23+ (not MacOSX, not Ubuntu) due to mysterious emission of "Using <pathname>/nf-config" text as if warning user about security hole
 	NETCDF_CONFIG='nc-config'
 	NETCDF_ROOT="`nc-config --prefix`"
     else
@@ -376,7 +377,7 @@ NCO_CHECK_FUNCS([ceilf floorf])
 NCO_CHECK_FUNCS([nearbyint rint round trunc])
 NCO_CHECK_FUNCS([nearbyintf rintf roundf truncf])
 NCO_CHECK_FUNCS([getopt_long])
-NCO_CHECK_FUNCS([strdup strcasecmp strcasestr])
+NCO_CHECK_FUNCS([strdup strcasecmp strsep strcasestr])
 
 echo "##########################################################"
 echo "#     Sorting out MacOSX build parameters                #"
@@ -1223,9 +1224,9 @@ AC_CHECK_PROG(HAVE_MAKEINFO,makeinfo,yes,no,${PATH})
 DOC_FOLDER=""
 if test "x${enable_doc}" = 'xyes' && test "x${HAVE_MAKEINFO}" = 'xyes' ; then
     # Ensure makeinfo is recent enough, i.e., version 4.12 or later
-    MAKEINFO_VERSION="`makeinfo --version` | grep makeinfo | cut -d ' ' -f 4"
+    MAKEINFO_VERSION="`makeinfo --version | grep texinfo | cut -d ' ' -f 4`"
     echo "MAKEINFO_VERSION=${MAKEINFO_VERSION}"
-    AC_DEFINE(MAKEINFO_VERSION,${MAKEINFO_VERSION},Building TeXInfo documentation requires version greater than 4.8)
+    AC_DEFINE_UNQUOTED(MAKEINFO_VERSION,${MAKEINFO_VERSION},Building TeXInfo documentation requires version greater than 4.8)
     #    test_result=m4_version_compare([${MAKEINFO_VERSION}],[4.8])
     test_result='1'
     if test "${test_result}" = '1'; then

@@ -205,38 +205,24 @@ nco_rgr_ini /* [fnc] Initialize regridding structure */
   } /* endif */
   
   /* Parse extended kvm options */
+  char *sng_fnl=NULL;
   int cnv_nbr; /* [nbr] Number of elements converted by sscanf() */
-  int rgr_arg_idx; /* [idx] Index over rgr_arg (i.e., separate invocations of "--rgr var1[,var2]=val") */
   int rgr_var_idx; /* [idx] Index over rgr_lst (i.e., all names explicitly specified in all "--rgr var1[,var2]=val" options) */
   int rgr_var_nbr=0;
-  kvm_sct *rgr_lst; /* [sct] List of all regrid specifications */
-  kvm_sct kvm;
+  kvm_sct *rgr_lst=NULL; /* [sct] List of all regrid specifications */
 
-  rgr_lst=(kvm_sct *)nco_malloc(NC_MAX_VARS*sizeof(kvm_sct));
+  if(rgr_arg_nbr > 0){
+    /* Join arguments together */
+    sng_fnl=nco_join_sng(rgr_arg,rgr_arg_nbr);
+    rgr_lst=nco_arg_mlt_prs(sng_fnl);
+    if(sng_fnl) sng_fnl=(char *)nco_free(sng_fnl);
 
-  /* Parse RGRs */
-  for(rgr_arg_idx=0;rgr_arg_idx<rgr_arg_nbr;rgr_arg_idx++){
-    if(!strstr(rgr_arg[rgr_arg_idx],"=")){
-      (void)fprintf(stdout,"%s: Invalid --rgr specification: %s. Must contain \"=\" sign, e.g., \"key=value\".\n",nco_prg_nm_get(),rgr_arg[rgr_arg_idx]);
-      if(rgr_lst) rgr_lst=(kvm_sct *)nco_free(rgr_lst);
-      nco_exit(EXIT_FAILURE);
-    } /* endif */
-    kvm=nco_sng2kvm(rgr_arg[rgr_arg_idx]);
-    /* nco_sng2kvm() converts argument "--rgr one,two=3" into kvm.key="one,two" and kvm.val=3
-       Then nco_lst_prs_2D() converts kvm.key into two items, "one" and "two", with the same value, 3 */
-    if(kvm.key){
-      int var_idx; /* [idx] Index over variables in current RGR argument */
-      int var_nbr; /* [nbr] Number of variables in current RGR argument */
-      char **var_lst;
-      var_lst=nco_lst_prs_2D(kvm.key,",",&var_nbr);
-      for(var_idx=0;var_idx<var_nbr;var_idx++){ /* Expand multi-variable specification */
-        rgr_lst[rgr_var_nbr].key=strdup(var_lst[var_idx]);
-        rgr_lst[rgr_var_nbr].val=strdup(kvm.val);
-        rgr_var_nbr++;
-      } /* end for */
-      var_lst=nco_sng_lst_free(var_lst,var_nbr);
-    } /* end if */
-  } /* end for */
+    /* Count number of keys */
+    for(rgr_var_idx=0;(rgr_lst+rgr_var_idx)->key;rgr_var_idx++){
+      rgr_var_nbr=rgr_var_idx;
+    } /* !rgr_var_idx */
+    rgr_var_nbr++;
+  } /* !rgr_arg_nbr */
 
   /* NULL-initialize key-value properties required for string variables */
   rgr->area_nm=NULL; /* [sng] Name of variable containing gridcell area */
@@ -2932,7 +2918,7 @@ nco_rgr_map /* [fnc] Regrid with external weights */
 	
 	  for(idx_in=0;idx_in<var_sz_in;idx_in++){
 
-	    /* fxm CEWI fixes uninitialized warning*/
+	    /* fxm CEWI fixes uninitialized warning */
 	    idx_out=73;
 	    
 	    /* dmn_sbs_in are corresponding indices (subscripts) into N-D array */
@@ -3439,7 +3425,7 @@ nco_sph_plg_area /* [fnc] Compute area of spherical polygon */
 	Moreover, it works on all convex polygons and on slightly concave polygons
 	Centroid/hub has clear view of interior of most simple concave polygons
      4. L'Huillier method with exact RLL grids by Zender and Agress 20160918
-        A. Decompose polygon into triangles via either method 2 or 3
+        A. Decompose polygon into triangles via and method (e.g., method 2 or 3 above)
 	B. Determine whether triangle is spherical or contains RLL (constant latitude)
 	C. Spherical triangles use L'Huillier, RLL triangles use series expansion */
   const char fnc_nm[]="nco_sph_plg_area()";
@@ -3595,10 +3581,12 @@ nco_sph_plg_area /* [fnc] Compute area of spherical polygon */
       /* Begin search for next B at current C */
       bnd_idx=idx_c-idx_a;
       /* 20160918 from here to end of loop is non-spherical work
+	 Canonical latitude-triangle geometry has point A at apex and points B and C at same latitude
 	 Generate area field for latitude-triangles by fxm
 	 ncremap -s ${DATA}/grids/257x512_SCRIP.20150901.nc -g ${DATA}/grids/ne30np4_pentagons.091226.nc -m ${DATA}/maps/map_fv257x512_to_ne30np4_bilin.20150901.nc
+	 ncap2 -O -s area_b=0.0 ${DATA}/maps/map_fv257x512_to_ne30np4_bilin.20150901.nc ~/rgr/map_fv257x512_to_ne30np4_bilin.no_area_b.nc
 	 ncks -O -D 5 -v FSNT --map ${DATA}/maps/map_ne30np4_to_fv257x512_bilin.150418.nc ${DATA}/ne30/rgr/famipc5_ne30_v0.3_00003.cam.h0.1979-01.nc ${DATA}/ne30/rgr/fv_FSNT.nc
-	 ncks -O -D 5 -v FSNT --map ${DATA}/maps/map_fv257x512_to_ne30np4_bilin.20150901.nc ${DATA}/ne30/rgr/fv_FSNT.nc ${DATA}/ne30/rgr/ne30_FSNT.nc > ~/foo.txt 2>&1 */
+	 ncks -O -D 5 -v FSNT --map ${DATA}/rgr/map_fv257x512_to_ne30np4_bilin.no_area_b.nc ${DATA}/ne30/rgr/fv_FSNT.nc ${DATA}/ne30/rgr/ne30_FSNT.nc > ~/foo.txt 2>&1 */
       if(lat_bnd_rdn[idx_a] == lat_bnd_rdn[idx_b] ||
 	 lat_bnd_rdn[idx_b] == lat_bnd_rdn[idx_c] ||
 	 lat_bnd_rdn[idx_c] == lat_bnd_rdn[idx_a]){
@@ -3643,6 +3631,7 @@ nco_sph_plg_area /* [fnc] Compute area of spherical polygon */
 	/* 20160918: Compute area of latitude triangle wedge exactly */
 	double xpn_x; /* [frc] Expansion parameter */
 	lon_dlt=fabs(nco_lon_dff_brnch_rdn(lon_bnd_rdn[idx_ltr_b],lon_bnd_rdn[idx_ltr_c]));
+	/* Numeric conditioning uncertain. Approaches divide-by-zero when lon_dlt << 1 */
 	xpn_x=lat_bnd_sin[idx_ltr_b]*(1.0-cos(lon_dlt))/sin(lon_dlt);
 	area_crc=2.0*atan(xpn_x);
 	if(xpn_x < 0.0) abort();
@@ -3678,7 +3667,7 @@ nco_sph_plg_area /* [fnc] Compute area of spherical polygon */
 	if(nco_dbg_lvl_get() >= nco_dbg_std){
 	  (void)fprintf(stdout,"%s: INFO %s col_idx = %u triangle %d spherical area, latitude-triangle area, %% difference: %g, %g, %g\n",nco_prg_nm_get(),fnc_nm,col_idx,tri_nbr,xcs_sph,xcs_sph+area_crc,100.0*area_crc/xcs_sph);
 	  if(fabs(area_crc/xcs_sph) > 0.1){
-	    (void)fprintf(stdout,"%s: DBG Correction exceeds 10%% for triangle with ABC vertices at lat,lon [dgr] = %g, %g\n%g, %g\n%g, %g\n",nco_prg_nm_get(),lat_bnd[idx_ltr_a],lon_bnd[idx_ltr_a],lat_bnd[idx_ltr_b],lon_bnd[idx_ltr_b],lat_bnd[idx_ltr_c],lon_bnd[idx_ltr_c]);
+	    (void)fprintf(stdout,"%s: DBG Non-spherical correction exceeds 10%% for current triangle with ABC vertices at lat,lon [dgr] = %g, %g\n%g, %g\n%g, %g\n",nco_prg_nm_get(),lat_bnd[idx_ltr_a],lon_bnd[idx_ltr_a],lat_bnd[idx_ltr_b],lon_bnd[idx_ltr_b],lat_bnd[idx_ltr_c],lon_bnd[idx_ltr_c]);
 	  } /* !fabs */
 	} /* !dbg */
       } /* !flg_ltr_crr */
@@ -4209,8 +4198,8 @@ nco_grd_mk /* [fnc] Create SCRIP-format grid file */
   grd_crn_lon=(double *)nco_malloc(grd_crn_nbr*grd_sz_nbr*nco_typ_lng(crd_typ));
   
   /* Define variable values */
-  int lon_psn; /* [idx] Ordinal position of longitude size in rectangular grid */
-  int lat_psn; /* [idx] Ordinal position of latitude  size in rectangular grid */
+  int lon_psn=int_CEWI; /* [idx] Ordinal position of longitude size in rectangular grid */
+  int lat_psn=int_CEWI; /* [idx] Ordinal position of latitude  size in rectangular grid */
   if(grd_rnk_nbr == dmn_nbr_2D){
     lon_psn=0; /* SCRIP introduced [lon,lat] convention because more natural for Fortran */
     lat_psn=1;
@@ -5133,7 +5122,7 @@ nco_grd_nfr /* [fnc] Infer SCRIP-format grid file from input data file */
   long crn_idx; /* [idx] Counting index for corners */
   long dmn_sz; /* [nbr] Size of current dimension */
   long grd_crn_nbr; /* [nbr] Number of corners in gridcell */
-  long grd_rnk_nbr; /* [nbr] Number of dimensions in grid */
+  long grd_rnk_nbr=int_CEWI; /* [nbr] Number of dimensions in grid */
   long grd_sz_nbr; /* [nbr] Number of gridcells in grid */
   long idx2; /* [idx] Counting index for unrolled grids */
   long idx; /* [idx] Counting index for unrolled grids */
@@ -5906,6 +5895,8 @@ nco_grd_nfr /* [fnc] Infer SCRIP-format grid file from input data file */
       double *crn_lon;
       crn_lat=(double *)nco_malloc(grd_crn_nbr*sizeof(double));
       crn_lon=(double *)nco_malloc(grd_crn_nbr*sizeof(double));
+      size_t wrn_nbr_max=20;
+      size_t wrn_nbr=0;
       for(lat_idx=0;lat_idx<lat_nbr;lat_idx++){
 	for(lon_idx=0;lon_idx<lon_nbr;lon_idx++){
 	  /* 9-point template valid at all interior (non-edge) points in real grid, and at all points (including edges) in fake grid
@@ -5966,7 +5957,11 @@ nco_grd_nfr /* [fnc] Infer SCRIP-format grid file from input data file */
 	  crn_lon[2]=lon_crn[idx_crn_ur];
 	  crn_lon[3]=lon_crn[idx_crn_ul];
 	  flg_ccw=nco_ccw_chk(crn_lat,crn_lon,grd_crn_nbr,idx_ccw,rcr_lvl);
-	  if(!flg_ccw) (void)fprintf(stdout,"%s: %s WARNING reports non-CCW gridcell at idx=%li, (lat,lon)_idx=(%li,%li), (lat,lon) = (%g, %g)\n",nco_prg_nm_get(),fnc_nm,idx_rl,lat_idx,lon_idx,lat_ctr[lat_idx],lon_ctr[lon_idx]);
+	  if(!flg_ccw && wrn_nbr < wrn_nbr_max){
+	    (void)fprintf(stdout,"%s: %s WARNING reports non-CCW gridcell at idx=%li, (lat,lon)_idx=(%li,%li), (lat,lon) = (%g, %g)\n",nco_prg_nm_get(),fnc_nm,idx_rl,lat_idx,lon_idx,lat_ctr[lat_idx],lon_ctr[lon_idx]);
+	    wrn_nbr++;
+	    if(wrn_nbr == wrn_nbr_max) (void)fprintf(stdout,"%s: %s INFO Number of non-CCW errors reached maximum = %li, not printing anymore\n",nco_prg_nm_get(),fnc_nm,wrn_nbr_max);
+	  } /* endif */
 	  lat_crn[idx_crn_ll]=crn_lat[0];
 	  lat_crn[idx_crn_lr]=crn_lat[1];
 	  lat_crn[idx_crn_ur]=crn_lat[2];
@@ -6752,7 +6747,7 @@ nco_lon_dff_brnch_rdn /* [fnc] Subtract longitudes with branch-cut rules */
      Default orientation is monotonically increasing longitude from left to right */
   const char fnc_nm[]="nco_lon_dff_brnch_rdn()";
   const double lon_dff=lon_r-lon_l; /* [rdn] Longitude difference (lon_r-lon_l) */
-  nco_bool dbg_prn=False; /* [rdn] Longitude difference (lon_r-lon_l) */
+  //nco_bool dbg_prn=False; /* [flg] Print warning when longitude difference is suspicious */
   /* longitudes on different branch cuts are expected when computing polygon area, so warn only if requested with high debugging level */
   if(lon_dff >= M_PI){
     if(nco_dbg_lvl_get() >= nco_dbg_crr) (void)fprintf(stdout,"%s: WARNING %s reports lon_r, lon_l, lon_dff = %g, %g, %g\n",nco_prg_nm_get(),fnc_nm,lon_r,lon_l,lon_dff);

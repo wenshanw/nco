@@ -342,12 +342,22 @@ tokens {
 {
 private:
     prs_cls *prs_arg;
+    std::vector<std::string> paths_vtr;      
+
 public:
 
     // Customized constructor !!
    ncoLexer(ANTLR_USE_NAMESPACE(std)istream& in, prs_cls *prs_in )
    : ANTLR_USE_NAMESPACE(antlr)CharScanner(new ANTLR_USE_NAMESPACE(antlr)CharBuffer(in),true)
-   {
+   {    
+        char *spaths;
+
+        /* a list of include paths delimited by ':' */   
+        /* if nco NCO_PATH then NULL */
+        spaths=getenv("NCO_PATH");  
+        if( spaths &&  strlen(spaths) >0  ) 
+          paths_vtr=ncap_make_include_paths(spaths);
+
         prs_arg=prs_in;
         // This shouldn't really be here 
         // fxm:: should call default constructor
@@ -360,7 +370,10 @@ public:
             // Do not allow EOF until main lexer 
             // Force selector to retry for another token
             parser->inc_vtr.pop_back();
-            std::cout<<"Setting parser(filename)=" <<parser->inc_vtr.back()<<std::endl; 
+
+            if(nco_dbg_lvl_get() >= 1)
+               std::cout<<"Setting parser(filename)=" <<parser->inc_vtr.back()<<std::endl; 
+
             parser->setFilename(parser->inc_vtr.back());
 			selector.pop(); // return to old lexer/stream
 			selector.retry();
@@ -630,11 +643,27 @@ INCLUDE
 		{
 		// ANTLR_USING_NAMESPACE(std)
 		// create lexer to handle include
+        int idx; 
+        int sz=paths_vtr.size(); 
 		std::string f_nm=f->getText();
+
 		std::ifstream* input=new std::ifstream(f_nm.c_str());
+        // if(*input==NULL){ // 20150413: Trips clang 6.0 MACOSX Yosemite warning from -Wnull-arithmetic and subsequent error "invalid operands to binary expression" 
 		if(!(*input)){
-            //		if(*input==NULL){ // 20150413: Trips clang 6.0 MACOSX Yosemite warning from -Wnull-arithmetic and subsequent error "invalid operands to binary expression" 
-            err_prn("Lexer cannot find include file "+f_nm);
+          // only search include paths if f_nm NOT an absolute path  
+          // add include paths and stop if opened ok  
+          if( sz==0 || f_nm[0]=='/')  
+              err_prn("Lexer cannot find include file \""+f_nm+"\""); 
+             
+          for(idx=0;idx<sz;idx++)
+          {   
+              input=new std::ifstream( (paths_vtr[idx] + f_nm).c_str()); 
+              if(*input)
+                break;  
+          }
+          if(idx==sz) 
+             err_prn("Lexer cannot find the include file \""+f_nm+ "\" in the locations specified in the env-var \"NCO_PATH\""); 
+
 		}
 		ncoLexer* sublexer = new ncoLexer(*input,prs_arg);
 		// make sure errors are reported in right file
@@ -2944,7 +2973,156 @@ att2var returns [ RefAST tr ]
 
 
 
+
 value_list returns [var_sct *var]
+{
+const std::string fnc_nm("value_list");
+var=NULL_CEWI; 
+}
+ :(vlst:VALUE_LIST) {
+         char *cp;  
+         int nbr_lst;
+         int idx;
+         int tsz;
+
+         nc_type type=NC_NAT;
+         var_sct *var_ret;                        
+         var_sct *var_int; 
+         RefAST rRef;
+
+         rRef=vlst->getFirstChild();
+
+         nbr_lst=vlst->getNumberOfChildren(); 
+
+         /* get type of first element */ 
+         var_int=out(rRef);       
+
+         /* first element undefined */  
+         if(var_int->undefined)
+          {   
+            var_ret=ncap_var_udf("~zz@value_list");  
+            goto end_val; 
+          } 
+          
+          type=var_int->type;   
+
+          if(type==NC_STRING) 
+          { 
+           var_ret=value_list_string(vlst); 
+           goto end_val; 
+          }
+   
+
+          var_ret=(var_sct *)nco_malloc(sizeof(var_sct));
+          /* Set defaults */
+          (void)var_dfl_set(var_ret); 
+
+          /* Overwrite with attribute expression information */
+          var_ret->nm=strdup("~zz@value_list");
+          var_ret->nbr_dim=0;
+          var_ret->sz=nbr_lst;
+          var_ret->type=type;
+
+          /* deal with initial scan */   
+          if(prs_arg->ntl_scn)
+             goto end_val;
+
+          /* create some space for output */
+          tsz=nco_typ_lng(type);
+          var_ret->val.vp=(void*)nco_malloc(nbr_lst*tsz);
+
+          /* copy first value over */
+          memcpy(var_ret->val.vp, var_int->val.vp, tsz);  
+          var_int=nco_var_free(var_int); 
+          rRef=rRef->getNextSibling();
+
+          /* rest of values */
+          for(idx=1;idx<nbr_lst;idx++) 
+          {
+            var_int=out(rRef);   
+            nco_var_cnf_typ(type,var_int);  
+            cp=(char*)(var_ret->val.vp)+ (ptrdiff_t)(idx*tsz);
+            memcpy(cp,var_int->val.vp,tsz);
+ 
+            var_int=nco_var_free(var_int); 
+            rRef=rRef->getNextSibling();
+          }
+          
+          end_val: if(var_int)
+                      nco_var_free(var_int);  
+          var=var_ret;
+
+    } // end action
+;
+
+
+value_list_string returns [var_sct *var]
+{
+const std::string fnc_nm("value_list");
+var=NULL_CEWI; 
+}
+ :(vlst:VALUE_LIST) {
+
+         char *cp;
+         int nbr_lst;
+         int idx;
+         int tsz;
+
+         nc_type type=NC_NAT;
+         var_sct *var_ret;                        
+         var_sct *var_int; 
+         RefAST rRef;
+         
+         rRef=vlst->getFirstChild();
+
+         nbr_lst=vlst->getNumberOfChildren(); 
+         
+         type=NC_STRING;   
+
+         var_ret=(var_sct *)nco_malloc(sizeof(var_sct));
+         /* Set defaults */
+         (void)var_dfl_set(var_ret); 
+
+         /* Overwrite with attribute expression information */
+         var_ret->nm=strdup("~zz@value_list");
+         var_ret->nbr_dim=0;
+         var_ret->sz=nbr_lst;
+         var_ret->type=type;
+
+         /* deal with initial scan */   
+         if(prs_arg->ntl_scn)
+             goto end_val;
+
+         /* create some space for output */
+         tsz=nco_typ_lng(type);
+         var_ret->val.vp=(void*)nco_malloc(nbr_lst*tsz);
+         (void)cast_void_nctype((nc_type)NC_STRING,&var_ret->val);
+
+         for(idx=0;idx<nbr_lst;idx++) 
+             {
+                 var_int=out(rRef);   
+                 if(var_int->type != NC_STRING)
+                     err_prn(fnc_nm," error processing value list string: to successfully parse value list of strings all elements must be of type NC_STRING");    
+
+                 (void)cast_void_nctype((nc_type)NC_STRING,&var_int->val);
+                 var_ret->val.sngp[idx]=strdup(var_int->val.sngp[0]); 
+                 // cast pointer back
+                 (void)cast_nctype_void((nc_type)NC_STRING,&var_int->val);
+
+                 nco_var_free(var_int);  
+                 rRef=rRef->getNextSibling();
+             }
+         (void)cast_nctype_void((nc_type)NC_STRING,&var_ret->val);
+
+    end_val: var=var_ret;
+
+
+    } // end action
+;
+
+
+
+value_list_old returns [var_sct *var]
 {
 const std::string fnc_nm("value_list");
 var=NULL_CEWI; 
@@ -2968,11 +3146,12 @@ var=NULL_CEWI;
            rRef=rRef->getNextSibling();
          }       
          nbr_lst=exp_vtr.size();
+         
 
          // if any types are NC_STRING then call value_list_string() action 
          for(idx=0;idx <nbr_lst ;idx++)
            if(exp_vtr[idx]->type == NC_STRING){
-             var_ret=value_list_string(rRef,exp_vtr);
+             var_ret=value_list_string_old(rRef,exp_vtr);
              goto end_val;
            }
       
@@ -3038,9 +3217,13 @@ var=NULL_CEWI;
         } // end action
 ;
 
+
+
+
+
 // Deal here with a value list of strings
 // Called only from value_list
-value_list_string[ std::vector<var_sct*> &exp_vtr] returns [var_sct *var]
+value_list_string_old[ std::vector<var_sct*> &exp_vtr] returns [var_sct *var]
 {
 const std::string fnc_nm("value_list_string");
 var=NULL_CEWI; 

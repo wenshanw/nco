@@ -19,7 +19,7 @@ nco_trr_ini /* [fnc] Initialize Terraref structure */
  char * const trr_out, /* I [sng] File containing netCDF Terraref imagery */
  char * const trr_wxy) /* I [sng] Terraref dimension sizes */
 {
-  /* Purpose: Initialize regridding structure */
+  /* Purpose: Initialize Terraref structure */
      
   const char fnc_nm[]="nco_trr_ini()";
   
@@ -54,37 +54,22 @@ nco_trr_ini /* [fnc] Initialize Terraref structure */
   } /* endif dbg */
   
   /* Parse extended kvm options */
-  int trr_arg_idx; /* [idx] Index over trr_arg (i.e., separate invocations of "--trr var1[,var2]=val") */
   int trr_var_idx; /* [idx] Index over trr_lst (i.e., all names explicitly specified in all "--trr var1[,var2]=val" options) */
   int trr_var_nbr=0;
   kvm_sct *trr_lst; /* [sct] List of all regrid specifications */
-  kvm_sct kvm;
+  char *sng_fnl=NULL;
 
-  trr_lst=(kvm_sct *)nco_malloc(NC_MAX_VARS*sizeof(kvm_sct));
+  /* Join arguments together */
+  sng_fnl=nco_join_sng(trr_arg,trr_arg_nbr);
+  trr_lst=nco_arg_mlt_prs(sng_fnl);
 
-  /* Parse TRRs */
-  for(trr_arg_idx=0;trr_arg_idx<trr_arg_nbr;trr_arg_idx++){
-    if(!strstr(trr_arg[trr_arg_idx],"=")){
-      (void)fprintf(stdout,"%s: Invalid --trr specification: %s. Must contain \"=\" sign, e.g., \"key=value\".\n",nco_prg_nm_get(),trr_arg[trr_arg_idx]);
-      if(trr_lst) trr_lst=(kvm_sct *)nco_free(trr_lst);
-      nco_exit(EXIT_FAILURE);
-    } /* endif */
-    kvm=nco_sng2kvm(trr_arg[trr_arg_idx]);
-    /* nco_sng2kvm() converts argument "--trr one,two=3" into kvm.key="one,two" and kvm.val=3
-       Then nco_lst_prs_2D() converts kvm.key into two items, "one" and "two", with the same value, 3 */
-    if(kvm.key){
-      int var_idx; /* [idx] Index over variables in current TRR argument */
-      int var_nbr; /* [nbr] Number of variables in current TRR argument */
-      char **var_lst;
-      var_lst=nco_lst_prs_2D(kvm.key,",",&var_nbr);
-      for(var_idx=0;var_idx<var_nbr;var_idx++){ /* Expand multi-variable specification */
-        trr_lst[trr_var_nbr].key=strdup(var_lst[var_idx]);
-        trr_lst[trr_var_nbr].val=strdup(kvm.val);
-        trr_var_nbr++;
-      } /* end for */
-      var_lst=nco_sng_lst_free(var_lst,var_nbr);
-    } /* end if */
-  } /* end for */
+  if(sng_fnl) sng_fnl=(char *)nco_free(sng_fnl);
+
+  /* jm fxm use more descriptive name than i---what does i count? */
+  for(int index=0;(trr_lst+index)->key;index++){
+      trr_var_nbr=index;
+  } /* end loop over i */
+  trr_var_nbr++;
   
   /* NULL-initialize key-value properties required for string variables */
   trr->ttl=NULL; /* [sng] Title */
@@ -238,13 +223,11 @@ int /* O [rcd] Return code */
 nco_trr_read /* [fnc] Read, parse, and print contents of TERRAREF file */
 (trr_sct *trr) /* I/O [sct] Terraref information */
 {
-  /* Purpose: Read TERRAREF file */
+  /* Purpose: Read raw TERRAREF input file, write netCDF4 output */
   const char fnc_nm[]="nco_trr_read()"; /* [sng] Function name */
 
   const int dmn_nbr_3D=3; /* [nbr] Rank of 3-D grid variables */
   const int dmn_nbr_grd_max=dmn_nbr_3D; /* [nbr] Maximum rank of grid variables */
-
-  //  const nc_type crd_typ=NC_FLOAT;
 
   char *fl_in;
   char *fl_out;
@@ -258,13 +241,14 @@ nco_trr_read /* [fnc] Read, parse, and print contents of TERRAREF file */
 
   int dmn_ids[dmn_nbr_grd_max]; /* [id] Dimension IDs array for output variable */
 
-  int dmn_idx_wvl; /* [idx] Index of wavelength dimension */
-  int dmn_idx_ydm; /* [idx] Index of y-coordinate dimension */
-  int dmn_idx_xdm; /* [idx] Index of x-coordinate dimension */
+  int dmn_idx_wvl=int_CEWI; /* [idx] Index of wavelength dimension */
+  int dmn_idx_ydm=int_CEWI; /* [idx] Index of y-coordinate dimension */
+  int dmn_idx_xdm=int_CEWI; /* [idx] Index of x-coordinate dimension */
   int dmn_id_wvl; /* [id] Wavelength dimension ID */
   int dmn_id_xdm; /* [id] X-dimension ID */
   int dmn_id_ydm; /* [id] Y-dimension ID */
   int dfl_lvl; /* [enm] Deflate level [0..9] */
+  /* Terraref raw image files can be ~64 GB large so use netCDF4 */
   int fl_out_fmt=NC_FORMAT_NETCDF4; /* [enm] Output file format */
   int out_id; /* I [id] Output netCDF file ID */
   int rcd=NC_NOERR;
@@ -413,6 +397,9 @@ nco_trr_read /* [fnc] Read, parse, and print contents of TERRAREF file */
     dmn_idx_wvl=1;
     dmn_idx_ydm=0;
     dmn_idx_xdm=2;
+  }else{
+    (void)fprintf(stderr,"%s: ERROR %s reports unknown ntl_typ_out = %d\n",nco_prg_nm_get(),fnc_nm,ntl_typ_out);
+    nco_exit(EXIT_FAILURE);
   } /* !ntl_typ_out */
   dmn_ids[dmn_idx_wvl]=dmn_id_wvl;
   dmn_ids[dmn_idx_xdm]=dmn_id_xdm;

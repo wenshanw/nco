@@ -215,6 +215,10 @@ const char * /* O [sng] Native XML type */
 xml_typ_nm /* [fnc] Return string describing native XML type */
 (const nc_type type); /* I [enm] netCDF type */
 
+const char * /* O [sng] Native JSON type */
+jsn_typ_nm /* [fnc] Return string describing native JSON type */
+(const nc_type type); /* I [enm] netCDF type */
+
 const char * /* O [sng] String describing extended file format */
 nco_fmt_xtn_sng /* [fnc] Convert netCDF extended file format enum to string */
 (const int fl_fmt_xtn); /* I [enm] netCDF extended file format */
@@ -410,7 +414,9 @@ int nco_get_att(const int nc_id,const int var_id,const char * const att_nm,void 
 #ifndef NC_HAVE_RENAME_GRP
   int nc_rename_grp(int grp_id,const char * const grp_nm);
 #endif /* NC_HAVE_RENAME_GRP */
-#if NC_LIB_VERSION < 440
+#if NC_LIB_VERSION >= 440
+# include <netcdf_mem.h> /* nc_open_mem() */	 
+#else /* 4.4.0 */
   int nc_open_mem(const char * const fl_nm,const int mode,const size_t sz,void * const void_ptr,int * const nc_id);
 #endif /* 4.4.0 */
 

@@ -92,8 +92,8 @@ netcdf in_grp {
   unique:purpose = "the only variable of this name in this file, to test smallest possible access requests"; 
   
   float lat_lon(lat,lon);
-  
-  //global attributes
+
+// Global attributes
   :Conventions = "CF-1.0";
   :history = "History global attribute.\n";
   :julian_day = 200000.04;

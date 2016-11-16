@@ -118,12 +118,12 @@ Octave TeXInfo manual shows clean TeXInfo structure
 @setfilename nco.info
 
 @c Define edition, date, ...
-@set nco-edition 4.6.2-alpha01
-@set doc-edition 4.6.2-alpha01
+@set nco-edition 4.6.2
+@set doc-edition 4.6.2
 @set copyright-years 1995--2016
 @set update-year 2016
-@set update-date 16 September 2016
-@set update-month September 2016
+@set update-date 16 November 2016
+@set update-month November 2016
 
 @settitle @acronym{NCO} @value{nco-edition} User Guide
 
@@ -551,6 +551,15 @@ And I'm looking forward to this next, and most intense yet, phase of
 Charlie Zender@*
 June, 2015@*
 Irvine, California@*
+
+@ignore
+The @acronym{DOE} @acronym{ACME} program generously supported ...
+@sp 1
+@noindent
+Charlie Zender@*
+November, 2016@*
+Laguna Beach, California@*
+@end ignore
 
 @html
 <a name="smr"></a> <!-- http://nco.sf.net/nco.html#smr -->
@@ -1361,8 +1370,9 @@ Unsigned bytes stay unsigned bytes.
 Strings stay strings. 
 Hence, @command{ncks} conversions often result in smaller files than
 @command{ncl_convert2nc} conversions.
-A tool useful for converting netCDF3 to netCDF4 files is the Python
-script @command{nc3tonc4} by Jeff Whitaker.}. 
+Another tool useful for converting netCDF3 to netCDF4 files, and whose
+functionality is, we think, also matched or exceeded by @command{ncks},
+is the Python script @command{nc3tonc4} by Jeff Whitaker.}. 
 
 @cindex @code{hdf_name}
 @cindex illegal names
@@ -2483,7 +2493,7 @@ No data buffering is performed during @command{nc_get_var} and
 @cindex operator speed
 @cindex speed
 @cindex execution time
-Hyperslabs too large too hold in core memory will suffer substantial
+Hyperslabs too large to hold in core memory will suffer substantial
 performance penalties because of this. 
 
 @item 
@@ -2769,7 +2779,7 @@ or long option names for all options.
 This was done in a backward compatible way such that the full
 functionality of @acronym{NCO} is still available through the familiar 
 single letter options.
-In the future, however, some features of @acronym{NCO} may require the
+Many features of @acronym{NCO} introduced since 2002 now require the 
 use of long options, simply because we have nearly run out of single
 letter options.
 More importantly, mnemonics for single letter options are often
@@ -2807,16 +2817,17 @@ The syntax of @dfn{long options} (multi-letter options) is
 Thus the following are all valid for the @samp{-D} (short version)
 or @samp{--dbg_lvl} (long version) command line option.
 @example
-ncks -D 3 in.nc        # Short option
+ncks -D 3 in.nc        # Short option, preferred form
+ncks -D3 in.nc         # Short option, alternate form
 ncks --dbg_lvl=3 in.nc # Long option, preferred form
 ncks --dbg_lvl 3 in.nc # Long option, alternate form
 @end example
 @noindent
-The last example is preferred for two reasons.
+The third example is preferred for two reasons.
 First, @samp{--dbg_lvl} is more specific and less ambiguous than
 @samp{-D}.
-The long option form makes scripts more self documenting and less error
-prone.  
+The long option format makes scripts more self documenting and less
+error-prone.   
 Often long options are named after the source code variable whose value 
 they carry.
 Second, the equals sign @kbd{=} joins the key (i.e., @var{long_name}) to   
@@ -2824,20 +2835,29 @@ the value in an uninterruptible text block.
 Experience shows that users are less likely to mis-parse commands when
 restricted to this form.
 
-@acronym{GNU} implements a superset of the @acronym{POSIX} standard 
-which allows any unambiguous truncation of a valid option to be used.
+@menu
+* Truncating Long Options::
+* Multi-arguments::
+@end menu
+
+@node Truncating Long Options, Multi-arguments, Command Line Options, Command Line Options
+@subsection Truncating Long Options
+@cindex Truncating options
+@cindex Options, truncating
+@acronym{GNU} implements a superset of the @acronym{POSIX} standard.
+Their superset accepts any unambiguous truncation of a valid option:
 @example
 ncks -D 3 in.nc        # Short option
 ncks --dbg_lvl=3 in.nc # Long option, full form
-ncks --dbg=3 in.nc     # Long option, unambiguous truncation
-ncks --db=3 in.nc      # Long option, unambiguous truncation
-ncks --d=3 in.nc       # Long option, ambiguous truncation
+ncks --dbg=3 in.nc     # Long option, OK unambiguous truncation
+ncks --db=3 in.nc      # Long option, OK unambiguous truncation
+ncks --d=3 in.nc       # Long option, ERROR ambiguous truncation
 @end example
 @noindent
 The first four examples are equivalent and will work as expected.
 The final example will exit with an error since @command{ncks} cannot
 disambiguate whether @samp{--d} is intended as a truncation of
-@samp{--dbg_lvl}, of @samp{--dimension}, or of some other long option. 
+@samp{--dbg_lvl}, of @samp{--dimension}, or of some other long option.  
 
 @acronym{NCO} provides many long options for common switches.
 For example, the debugging level may be set in all operators with any
@@ -2847,13 +2867,108 @@ For some, it will be @samp{--debug} (an unambiguous truncation of
 @samp{--debug-level}, and other will prefer @samp{--dbg}.
 Interactive users usually prefer the minimal amount of typing, i.e.,
 @samp{-D}.
-We recommend that scripts which are re-usable employ some form of 
-the long options for future maintainability.
+We recommend that re-usable scripts employ long options to facilitate
+self-documentation and maintainability.  
 
 This manual generally uses the short option syntax in examples.
 This is for historical reasons and to conserve space in printed output.
 Users are expected to pick the unambiguous truncation of each option
 name that most suits their taste.
+
+@html
+<a name="mta"></a> <!-- http://nco.sf.net/nco.html#mta -->
+<a name="multi-arguments"></a> <!-- http://nco.sf.net/nco.html#multi-arguments -->
+<a name="Multi-arguments"></a> <!-- http://nco.sf.net/nco.html#Multi-arguments -->
+@end html
+@node Multi-arguments,  , Truncating Long Options, Command Line Options
+@subsection Multi-arguments
+@cindex Multi-arguments
+@cindex Options, multi-argument
+@cindex @code{--gaa @var{key}=@var{val}}
+@cindex @code{--ppc @var{key}=@var{val}}
+@cindex @code{--rgr @var{key}=@var{val}}
+@cindex @code{--trr @var{key}=@var{val}}
+As of @acronym{NCO} version 4.6.2 (November, 2016), @acronym{NCO} accepts
+multiple key-value pair options for a single feature to be joined
+together into a single extended argument called a @dfn{multi-argument}. 
+Only four @acronym{NCO} features accept multiple key-value pairs that
+can be aggregated into multi-arguments. 
+These features are:
+Global Attribute Addition options indicated via @samp{--gaa} (@pxref{Global Attribute Addition});
+Image Manipulation indicated via @samp{--trr}@footnote{
+@cindex @acronym{ENVI}
+@cindex @acronym{DOE}
+@cindex @acronym{Terraref}
+@cindex @samp{--trr}
+@acronym{NCO} supports decoding @acronym{ENVI} images in support of the
+@acronym{DOE} Terraref project.
+These options are indicated via the @command{ncks} @samp{--trr} switch,
+and are otherwise undocumented.}, 
+Precision-Preserving Compression options indicated via @samp{--ppc} (@pxref{Precision-Preserving Compression});
+and 
+Regridding options are indicated via @samp{--rgr} (@pxref{Regridding}).
+Arguments to these four indicator options take the form of key-value
+pairs, e.g., @samp{--rgr @var{key}=@var{val}}. 
+These four features have so many options that making each key its own
+command line option would pollute the namespace of @acronym{NCO}'s
+global options. 
+Yet supplying multiple options to each indicator option one-at-a-time
+can result in command lines overpopulated with indicator switches (e.g.,
+@samp{--rgr}): 
+@example
+@verbatim
+ncks --rgr grd_ttl='Title' --rgr grid=grd.nc --rgr latlon=129,256 \
+     --rgr lat_typ=fv --rgr lon_typ=grn_ctr ...
+@end verbatim
+@end example
+
+Multi-arguments combine all the indicator options into one option that
+receives a single argument that comprises all the original arguments
+glued together by a delimiter, which is, by default, @samp{#}.
+Thus the multi-argument version of the above example is
+@example
+@verbatim
+ncks --rgr grd_ttl='Title'#grid=grd.nc#latlon=129,256#lat_typ=fv#lon_typ=grn_ctr
+@end verbatim
+@end example
+Note the aggregation of all @var{key}=@var{val} pairs into a single
+argument.
+@acronym{NCO} simply splits this argument at each delimiter, and
+processes the sub-arguments as if they had been passed with their own
+indicator option.
+Multi-arguments produce the same results, and may be mixed with,
+traditional indicator options supplied one-by-one.
+
+As mentioned previously, the multi-argument delimiter string is, by
+default, the hash-sign @samp{#}. 
+When any @var{key}=@var{val} pair contains the default delimiter, the
+user must specify a custom delimiter string so that options are parsed
+correctly. 
+The options to change the multi-argument delimiter string are
+@samp{--mta_dlm=@var{delim_string}} or
+@samp{--dlm_mta=@var{delim_string}}, where @var{delim_string} can be any
+single or multi-character string that (1) is not contained in any
+@var{key} or @var{val} string; and (2) will not confuse the shell.
+For example, to use multi-arguments to pass a string that includes 
+the hash symbol (the default delimiter is @samp{#}), one must also
+change the delimiter so something besides hash, e.g., a colon @samp{:}: 
+@example
+@verbatim
+ncks --dlm=":" --gaa foo=bar:foo2=bar2:foo3,foo4="hash # is in value" 
+ncks --dlm=":" --gaa foo=bar:foo2=bar2:foo3,foo4="Thu Sep 15 13\:03\:18 PDT 2016"
+ncks --dlm="csz" --gaa foo=barcszfoo2=bar2cszfoo3,foo4="Long text"
+@end verbatim
+@end example
+In the second example, the colons that are escaped with the backslash
+become literal characters.  
+Many characters have special shell meanings and so must be escaped by a 
+single or double backslash or enclosed in single quotes to prevent
+interpolation. 
+These special characters include @samp{:}, @samp{$}, @samp{%}, @samp{*},
+@samp{@@}, and @samp{&}. 
+If @var{val} is a long text string that could contain the default
+delimiter, then delimit with a unique multi-character string such as
+@samp{csz} in the third example. 
 
 @html
 <a name="fl_in"></a> <!-- http://nco.sf.net/nco.html#fl_in -->
@@ -6018,8 +6133,20 @@ latitude/longitude grids.
 The grids are stored in an external @var{grid-file}.
 
 All options pertinent to the grid geometry and metadata are passed to
-@acronym{NCO} via key-value pairs prefixed by the @samp{--rgr} option.
-Perhaps the two most important key-value pair arguments are 
+@acronym{NCO} via key-value pairs prefixed by the @samp{--rgr} option,
+or its synonym, @samp{--regridding}.
+@cindex indicator option
+@cindex multi-arguments
+The option @samp{--rgr} (and its long option equivalents such
+as @samp{--regridding}) indicates the argument syntax will be
+@var{key}=@var{val}.
+As such, @samp{--rgr} and its synonyms are indicator options that accept
+arguments supplied one-by-one like 
+@samp{--rgr @var{key1}=@var{val1} --rgr @var{key2}=@var{val2}}, or
+aggregated together in multi-argument format like
+@samp{--rgr @var{key1}=@var{val1}#@var{key2}=@var{val2}}
+(@pxref{Multi-arguments}).
+
 The text strings that describe the grid and name the file are important 
 aids to convey the grid geometry to other users.
 These arguments, and their corresponding keys, are the grid title
@@ -6224,16 +6351,24 @@ Latitudes and longigudes must be specified in degrees (not radians).
 Latitude edges must be between @w{-90 and 90}.
 Longitude edges may be positive or negative and separated by no more
 than 360 degrees.
-The edges may be specified individually with four arguments, or together
-in one list to the options @samp{wesn} or @samp{snwe}.
-These two specifications are equivalent:
+The edges may be specified individually with four arguments, 
+consecutively separated by the multi-argument delimiter (@samp{#} by
+default), or together in a short list to the pre-ordered options
+@samp{wesn} or @samp{snwe}. 
+These three specifications are equivalent:
 @example
 @verbatim
 ncks ... --rgr lat_sth=30.0 --rgr lat_nrt=70.0 --rgr lon_wst=-120.0 --rgr lon_est=-90.0 ...
+ncks ... --rgr lat_sth=30.0#lat_nrt=70.0#lon_wst=-120.0#lon_est=-90.0 ...
 ncks ... --rgr snwe=30.0,70.0,-120.0,-90.0 ...
 @end verbatim
 @end example
 @end table
+The first example above supplies the bounding box with four
+@var{key}=@var{val} pairs. 
+The second example above supplies the bounding box with a single option
+in multi-argument format (@pxref{Multi-arguments}).
+The third example uses a convenience switch introduced to reduce typing.
 
 Generating common grids:
 @example
@@ -7190,7 +7325,7 @@ This reduces the number of unanticipated consequences and keeps the
 operators functioning in a familiar way.
 Put another way, @acronym{NCO} limits production of additional record
 dimensions so processing netCDF4 files leads to the same results as
-processing netCDF4 files.
+processing netCDF3 files.
 Users can override this default with the @samp{--mrd} (or 
 @samp{--multiple_record_dimension}) switch, which enables netCDF4
 variables to accumulate additional record dimensions.
@@ -7428,8 +7563,12 @@ Dataset chunking issues are described by @acronym{THG} and Unidata
 and
 @uref{http://www.unidata.ucar.edu/blogs/developer/en/entry/chunking_data_choosing_shapes,here}.
 @acronym{NCO} authors are working on generalized algorithms and
-applications of chunking strategies (stay tuned for more in 2015).    
+applications of chunking strategies (stay tuned for more in 2017).
 
+@html
+<a name="blocksize"></a> <!-- http://nco.sf.net/nco.html#blocksize -->
+<a name="blk"></a> <!-- http://nco.sf.net/nco.html#blk -->
+@end html
 @cindex chunking policy
 @cindex chunking map
 @cindex chunksize
@@ -7450,8 +7589,8 @@ The distinction between elements and bytes is subtle yet crucial to
 understand. 
 Elements refers to values of an array, whereas bytes refers to the
 memory size required to hold the elements. 
-Hence these measures differ by a factor of four or eight for 
-@code{NC_FLOAT} or @code{NC_DOUBLE}, respectively.
+These measures differ by a factor of four or eight for @code{NC_FLOAT}
+or @code{NC_DOUBLE}, respectively. 
 The option @samp{--cnk_scl} takes an argument @var{sz_lmn} measured in
 elements.
 The options @samp{--cnk_byt} and @samp{--cnk_min} take arguments
@@ -7872,19 +8011,26 @@ This algorithm is accessed via the @acronym{HDF5} library layer
 (which itself calls the @command{zlib} library also used by
 @command{gzip}), and is unavailable with netCDF3.   
 
-The three lossy compression algorithms are Packing 
+@menu
+* Linear Packing::
+* Precision-Preserving Compression::
+@end menu
+
+@node Linear Packing, Precision-Preserving Compression, Compression, Compression
+@subsection Linear Packing
+The three lossy compression algorithms are Linear Packing 
 (@pxref{Packed data}), and two precision-preserving algorithms.
-Packing quantizes data of a higher precision type into a lower precision 
-type (often @code{NC_SHORT}) that thus stores a fewer (though constant)
-number of bytes per value. 
-Packed data unpacks into a (much) smaller dynamic range than the
+Linear packing quantizes data of a higher precision type into a lower
+precision type (often @code{NC_SHORT}) that thus stores a fewer (though
+constant) number of bytes per value. 
+Linearly packed data unpacks into a (much) smaller dynamic range than the
 floating-point data can represent.  
 The type-conversion and reduced dynamic range of the data allows packing
 to eliminate bits typically used to store an exponent, thus improving 
 its packing efficiency.
 Packed data also can also be deflated for additional space savings. 
 
-A limitation of packing is that unpacking data stored as integers
+A limitation of linear packing is that unpacking data stored as integers 
 into the linear range defined by @code{scale_factor} and
 @code{add_offset} rapidly loses precision outside of a narrow range of
 floating-point values.  
@@ -7898,6 +8044,8 @@ data, not to represent the intrinsic precision of the variable.
 In other words, the precision of packed data cannot be specified in
 advance because it depends on the range of values to quantize.
 
+@node Precision-Preserving Compression,  , Linear Packing, Compression
+@subsection Precision-Preserving Compression
 @cindex @acronym{PPC}
 @cindex @acronym{LSD}
 @cindex Least Significant Digit
@@ -7955,8 +8103,19 @@ Users may wish to express the precision to be preserved as either
 Invoke @acronym{PPC} with the long option @samp{--ppc var=prc}, or give
 the same arguments to the synonyms
 @samp{--precision_preserving_compression}, or to @samp{--quantize}. 
-Here @var{var} is the variable to quantize, and @var{prc} is the 
+Here @var{var} is the variable to quantize, and @var{prc} is its
 precision.
+@cindex indicator option
+@cindex multi-arguments
+The option @samp{--ppc} (and its long option equivalents such
+as @samp{--quantize}) indicates the argument syntax will be
+@var{key}=@var{val}.
+As such, @samp{--ppc} and its synonyms are indicator options that accept
+arguments supplied one-by-one like 
+@samp{--ppc @var{key1}=@var{val1} --ppc @var{key2}=@var{val2}}, or
+aggregated together in multi-argument format like
+@samp{--ppc @var{key1}=@var{val1}#@var{key2}=@var{val2}}
+(@pxref{Multi-arguments}).
 The default algorithm assumes @var{prc} specifies @acronym{NSD}
 precision, e.g., @samp{T=2} means @math{@var{nsd=2}}.
 Prepend @var{prc} with a decimal point to specify @acronym{DSD}
@@ -8241,11 +8400,13 @@ support varying precision types and levels, and each option may
 aggregate all the variables with the same precision
 @example
 ncks --ppc p,w,z=5 --ppc q,RH=4 --ppc T,u,v=3 in.nc out.nc
+ncks --ppc p,w,z=5#q,RH=4#T,u,v=3 in.nc out.nc # Multi-argument format
 @end example
 Any @var{var} argument may be a regular expression.
 This simplifies generating lists of related variables:
 @example
 ncks --ppc Q.?=5 --ppc FS.?,FL.?=4 --ppc RH=.3 in.nc out.nc
+ncks --ppc Q.?=5#FS.?,FL.?=4#RH=.3 in.nc out.nc # Multi-argument format
 @end example
 Although @acronym{PPC}-rounding instantly reduces data precision,
 on-disk storage reduction only occurs once the data are compressed.  
@@ -9065,19 +9226,19 @@ Long options: @samp{--hdf_upk}, @samp{--hdf_unpack}@*
 @end cartouche
 
 The phrase @dfn{packed data} refers to data which are stored in the
-standard netCDF3 packing format which employs a lossy algorithm.
+standard netCDF3 lossy linear packing format.
 See @ref{ncks netCDF Kitchen Sink} for a description of deflation, a 
 lossless compression technique available with netCDF4 only.
 Packed data may be deflated to save additional space.
 
 @unnumberedsubsec Packing Algorithm
 @dfn{Packing}
-The standard netCDF packing algorithm (described
+The standard netCDF linear packing algorithm (described
 @uref{http://www.unidata.ucar.edu/software/netcdf/docs/netcdf/Attribute-Conventions.html, here})
-produces data with
-the same dynamic range as the original but which requires no more than
-half the space to store.
-Like all packing algorithms, it is @emph{lossy}.
+produces packed data with the same dynamic range as the original but
+which requires no more than half the space to store.
+Like all packing algorithms, linear packing is @emph{lossy}.
+Just how lossy depends on the values themselves, especially their range.
 The packed variable is stored (usually) as type @code{NC_SHORT}
 with the two attributes required to unpack the variable,
 @code{scale_factor} and @code{add_offset}, stored at the original
@@ -10476,6 +10637,18 @@ All operators can add user-specified global attributes to output files.
 As of @acronym{NCO} version 4.5.2 (July, 2015), @acronym{NCO} supports
 multiple uses of the @samp{--glb} (or equivalent @samp{--gaa} or
 @samp{--glb_att_add}) switch.
+@cindex indicator option
+@cindex multi-arguments
+The option @samp{--gaa} (and its long option equivalents such
+as @samp{--glb_att_add}) indicates the argument syntax will be
+@var{key}=@var{val}.
+As such, @samp{--gaa} and its synonyms are indicator options that accept
+arguments supplied one-by-one like 
+@samp{--gaa @var{key1}=@var{val1} --gaa @var{key2}=@var{val2}}, or
+aggregated together in multi-argument format like
+@samp{--gaa @var{key1}=@var{val1}#@var{key2}=@var{val2}}
+(@pxref{Multi-arguments}).
+
 The switch takes mandatory arguments 
 @samp{--glb @var{att_nm}=@var{att_val}}   
 where @var{att_nm} is the desired name of the global attribute to add, 
@@ -11079,6 +11252,7 @@ described in any detail in the sections below.
 * ncap2 netCDF Arithmetic Processor::
 * ncatted netCDF Attribute Editor::
 * ncbo netCDF Binary Operator::
+* ncclimo netCDF Climatology Generator::
 * nces netCDF Ensemble Statistics::
 * ncecat netCDF Ensemble Concatenator::
 * ncflint netCDF File Interpolator::
@@ -11086,7 +11260,6 @@ described in any detail in the sections below.
 * ncpdq netCDF Permute Dimensions Quickly::
 * ncra netCDF Record Averager::
 * ncrcat netCDF Record Concatenator::
-* ncclimo netCDF Climatology Generator::
 * ncremap netCDF Remapper::
 * ncrename netCDF Renamer::
 * ncwa netCDF Weighted Averager::
@@ -11179,9 +11352,10 @@ already contain the appended dimensions.
 * Left hand casting::
 * Arrays and hyperslabs::
 * Attributes::
+* Value List::
 * Number literals::
 * if statement::
-* print statement::
+* Print & String methods::
 * Missing values ncap2::
 * Methods and functions::
 * RAM variables::
@@ -11189,6 +11363,7 @@ already contain the appended dimensions.
 * Loops::
 * Include files::
 * Sort methods::
+* Vpointer::
 * Irregular grids::
 * Bilinear interpolation::
 * GSL special functions::
@@ -11265,8 +11440,8 @@ Single line comments are preceded by @code{//} characters.
 @cindex nesting
 @cindex @code{#include}
 Files may be nested in scripts using @code{#include @var{script}}.
-Note that the @code{#include} command is not followed by a semi-colon
-because it is a pre-processor directive, not an assignment statement.
+The @code{#include} command is not followed by a semi-colon because it
+is a pre-processor directive, not an assignment statement. 
 The filename @file{script} is interpreted relative to the run directory.
 @item Attribute syntax
 @cindex attribute syntax
@@ -11700,16 +11875,14 @@ is simple with the @code{array()} function.
 @end example
 @noindent
 
-
 @table @dfn
 @item val_srt
-This is the starting value of the array. The @var{type} of the array will be the @var{type} of this starting value  
+Starting value of the array. The @var{type} of the array will be the @var{type} of this starting value.
 @item val_inc
-This is the spacing (or increment) between elements. 
+Spacing (or increment) between elements. 
 @item var_tpl
-This is the variable from which the array can derive its shape 1D or nD
+Variable from which the array can derive its shape 1D or nD
 @end table
-
 
 @noindent @strong{ One-Dimensional Arrays@*}
 Use form (A) or (B)  for 1D arrays 
@@ -11723,6 +11896,12 @@ var_out=array( 0ul, 2, ilev)    // 0,2,4,6
 
 The following is of type NC_FLOAT
 var_out=array(99.0f, 2.5, $lon) // 99,101.5,104,106.5
+
+// create an array of zeros 
+var_out=array(0, 0, $time) // 0,0,0,0,0,0,0,0,0,0 
+
+// create an array of ones
+var_out=array(1.0, 0.0, $lon) // 1.0,1.0,1.0,1.0 
 @end example
 
 @noindent @strong{ n-Dimensional Arrays@*}
@@ -11900,7 +12079,7 @@ three_dmn_var_prm=
 @html
 <a name="ncap_att"></a> <!-- http://nco.sf.net/nco.html#ncap_att -->
 @end html
-@node Attributes, Number literals, Arrays and hyperslabs, ncap2 netCDF Arithmetic Processor
+@node Attributes, Value List, Arrays and hyperslabs, ncap2 netCDF Arithmetic Processor
 @subsection Attributes
 @cindex attributes@command{ncap2}
 @noindent Attributes are referred to by @emph{var_nm@@att_nm} @*
@@ -11913,26 +12092,9 @@ a1@long_name="Kelvin";
 a1@min=a1.min();
 a1@max=a1.max();
 a1@min++;
---a1@max; q
+--a1@max; 
 a1(0)=a1@min;
 a1($time.size-1)=a1@max;
-@end verbatim
-@end example
-
-@html
-<a name="nst"></a> <!-- http://nco.sf.net/nco.html#nst -->
-<a name="instantiate"></a> <!-- http://nco.sf.net/nco.html#instantiate -->
-<a name="instantiation"></a> <!-- http://nco.sf.net/nco.html#instantiation -->
-@end html
-@cindex instantiate
-@cindex instantiation
-A @emph{value list} can be used on the RHS of an assignment statement
-to @dfn{instantiate} a variable:
-@cindex value list
-@example
-@verbatim
-a1@trip1={1,2,3} ;
-a1@triplet={a1@min,(a1@min+a1@max)/2,a1@max}; 
 @end verbatim
 @end example
 
@@ -11949,11 +12111,11 @@ double a1(time) ;
   a1:triplet = 21., 110., 199. ;
 @end example
 
-The @code{size()} method can be used with attributes.
+The following basic methods @code{size(), type(), exists()} can be used with attributes.
 For example, to save an attribute text string in a variable,
 @example
 @verbatim
-defdim("sng_len", a1@long_name.size());
+defdim("sng_len",a1@long_name.size());
 sng_arr[$sng_len]=a1@long_name; // sng_arr now contains "Kelvin" 
 @end verbatim
 @end example
@@ -11976,10 +12138,111 @@ prs_mdp[time,lat,lon,lev]=P0*hyam+hybm*PS;
 th_min=1.0 + 2*three_dmn_var_dbl.min($time);
 @end example
 
-If the attribute name contains non-regular characters use ID quoting. See @pxref{ID Quoting}
+@noindent @strong{Attribute Concatenation@*}
+@cindex attribute concatenation
+@cindex push
+
+The push() function concatenates attributes, or appends an ``expression'' to a pre-existing attribute.
+It comes in two forms
+@example
+(A) att_new=push(att_exp, expr)
+(B) att_size=push(&att_nm,expr)
+@end example
+
+@noindent In form (A) The first argument should be an attribute
+identifier or an expression that evaluates to an attribute. 
+The second argument can evalute to an attribute or a variable. 
+The second argument is then converted to the the type of @var{att_exp}; 
+and appended to @var{att_exp} ; and the resulting attribute is returned.@*
+
+@noindent In form (B) the first argument is a call-by-reference
+attribute identifier (which may not yet exist). 
+The second argument is then evaluated (and type-converted as needed) and
+appended to the call-by-reference atttribute. 
+The final size of the attribute is then returned. 
+
+@example
+@verbatim
+temp@range=-10.0;
+push(&temp@range,12.0); // temp@range=-10.0,12.0
+
+numbers@squares=push(1,4);
+numbers@squares=push(numbers@squares,9);
+push(&number@squares,16.0); 
+push(&number@squares,25ull); // numbers@squares=1,4,9,16,25  
+@end verbatim
+@end example
+
+@noindent Now some text examples.@* 
+Remember, an atttribute identifier that begins with @@ implies a global
+attribute.
+For example, '@@institution' is short for 'global@@institution'.
+@example
+@verbatim
+global@greetings=push("hello"," world !!");
+global@greek={"alpha"s,"beta"s,"gamma"s};
+// Append an NC_STRING
+push(&@greek,"delta"s);
+// Pushing an NC_CHAR to a NC_STRING attribute is allowed, it is converted to an an NC_CHAR
+@e="epsilon";
+push(&@greek,@e);
+push(&@greek,"zeta"); 
+
+// Pushing a single NC_STRING to an NC_CHAR is not allowed
+@h="hello";
+push(&@h," again"s); // BAD PUSH
+@end verbatim
+@end example
+
+If the attribute name contains non-regular characters use ID quoting.
 @example
 @verbatim
 'b..m1@c--lost'=23;
+@end verbatim
+@end example
+See @pxref{ID Quoting}.
+
+@html
+<a name="value_list"></a> <!-- http://nco.sf.net/nco.html#value_list -->
+@end html
+@node Value List, Number literals, Attributes, ncap2 netCDF Arithmetic Processor
+@subsection Value List
+@cindex value list@command{ncap2}
+
+A @emph{value list} is a special type of attribute. 
+It can only be used on the RHS of the assign family of statements.@*
+That is @emph{=, +=, -=, *=, /=}@*
+A value list CAN-NOT be involved in any logical, binary, or arithmetical operations (except those above).@* 
+A value list CAN-NOT be used as a function argument.@*
+A value list CANT have nested value lists.@*
+The type of a value list is the type of the member with the highest type.@*
+
+@cindex value list
+@example
+@verbatim
+a1@trip={1,2,3};
+a1@trip+={3,2,1}; // 4,4,4
+a1@triplet={a1@min,(a1@min+a1@max)/2,a1@max}; 
+lon[lon]={0.0,90.0,180.0,270.0};
+lon*={1.0,1.1,1.2,1.3} 
+dlon[lon]={1b,2s,3ull,4.0f}; // final type NC_FLOAT
+
+a1@ind={1,2,3}+{4,4,4};  // BAD 
+a1@s=sin( {1.0,16.0} );  // BAD
+@end verbatim
+@end example
+
+@noindent One can also use a value_list to create an attribute of type
+NC_STRING. 
+Remember, a literal string of type NC_STRING has a postfix 's'. 
+A value list of NC_CHAR has no semantic meaning and is plain wrong.   
+@example
+@verbatim
+array[lon]={1.0,2.,4.0,7.0};
+array@numbers={"one"s, "two"s, "four"s, "seven"s}; // GOOD
+
+ar[lat]={0,20} 
+ar@numbers={"zero","twenty"}; // BAD
 @end verbatim
 @end example
 
@@ -11987,7 +12250,7 @@ If the attribute name contains non-regular characters use ID quoting. See @pxref
 <a name="ncap_num"></a> <!-- http://nco.sf.net/nco.html#ncap_num -->
 <a name="ncap_string"></a> <!-- http://nco.sf.net/nco.html#ncap_string -->
 @end html
-@node Number literals, if statement, Attributes, ncap2 netCDF Arithmetic Processor
+@node Number literals, if statement, Value List, ncap2 netCDF Arithmetic Processor
 @subsection Number literals
 @cindex number literals @command{ncap2}
 The table below lists the postfix character(s) to add to a number
@@ -12090,7 +12353,7 @@ filetype is not.
 @html
 <a name="ncap_if"></a> <!-- http://nco.sf.net/nco.html#ncap_if -->
 @end html
-@node if statement, print statement, Number literals, ncap2 netCDF Arithmetic Processor
+@node if statement, Print & String methods, Number literals, ncap2 netCDF Arithmetic Processor
 @subsection if statement
 @cindex if() 
 The syntax of the if statement is similar to its C counterpart. 
@@ -12172,19 +12435,21 @@ th_nw=(three_dmn_var_sht >= 0 ? three_dmn_var_sht.uint() : \
 @html
 <a name="ncap_prn"></a> <!-- http://nco.sf.net/nco.html#ncap_prn -->
 @end html
-@node print statement, Missing values ncap2, if statement, ncap2 netCDF Arithmetic Processor
-@subsection print statement
+@node Print & String methods, Missing values ncap2, if statement, ncap2 netCDF Arithmetic Processor
+@subsection Print & String methods
 @cindex print() @command{ncap2}
 
-The print function is overloaded and has two forms. 
-The format string is optional
+The print statement  comes in a variety of forms
 
 @example
-print(variable_name, format string?);
+(A)   print(variable_name, format string?);
+(A1)  print(expression/string, format string?);
 
-print(expression/attribute name/string, format string?);
+(B)   sprint(expression/string, format string?);
+(B1)  sprint4(expression/string, format string?);
 @end example  
 
+@noindent @strong{print() @*@*}
 @noindent If the variable exists in I/O then it is printed in a similar fashion to @code{ncks -H}.
 @example
 @verbatim
@@ -12194,7 +12459,7 @@ lon[1]=90
 lon[2]=180 
 lon[3]=270 
 
-print(byt_2D )
+print(byt_2D)
 lat[0]=-90 lon[0]=0 byt_2D[0]=0 
 lat[0]=-90 lon[1]=90 byt_2D[1]=1 
 lat[0]=-90 lon[2]=180 byt_2D[2]=2 
@@ -12206,7 +12471,7 @@ lat[1]=90 lon[3]=270 byt_2D[7]=7
 @end verbatim
 @end example
 
-@noindent If the first argument is NOT a variable the second form is invoked.
+@noindent If the first argument is NOT a variable the form (A1) is invoked.
 @example
 @verbatim
 print(mss_val_fst@_FillValue);
@@ -12220,12 +12485,10 @@ att_var@float_att, size = 7 NC_FLOAT, value = 73, 72, 71, 70.01, 69.001, 68.01, 
 
 print(lon*10.0)
 lon, size = 4 NC_DOUBLE, value = 0, 900, 1800, 2700
-
 @end verbatim
 @end example
 
-
-@noindent if the format string is specified then the results from the overloaded forms are the same
+@noindent If the format string is specified then the results from (A) and (A1) forms are the same
 @example
 @verbatim
 print(lon_2D_rrg,"%3.2f,");
@@ -12239,11 +12502,81 @@ print(att_var@float_att,"%g," )
 @end verbatim
 @end example
 
+@noindent @strong{sprint() & sprint4() @*@*}
+These functions work in an identical fashion to (A1) except that @code{sprint()} outputs a regular netCDF3 @code{NC_CHAR} attribute 
+and @code{sprint4()} outputs a netCDF4 @code{NC_STRING} attribute
+@example
+@verbatim
+time@units=sprint(nDays, "%d days since 1970-1-1") 
+bnd@num=sprint4(bnd_idx,"Band number=%d") 
+
+time@arr=sprint4(time,"%.2f,")  // "1.00,2.00,3.00,4.00,5.00,6.00,7.00,8.00,9.00,10.00,"
+@end verbatim
+@end example
+
+@noindent You can also use @code{sprint4()} to convert a @code{NC_CHAR} string to a @code{NC_STRING} string 
+and @code{sprint()} to convert a @code{NC_STRING} to a @code{NC_CHAR}
+@example
+@verbatim
+lat_1D_rct@long_name = "Latitude for 2D rectangular grid stored as 1D arrays"; // 
+
+// convert to NC_STRING
+lat_1D_rct@long_name = sprint4(lat_1D_rct@long_name) 
+@end verbatim
+@end example
+
+@noindent @strong{hyperslab a netCDF string @*@*}
+Its possible to index-into a NC_CHAR string. Just like a C-String. Remember  an NC_CHAR string is  has no terminating null.
+You CANNOT index into a NC_STRING. You have to convert to an NC_CHAR first. 
+@example
+@verbatim
+global@greeting="hello world!!!"
+@h=@greeting(0:4);  // "hello"
+@w=@greeting(6:11); // "world"
+
+// can use negative inidices
+@x=@greeting(-3:-1);  // "!!!"
+
+// can  use stride
+@n=@greeting(::2);  // "hlowrd!"
+
+// concatenation
+global@new_greeting=push(@h, " users !!!"); // "hello users!!!"
+
+@institution="hotel california"s; 
+@h=@institution(0:4); // BAD 
+
+// convert NC_STRING to NC_CHAR
+@is=sprint(@institution);
+@h=@is(0:4);  // "hotel"
+
+// convert NC_CHAR to NC_STRING
+@h=sprint4(@h);
+@end verbatim
+@end example
+
+@noindent @strong{ get_vars_in() & get_vars_out() }
+
+@example
+att_lst=get_vars_in(att_regexp?) 
+att_lst=get_vars_out(att_regexp?) 
+@end example
+
+These functions are used to create a list of vars in Input or Output. The optional arg 'att_regexp'. Can be an NC_CHAR att or a NC_STRING att. If NC_CHAR then only a single reg-exp can be specified. If NC_STRING then multiple reg-exp can be specified.  The output is allways an NC_STRING att. The matching works in an identical fashion to the -v switch in ncks. if there is no arg then all vars are returned. 
+
+@example
+@verbatim
+@slist=get_vars_in("^time");  // "time", "time_bnds", "time_lon", "time_udunits"
+// Use NC_STRINGS
+@regExp={".*_bnd"s,".*_grd"s}
+@slist=get_vars_in(@regExp);  // "lat_bnd", "lat_grd", "lev_bnd", "lon_grd", "time_bnds", "cnv_CF_grd"
+@end verbatim
+@end example
 
 @html
 <a name="ncap_miss"></a> <!-- http://nco.sf.net/nco.html#ncap_miss -->
 @end html
-@node Missing values ncap2, Methods and functions, print statement, ncap2 netCDF Arithmetic Processor
+@node Missing values ncap2, Methods and functions, Print & String methods, ncap2 netCDF Arithmetic Processor
 @subsection Missing values ncap2
 @cindex missing values ncap2
 Missing values operate slightly differently in @command{ncap2} 
@@ -12858,7 +13191,7 @@ e=2.71828; // Regular (disk) variable, written to output
 <a name="sort"></a> <!-- http://nco.sf.net/nco.html#sort -->
 <a name="remap"></a> <!-- http://nco.sf.net/nco.html#remap -->
 @end html
-@node Sort methods, Irregular grids, Include files, ncap2 netCDF Arithmetic Processor
+@node Sort methods, Vpointer, Include files, ncap2 netCDF Arithmetic Processor
 @subsection @command{sort} methods
 @cindex @command{sort}
 @cindex @command{asort}
@@ -13130,12 +13463,147 @@ EOF
 ncap2 -O -v -S ~/ncap2_foo.nco ~/nco/data/in.nc ~/foo.nc
 @end example
 
+
+@html
+<a name="vpointer"></a> <!-- http://nco.sf.net/nco.html#vpointer -->
+@end html
+
+@node Vpointer, Irregular grids, Sort methods, ncap2 netCDF Arithmetic Processor
+@subsection Vpointer
+@cindex vpointer
+
+@noindent A variable-pointer or @emph{vpointer} is a pointer to a variable or attribute. It is most usefull when one needs to apply a set of operations on a list of variables. For example After regular processing one may wish to set the _FillVlaue of all NC_FLOAT variables to a particular value. Or say after processing,  create min/max attributes for all 3D variables of type NC_DOUBLE. A vpointer is not a 'pointer' to a memory location in the normal C/C++ sense. Rather the vpointer is a text attribute that contains the name of a variable. To use the pointer simply prefix the pointer with '*'. Most places where you use VAR_ID you can use *vpointer_nm. There is a variety of ways to maintain a list of strings in ncap2. The easiest method is to use a NC_STRING attribute.
+
+
+Below is a simple illustration using NC_CHAR as the vpointer.@*
+Remember an attribute starting with @@ implies 'global'. eg '@@vpx' is short for 'global@@vpx'
+
+
+@example
+@verbatim
+idx=9;
+idy=20;
+t2=time;
+
+global@vpx="idx";
+
+// lets increment idx by one
+*global@vpx++;  
+print(idx);
+
+// multiply by 5
+*@vpx*=5;  // idx now 50
+print(idx);
+
+// lets add 200 (long method)
+*@vpx=*@vpx+200;  //idx now 250
+print(idx);
+
+@vpy="idy";
+
+// lets add together idx and idy
+idz=*@vpx+*@vpy;  // idz == 270
+print(idz);
+
+// we can also reference variables in  the input file
+// can use an existing att pointer as atts are not written
+// to the netcdf file until after script has finished
+@vpx="three_dmn_var";
+
+// we can convert the above var to type NC_DOUBLE and 
+// write  it to ouptut all in one go 
+*@vpx=*@vpx.double();
+@end verbatim
+@end example
+
+@noindent The following script writes to Output all vars that are of type   NC_DOUBLE and and have at least 2 dimesions; It then changes their _FillValue to '1.0 E-9'. 
+The function @code{get_vars_in()} creates an NC_STRING attribue that contains all the var names in Input. It is important to note that That a vpointer must a plain attribute and NOT an a attribute expression. So in the below script using @code{*all(idx)} would be a fundamental mistake. In the above example the vpointer @code{var_nm} is of type NC_STRING.
+
+@example
+@verbatim
+@all=get_vars_in();
+
+*sz=@all.size();
+*idx=0;
+
+for(idx=0;idx<sz;idx++)
+{
+  // remember @var_nm is of type NC_STRING
+  @var_nm=@all(idx);
+ 
+  if( *@var_nm.type()==NC_DOUBLE && *@var_nm.ndims()>=2  )
+  {
+     *@var_nm=*@var_nm; 
+     *@var_nm.change_miss(1e-9d);
+  }
+}
+@end verbatim
+@end example 
+
+
+
+@noindent The following script, writes to Output all 3D/4D vars as type NC_FLOAT. Then for each var it calculates a range att that contains min & max; and a total att that is the sum of all elements. Note that in this example vpointer are used to 'point' to attributes
+   
+@example
+@verbatim
+
+@all=get_vars_in();
+*sz=@all.size();
+
+for(*idx=0;idx<sz;idx++)
+{
+  @var_nm=@all(idx);
+  if(*@var_nm.ndims()>=3 )
+  {
+
+    *@var_nm=*@var_nm.float();
+    // The push function also takes a call-by-ref att -if it  doesnt already exist then it is created
+    // the call below is pushing a NC_STRING to an att so the end result is a list of NC_STRINGS   
+    push(&@prc,@var_nm); 
+  }
+} 
+
+*sz=@prc.size();
+
+for(*idx=0;idx<sz;idx++)
+{
+  @var_nm=@prc(idx);
+
+  // we can work with att pointers as well 
+  // sprint - ouptut is of type NC_CHAR
+  @att_total=sprint(@var_nm,"%s@total"); 
+  @att_range=sprint(@var_nm,"%s@range"); 
+
+  // if you are still confused then print out the atts 
+  print(@att_total); 
+  print(@att_range);
+ 
+  *@att_total= *@var_nm.total();
+  *@att_range={ min(*@var_nm), max(*@var_nm)}; 
+} 
+@end verbatim
+@end example
+
+@noindent This is an ncdump of one of the variables that has been processed by the above script
+@example
+@verbatim
+float three_dmn_var_int(time, lat, lon) ;
+three_dmn_var_int:_FillValue = -99.f ;
+three_dmn_var_int:long_name = "three dimensional record variable of type int" ;
+three_dmn_var_int:range = 1.f, 80.f ;
+three_dmn_var_int:total = 2701.f ;
+three_dmn_var_int:units = "watt meter-2" ;
+@end verbatim
+@end example
+
+
+
 @html
 <a name="rrg"></a> <!-- http://nco.sf.net/nco.html#rrg -->
 <a name="rct"></a> <!-- http://nco.sf.net/nco.html#rct -->
 @end html
 
-@node Irregular grids, Bilinear interpolation, Sort methods, ncap2 netCDF Arithmetic Processor
+@node Irregular grids, Bilinear interpolation, Vpointer, ncap2 netCDF Arithmetic Processor
 @subsection Irregular Grids
 @cindex irregular grids
 @cindex rectangular grids
@@ -15018,7 +15486,7 @@ netcdf-4.0 Final  2008/08/28@*
 @end example
 @c End HMB documentation
 
-@node create_bounds() function, , ID Quoting, ncap2 netCDF Arithmetic Processor
+@node create_bounds() function,  , ID Quoting, ncap2 netCDF Arithmetic Processor
 @subsection create_bounds() function
 @cindex create_bounds() function
 The @command{ncap2} custom function 'create_bounds()' takes any monotonic 1D coordinate variable with regular or irregular (e.g., Gaussian) spacing and creates a bounds variable.
@@ -15637,7 +16105,7 @@ omitted in batch scripts.
 <a name="ncmultiply"></a> <!-- http://nco.sf.net/nco.html#ncmultiply -->
 <a name="ncdivide"></a> <!-- http://nco.sf.net/nco.html#ncdivide -->
 @end html
-@node ncbo netCDF Binary Operator, nces netCDF Ensemble Statistics, ncatted netCDF Attribute Editor, Reference Manual
+@node ncbo netCDF Binary Operator, ncclimo netCDF Climatology Generator, ncatted netCDF Attribute Editor, Reference Manual
 @section @command{ncbo} netCDF Binary Operator
 @findex ncbo
 @findex ncdiff
@@ -16077,7 +16545,7 @@ ncrcat t_anm_8589_??.nc t_anm_8589_0112.nc
 @html
 <a name="ncclimo"></a> <!-- http://nco.sf.net/nco.html#ncclimo -->
 @end html
-@node ncclimo netCDF Climatology Generator, ncremap netCDF Remapper, ncrcat netCDF Record Concatenator, Reference Manual
+@node ncclimo netCDF Climatology Generator, nces netCDF Ensemble Statistics, ncbo netCDF Binary Operator, Reference Manual
 @section @command{ncclimo} netCDF Climatology Generator
 @cindex climo
 @cindex climatology
@@ -16955,7 +17423,7 @@ Moreover, the climatologies can be generated in parallel.
 <a name="nces"></a> <!-- http://nco.sf.net/nco.html#nces -->
 <a name="ncea"></a> <!-- http://nco.sf.net/nco.html#ncea -->
 @end html
-@node nces netCDF Ensemble Statistics, ncecat netCDF Ensemble Concatenator, ncbo netCDF Binary Operator, Reference Manual
+@node nces netCDF Ensemble Statistics, ncecat netCDF Ensemble Concatenator, ncclimo netCDF Climatology Generator, Reference Manual
 @section @command{nces} netCDF Ensemble Statistics
 @cindex averaging data
 @cindex ensemble average
@@ -17403,7 +17871,13 @@ It contains @w{60 months} of data.
 @end html
 One often prefers that the (new) record dimension have a more
 descriptive, context-based name than simply ``record''. 
-This is easily accomplished with the @samp{-u @var{ulm_nm}} switch:
+This is easily accomplished with the @samp{-u @var{ulm_nm}} switch.
+To add a new record dimension named ``time'' to all variables
+@example
+ncecat -u time in.nc out.nc
+@end example
+To glue together multiple files with a new record variable named
+``reaalization'' 
 @example
 ncecat -u realization 85_0[1-5].nc 85.nc
 @end example
@@ -17751,9 +18225,10 @@ ncks [-3] [-4] [-5] [-6] [-7] [-A] [-a] [-b @var{fl_bnr}] [-C] [-c] [--cdl]
 [--cnk_min @var{sz_byt}] [--cnk_plc @var{plc}] [--cnk_scl @var{sz_lmn}]
 [-D @var{dbg}] [-d @var{dim},[@var{min}][,[@var{max}][,[@var{stride}]]] [-F] [--fix_rec_dmn @var{dim}] 
 [-G @var{gpe_dsc}] [-g @var{grp}[,@dots{}]] [--glb ...] [--grp_xtr_var_xcl]
-[-H] [-h] [--hdn] [--hdr_pad @var{nbr}] [-L @var{dfl_lvl}] [-l @var{path}]
-[-M] [-m] [--map @var{map-file}] [--md5] [--mk_rec_dmn @var{dim}]
-[--no_blank] [--no_tmp_fl] [-O] [-o @var{output-file}] [-P] [-p @var{path}] [--ppc ...]
+[-H] [-h] [--hdn] [--hdr_pad @var{nbr}] [--jsn] [--jsn_att_fmt @var{lvl}] 
+[-L @var{dfl_lvl}] [-l @var{path}] [-M] [-m] [--map @var{map-file}] 
+[--md5] [--mk_rec_dmn @var{dim}] [--no_blank] [--no_tmp_fl] 
+[-O] [-o @var{output-file}] [-P] [-p @var{path}] [--ppc ...]
 [-Q] [-q] [-R] [-r] [--rad] [--ram_all] [--rgr ...] [--rnr=wgt] [-s @var{format}] 
 [-u] [--unn] [-V] [-v @var{var}[,@dots{}]] [-X ...] [-x] [--xml]
 @var{input-file} [[@var{output-file}]]
@@ -17774,23 +18249,24 @@ optionally writes it in flat binary format to @file{fl_bnr}, and
 optionally prints it to screen.
 
 @command{ncks} prints netCDF input data in @acronym{ASCII},
-@acronym{CDL}, or @acronym{NcML} text formats @code{stdout}, like (an
-extended version of) @command{ncdump}.
+@acronym{CDL}, @acronym{JSON}, or @acronym{NcML/XML} text formats to
+@code{stdout}, like (an extended version of) @command{ncdump}.
 By default @command{ncks} prints data in a tabular format intended to be
 easy to search for the data you want, one datum per screen line, with
 all dimension subscripts and coordinate values (if any) preceding the
 datum. 
 Option @samp{-s} (or long options @samp{--sng_fmt} and @samp{--string}) 
 permits the user to format data using C-style format strings, while
-option @samp{--cdl} outputs @acronym{CDL} and option @samp{--xml}
-outputs @acronym{NcML}. 
+option @samp{--cdl} outputs @acronym{CDL},
+option @samp{--jsn} (or @samp{json}) outputs @acronym{JSON},
+and option @samp{--xml} (or @samp{ncml}) outputs @acronym{NcML}. 
 @command{ncks} exposes many flexible controls over printed output,
-including @acronym{CDL} and @acronym{NcML}.
+including @acronym{CDL}, @acronym{JSON}, and @acronym{NcML}.
 
-Options @samp{-5}, @samp{-a}, @samp{--cdl}, @samp{-F} , @samp{-H},
-@samp{--hdn}, @samp{-M}, @samp{-m}, @samp{-P}, @samp{-Q}, @samp{-q},
-@samp{-s}, @samp{-u}, @samp{-V}, and @samp{--xml} (and their long option
-counterparts) control the formatted appearance of the data.
+Options @samp{-a}, @samp{--cdl}, @samp{-F} , @samp{-H},
+@samp{--hdn}, @samp{--jsn}, @samp{-M}, @samp{-m}, @samp{-P}, @samp{-Q},
+@samp{-q}, @samp{-s}, @samp{-u}, @samp{-V}, and @samp{--xml} (and their
+long option counterparts) control the formatted appearance of the data.
 
 @cindex global attributes
 @cindex attributes, global
@@ -17884,19 +18360,6 @@ Features common to many operators are described in
 @ref{Shared features}. 
 
 @table @samp
-
-@html
-<a name="-5"></a> <!-- http://nco.sf.net/nco.html#-5 -->
-<a name="5"></a> <!-- http://nco.sf.net/nco.html#5 -->
-@end html
-@cindex @code{-5}
-@item -5 
-Print data to screen alphabetically by group, and alphabetically by
-variable within each group.
-This ordering here is used by default in @acronym{CDL}-mode printing,
-and may be selected for traditional mode printing with @samp{-5}
-(The switch for invocation may change to something more descriptive in
-the future). 
 
 @html
 <a name="abc"></a> <!-- http://nco.sf.net/nco.html#abc -->
@@ -17999,6 +18462,10 @@ limited to at most one record dimension) (@pxref{Group Path Editing}).
 @cindex @code{_Endianness}
 @cindex @code{_Fletcher32}
 @cindex @code{_NOFILL}
+@cindex @code{_NCProperties}
+@cindex @code{_IsNetcdf4}
+@cindex @code{_SuperblockVersion}
+@item --hdn
 As of @acronym{NCO} version 4.4.0 (January, 2014), the @samp{--hdn}
 or @samp{--hidden} options print hidden (aka special) attributes.
 This is equivalent to @samp{ncdump -s}.
@@ -18007,14 +18474,19 @@ Hidden attributes include: @code{_Format}, @code{_DeflateLevel},
 @code{_Endianness}, @code{_Fletcher32}, and @code{_NOFILL}. 
 Previously @command{ncks} ignored all these attributes in
 @acronym{CDL}/@acronym{XML} modes. 
-Now it prints these attributes as appropriate. 
+Now it prints these attributes as appropriate in all modes. 
 As of @acronym{NCO} version 4.4.6 (September, 2014), @samp{--hdn} 
 also prints the extended file format (i.e., the format of the file
 or server supplying the data) as @code{_SOURCE_FORMAT}.
+As of @acronym{NCO} version 4.6.1 (August, 2016), @samp{--hdn} 
+also prints the hidden attributes @code{_NCProperties},
+@code{_IsNetcdf4}, and @code{_SuperblockVersion} for netCDF4 files so 
+long as @acronym{NCO} is linked against netCDF library version 4.4.1 or
+later. 
 Users are referred to the
 @uref{http://www.unidata.ucar.edu/software/netcdf/docs, Unidata netCDF Documentation},
 or the man pages for @command{ncgen} or @command{ncdump}, for
-detailed descriptions of the meanings of these attributes. 
+detailed descriptions of the meanings of these hidden attributes. 
 
 @html
 <a name="cdl"></a> <!-- http://nco.sf.net/nco.html#cdl -->
@@ -18162,6 +18634,197 @@ lat[0]=90 lev[0]=1000 lon[1]=90 three_dmn_var[1]=21
 lat[0]=90 lev[0]=1000 lon[2]=180 three_dmn_var[2]=22 
 lat[0]=90 lev[0]=1000 lon[3]=270 three_dmn_var[3]=23 
 @end example
+
+@html
+<a name="jsn"></a> <!-- http://nco.sf.net/nco.html#jsn -->
+<a name="json"></a> <!-- http://nco.sf.net/nco.html#json -->
+@end html
+@cindex @code{--jsn_att_fmt}
+@cindex @code{--jsn}
+@cindex @code{--json}
+@cindex @acronym{JSN}
+@cindex @acronym{JSON}
+@cindex JavaScript
+@item --jsn, --json
+As of @acronym{NCO} version 4.6.2 (November, 2016), @command{ncks} can
+print extracted metadata and data to screen (i.e., @code{stdout}) as
+@acronym{JSON}, JavaScript Object Notation, defined 
+@uref{http://www.json.org, here}.
+@command{ncks} supports @acronym{JSON} output more completely, flexibly,
+and robustly than any other tools to our knowledge.
+With @command{ncks} one can translate entire netCDF3 and netCDF4 files
+into @acronym{JSON}, including metadata and data, using all 
+@acronym{NCO}'s subsetting and hyperslabbing capabilities.
+Behold @acronym{JSON} output in default mode:
+@example
+@verbatim
+zender@aerosol:~$ ncks --jsn -v one ~/nco/data/in.nc
+{
+    "one": {
+      "type": "float",
+      "long_name": "one",
+      "data": 1.0
+    }
+}
+@end verbatim
+@end example
+@acronym{NCO} converts to (using commonsense rules) and prints all
+@acronym{NC_TYPE}s as one of three atomic types distinguishable as 
+@acronym{JSON} values: @code{float}, @code{string}, and @code{int}
+@footnote{The @acronym{JSON} boolean atomic type is not (yet) supported
+as there is no obvious netCDF-equivalent to this type.}.
+Floating-point types (@code{NC_FLOAT} and @code{NC_DOUBLE})
+are printed with a decimal point and at least one signficant digit
+following the decimal point, e.g., @code{1.0} rather than @code{1.} or
+@code{1}.    
+Integer types (e.g., @code{NC_INT}, @code{NC_UINT64}) are printed
+with no decimal point. 
+String types (@code{NC_CHAR} and @code{NC_STRING}) are enclosed 
+in double-quotes.
+
+The @acronym{JSON} specification allows many possible output formats for  
+netCDF files.  
+@acronym{NCO} developers implemented a working prototype in Octoboer,
+2016 and, after discussing options with interested parties 
+@uref{https://sourceforge.net/p/nco/discussion/9829/thread/8c4d7e72, here}, 
+finalized the emitted @acronym{JSON} syntax a few weeks later.
+The resulting @acronym{JSON} backend supports three levels of
+pedanticness, ordered from more concise, flexible, and human-readable to 
+more verbose, restrictive, and 1-to-1 reproducible.
+@acronym{JSON}-specific switches access these modes and other features. 
+Each @acronym{JSON} configuration option automatically triggers 
+@acronym{JSON} printing, so that specifying @samp{--json} in addition to
+a @acronym{JSON} configuration option is redundant and unnecessary. 
+
+Request a specific format level with the pedantic level argument to
+the @samp{--jsn_att_fmt @var{lvl}} option.
+This choice has the following effects for the given value of @var{lvl}: 
+@itemize @bullet
+@item @math{@var{lvl} = 0} is the default mode, and is also explicitly
+selectable with @samp{--jsn_att_fmt=0}.
+All values are output without the original @acronym{NC_TYPE} token.
+This allows attributes to print as @acronym{JSON} name-value pairs,
+rather than as more complex objects: 
+@example
+@verbatim
+% ncks --jsn_att_fmt=0 -v att_var ~/nco/data/in_grp.nc
+...
+"att_var": {
+  "dims": ["time"],
+  "type": "float",
+  "attributes": {
+    "byte_att": [0, 1, 2, 127, -128, -127, -2, -1],
+    "char_att": "Sentence one.\nSentence two.\n",
+    "short_att": 37,
+    "int_att": 73,
+    "long_att": 73,
+    "float_att": [73.0, 72.0, 71.0, 70.010, 69.0010, 68.010, 67.010],
+    "double_att": [73.0, 72.0, 71.0, 70.010, 69.0010, 68.010, 67.0100010]
+  },
+  "data": [10.0, 10.10, 10.20, 10.30, 10.40101, 10.50, 10.60, 10.70, 10.80, 10.990]
+...
+@end verbatim
+@end example
+
+This least pedantic mode produces the most easily read results, and
+suffices for many (most?) purposes.  
+Any downstream parser is expected to assign an appropriate type as
+indicated by @acronym{JSON} syntax rules.
+Because the original attribute's @code{NC_TYPE} is not output, it is
+not guaranteed that a downstream parser can exactly reproduce the input  
+file datatypes. 
+For example, whether the original attribute string was stored as
+@code{NC_CHAR} or @code{NC_STRING} will be unknown to a downstream
+parser.
+Distinctions between @code{NC_FLOAT} and @code{NC_DOUBLE} are similarly
+lost, as are all distinctions among the integer types.
+
+In our experience, these distinctions are immaterial for attributes,
+which are intended for metadata not for large-scale storage.   
+Type-distinctions can, however, significantly impact the size of
+variable data, responsible for nearly all the storage required by
+datasets.
+For instance, storing or transferring an @code{NC_SHORT} field as
+@code{NC_DOUBLE} would waste a factor of four in space or bandwidth. 
+This is why @acronym{NCO} @emph{always} prints the @code{NC_TYPE} 
+of variable data.
+Downstream parsers can (but are not required to) take advantage of the
+variable's @code{NC_TYPE} to choose the most efficient storage type. 
+
+@item @math{@var{lvl} = 1} is a medium-pedantic level that prints all
+attributes as objects (with explicit types) @emph{except} those
+attributes whose types match the simplest default @acronym{JSON} value
+types (@code{NC_FLOAT}, 
+@code{NC_CHAR}/@code{NC_STRING}, @code{NC_INT}).  
+double, string, and int attributes are printed as @acronym{JSON} arrays, 
+as in the @math{@var{lvl} = 0} above:
+@example
+@verbatim
+% ncks --jsn_att_fmt=1 -v att_var ~/nco/data/in.nc
+...
+"att_var": {
+  "dims": ["time"],
+  "type": "float",
+  "attributes": {
+    "byte_att": { "type": "byte", "data": [0, 1, 2, 127, -128, -127, -2, -1]},
+    "char_att": "Sentence one.\nSentence two.\n",
+    "short_att": { "type": "short", "data": 37},
+    "int_att": 73,
+    "long_att": 73,
+    "float_att": [73.0, 72.0, 71.0, 70.010, 69.0010, 68.010, 67.010],
+    "double_att": { "type": "double", "data": [73.0, 72.0, 71.0, 70.010, 69.0010, 68.010, 67.0100010]}
+  },
+  "data": [10.0, 10.10, 10.20, 10.30, 10.40101, 10.50, 10.60, 10.70, 10.80, 10.990]
+...
+@end verbatim
+@end example
+The attributes of type @code{NC_BYTE}, @code{NC_SHORT}, and
+@code{NC_DOUBLE} are printed as @acronym{JSON} objects that comprise an
+@code{NC_TYPE} and a value list, because their values could conceivably 
+not be representable, or would waste space, if interpreted as
+@code{NC_INT} or @code{NC_FLOAT}, respectively.
+All other attributes may be naturally mapped to the type indicated by
+the @acronym{JSON} syntax of the value, where numbers are assumed to
+correspond to @code{NC_FLOAT} for floating-point, @code{NC_INT} for
+integers, and @code{NC_CHAR} or @code{NC_STRING} for strings.
+This minimal increase in verbosity allows a downstream parser to
+re-construct the original dataset with nearly identical attributes types
+to the original.
+
+@item @math{@var{lvl} = 2} is the most pedantic mode, and should be used
+when preserving all input types (e.g., to ensure exact reproducibility
+of the input file) is important. 
+This mode always prints attributes as @acronym{JSON} objects with a type
+value so that any downstream parser can (though it need not) guarantee
+exact reproduction of the original dataset:
+@example
+@verbatim
+% ncks --jsn_att_fmt=2 -v att_var ~/nco/data/in.nc
+...
+"att_var": {
+  "dims": ["time"],
+  "type": "float",
+  "attributes": {
+    "byte_att": { "type": "byte", "data": [0, 1, 2, 127, -128, -127, -2, -1]},
+    "char_att": { "type": "char", "data": "Sentence one.\nSentence two.\n"},
+    "short_att": { "type": "short", "data": 37},
+    "int_att": { "type": "int", "data": 73},
+    "long_att": { "type": "int", "data": 73},
+    "float_att": { "type": "float", "data": [73.0, 72.0, 71.0, 70.010, 69.0010, 68.010, 67.010]},
+    "double_att": { "type": "double", "data": [73.0, 72.0, 71.0, 70.010, 69.0010, 68.010, 67.0100010]}
+  },
+  "data": [10.0, 10.10, 10.20, 10.30, 10.40101, 10.50, 10.60, 10.70, 10.80, 10.990]
+...
+@end verbatim
+@end example
+@end itemize
+
+@cindex @command{jsonlint}
+That @acronym{ncks} produces correct translations of for all supported
+datatypes may be verified by @acronym{JSON} syntax checker command
+like @command{jsonlint}. 
+Please let us know how to improve @acronym{JSON} features for your
+application.  
 
 @html
 <a name="Metadata"></a> <!-- http://nco.sf.net/nco.html#Metadata -->
@@ -18413,7 +19076,7 @@ Using @samp{-V} is the same as specifying @samp{-Q --no_nm_prn}.
 
 @html
 <a name="xml"></a> <!-- http://nco.sf.net/nco.html#xml -->
-<a name="ncmnl"></a> <!-- http://nco.sf.net/nco.html#ncml -->
+<a name="ncml"></a> <!-- http://nco.sf.net/nco.html#ncml -->
 @end html
 @cindex @code{--xml}
 @cindex @code{--ncml}
@@ -18422,10 +19085,10 @@ Using @samp{-V} is the same as specifying @samp{-Q --no_nm_prn}.
 @cindex @acronym{NcML}
 @item --xml, --ncml
 As of @acronym{NCO} version 4.3.3 (July, 2013), @command{ncks} can
-print extracted metadata to screen (i.e., @code{stdout}) as
+print extracted data and metadata to screen (i.e., @code{stdout}) as 
 @acronym{XML} in @acronym{NcML}, the netCDF Markup Language.  
-@command{ncks} supports for @acronym{XML} more completely than 
-of @samp{ncdump -x}.
+@command{ncks} supports @acronym{XML} more completely than 
+@samp{ncdump -x}.
 With @command{ncks} one can translate entire netCDF3 and netCDF4 files
 into @acronym{NcML}, including metadata and data, using all 
 @acronym{NCO}'s subsetting and hyperslabbing capabilities.
@@ -19794,7 +20457,7 @@ The last example
 @html
 <a name="ncrcat"></a> <!-- http://nco.sf.net/nco.html#ncrcat -->
 @end html
-@node ncrcat netCDF Record Concatenator, ncclimo netCDF Climatology Generator, ncra netCDF Record Averager, Reference Manual
+@node ncrcat netCDF Record Concatenator, ncremap netCDF Remapper, ncra netCDF Record Averager, Reference Manual
 @section @command{ncrcat} netCDF Record Concatenator
 @cindex concatenation
 @cindex record concatenation
@@ -19929,7 +20592,7 @@ ncrcat -d time,6.,54. ??.nc 8506_8906.nc
 @html
 <a name="ncremap"></a> <!-- http://nco.sf.net/nco.html#ncremap -->
 @end html
-@node ncremap netCDF Remapper, ncrename netCDF Renamer, ncclimo netCDF Climatology Generator, Reference Manual
+@node ncremap netCDF Remapper, ncrename netCDF Renamer, ncrcat netCDF Record Concatenator, Reference Manual
 @section @command{ncremap} netCDF Remapper
 @cindex remap
 @cindex regrid
@@ -21756,6 +22419,7 @@ The primary contributors to @acronym{NCO} development have been:
 All concept, design and implementation from 1995--2000.
 Since then autotools, bug-squashing, @acronym{CDL}, chunking,
 documentation, anchoring, recursion, @acronym{GPE}, packing,
+regridding, @acronym{CDL}/@acronym{XML} backends, compression,
 @acronym{NCO} library redesign, @command{ncap2} features,
 @command{ncbo}, @command{ncpdq}, @acronym{SMP} threading and @acronym{MPI} parallelization,
 netCDF4 integration, external funding, project management, science
@@ -21769,6 +22433,7 @@ Migration to netCDF3 @acronym{API}.
 @command{ncap2} parser, lexer, @acronym{GSL}-support, @w{and I/O}.
 Multislabbing algorithm.
 Variable wildcarding.
+@acronym{JSON} backend.
 Numerous hacks.
 @command{ncap2} language.
 @cindex Rorik Peterson
@@ -21780,7 +22445,7 @@ Debianization.
 Numerous bug-fixes.
 @cindex Joe Hamman
 @item Joe Hamman
-Python bindings (NCOpy).
+Python bindings (PyNCO).
 @cindex Daniel Wang
 @item Daniel Wang
 Script Workflow Analysis for MultiProcessing (@acronym{SWAMP}).
@@ -21793,6 +22458,9 @@ OPeNDAP configuration.
 @item Pedro Vicente
 Windows Visual Studio support.
 netCDF4 groups.
+@cindex Jerome Mao
+@item Jerome Mao
+Multi-argument parsing.
 @cindex Russ Rew
 @item Russ Rew
 Advice on @acronym{NCO} structural algorithms
@@ -21908,7 +22576,12 @@ Data with netCDF Operators (NCO), Environ. Modell. Softw., 23(10),
 
 Zender, C. S. and H. J. Mangalam (2007), Scaling Properties of Common
 Statistical Operators for Gridded Datasets, Int. J. High
-Perform. Comput. Appl., 21(4), 485--498, doi:10.1177/1094342007083802.
+Perform. Comput. Appl., 21(4), 485-498, doi:10.1177/1094342007083802.
+
+Zender, C. S. (2016), Bit Grooming: Statistically accurate
+precision-preserving quantization with compression, evaluated in the
+netCDF Operators (NCO, v4.4.8+), Geosci. Model Dev., 9, 3199-3211,
+doi:10.5194/gmd-9-3199-2016.
 
 Zender, C. S. (Year), netCDF Operator (NCO) User Guide, 
 http://nco.sf.net/nco.pdf. 
@@ -21916,8 +22589,9 @@ http://nco.sf.net/nco.pdf.
 @end example
 Use the first when referring to overall design, purpose, and 
 optimization of @acronym{NCO}, the second for the speed and throughput
-of @acronym{NCO}, and the third for specific features and/or the User
-Guide itself, or in a non-academic setting.
+of @acronym{NCO}, the third for compressions, and the fourth for
+specific features and/or the User Guide itself, or in a non-academic
+setting. 
 A complete list of @acronym{NCO} publications and presentations is at
 @url{http://nco.sf.net#pub}.
 This list links to the full papers and seminars themselves.

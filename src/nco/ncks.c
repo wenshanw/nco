@@ -177,6 +177,7 @@ main(int argc,char **argv)
 
   int *in_id_arr; /* [id] netCDF file IDs used by OpenMP code */
 
+  int JSN_ATT_FMT=0; /* [enm] JSON format for netCDF attributes: 0 (no object, only data), 1 (data only for string, char, int, and floating-point types, otherwise object), 2 (always object) */
   int abb_arg_nbr=0;
   int att_glb_nbr;
   int att_grp_nbr;
@@ -216,7 +217,7 @@ main(int argc,char **argv)
   kvm_sct *sld_nfo=NULL; /* [sct] Container for SLD/SCRIP information */
 
   md5_sct *md5=NULL; /* [sct] MD5 configuration */
-
+ 
   nco_bool ALPHABETIZE_OUTPUT=True; /* Option a */
   nco_bool CPY_GRP_METADATA; /* [flg] Copy group metadata (attributes) */
   nco_bool EXCLUDE_INPUT_LIST=False; /* Option x */
@@ -371,8 +372,11 @@ main(int argc,char **argv)
     {"glb_att_add",required_argument,0,0}, /* [sng] Global attribute add */
     {"hdr_pad",required_argument,0,0},
     {"header_pad",required_argument,0,0},
+    {"jsn_att_fmt",required_argument,0,0}, /* [enm] JSON attribute format */
     {"mk_rec_dmn",required_argument,0,0}, /* [sng] Name of record dimension in output */
     {"mk_rec_dim",required_argument,0,0}, /* [sng] Name of record dimension in output */
+    {"mta_dlm",required_argument,0,0}, /* [sng] Multi-argument delimiter */
+    {"dlm_mta",required_argument,0,0}, /* [sng] Multi-argument delimiter */
     {"ppc",required_argument,0,0}, /* [nbr] Precision-preserving compression, i.e., number of total or decimal significant digits */
     {"precision_preserving_compression",required_argument,0,0}, /* [nbr] Precision-preserving compression, i.e., number of total or decimal significant digits */
     {"quantize",required_argument,0,0}, /* [nbr] Precision-preserving compression, i.e., number of total or decimal significant digits */
@@ -615,6 +619,7 @@ main(int argc,char **argv)
         if(nco_dbg_lvl >= nco_dbg_std) (void)fprintf(stderr,"%s: INFO Will write MD5 digests as attributes\n",nco_prg_nm_get());
       } /* endif "md5_wrt_att" */
       if(!strcmp(opt_crr,"msa_usr_rdr") || !strcmp(opt_crr,"msa_user_order")) MSA_USR_RDR=True; /* [flg] Multi-Slab Algorithm returns hyperslabs in user-specified order */
+      if(!strcmp(opt_crr,"mta_dlm") || !strcmp(opt_crr,"dlm_mta")) nco_mta_dlm_set(optarg);
       if(!strcmp(opt_crr,"no_blank") || !strcmp(opt_crr,"no-blank") || !strcmp(opt_crr,"noblank")) PRN_MSS_VAL_BLANK=!PRN_MSS_VAL_BLANK;
       if(!strcmp(opt_crr,"no_clb") || !strcmp(opt_crr,"no-clobber") || !strcmp(opt_crr,"no_clobber") || !strcmp(opt_crr,"noclobber")) FORCE_NOCLOBBER=!FORCE_NOCLOBBER;
       if(!strcmp(opt_crr,"no_nm_prn") || !strcmp(opt_crr,"no_dmn_var_nm")) PRN_DMN_VAR_NM=False; /* endif "no_nm_prn" */
@@ -691,6 +696,11 @@ main(int argc,char **argv)
         (void)nco_vrs_prn(CVS_Id,CVS_Revision);
         nco_exit(EXIT_SUCCESS);
       } /* endif "vrs" */
+      if(!strcmp(opt_crr,"jsn_att_fmt")){
+	PRN_JSN=True; /* [flg] Print JSON */
+	JSN_ATT_FMT=(int)strtoul(optarg,&sng_cnv_rcd,NCO_SNG_CNV_BASE10);
+	if(*sng_cnv_rcd) nco_sng_cnv_err(optarg,"strtoul",sng_cnv_rcd);
+      } /* !jsn_att_fmt */
       if(!strcmp(opt_crr,"wrt_tmp_fl") || !strcmp(opt_crr,"write_tmp_fl")) WRT_TMP_FL=True;
       if(!strcmp(opt_crr,"no_tmp_fl")) WRT_TMP_FL=False;
       if(!strcmp(opt_crr,"jsn") || !strcmp(opt_crr,"json") || !strcmp(opt_crr,"w10") || !strcmp(opt_crr,"w10n")) PRN_JSN=True; /* [flg] Print JSON */
@@ -1151,12 +1161,12 @@ main(int argc,char **argv)
     prn_flg.xml_lcn=PRN_XML_LOCATION;
     prn_flg.gpe=gpe;
     prn_flg.md5=md5;
-    prn_flg.nbr_zro=0;
     prn_flg.ndn=0; /* Initialize for prn_flg->trd */
     prn_flg.spc_per_lvl=2;
     prn_flg.sxn_fst=2;
     prn_flg.var_fst=2;
     prn_flg.tab=4;
+    prn_flg.nbr_zro=0;  
     if(nco_dbg_lvl >= nco_dbg_scl) prn_flg.fll_pth=True; else prn_flg.fll_pth=False;
     if(prn_flg.xml) prn_flg.nwl_pst_val=False; else prn_flg.nwl_pst_val=True;
     prn_flg.dlm_sng=dlm_sng;
@@ -1170,20 +1180,22 @@ main(int argc,char **argv)
     prn_flg.PRN_MSS_VAL_BLANK=PRN_MSS_VAL_BLANK;
     prn_flg.PRN_VAR_DATA=PRN_VAR_DATA;
     prn_flg.PRN_VAR_METADATA=PRN_VAR_METADATA;
+
     /* Derived formats */
     if(prn_flg.cdl){
       prn_flg.PRN_DMN_UNITS=False;
       prn_flg.PRN_DMN_VAR_NM=True;
       prn_flg.PRN_MSS_VAL_BLANK=True;
     } /* endif */
+
     if(prn_flg.jsn){
-      /* JSON either prints metadata or data, not both */
-      if(prn_flg.PRN_VAR_DATA){
-	prn_flg.PRN_VAR_METADATA=False;
-	prn_flg.PRN_GLB_METADATA=False;
-      } /* !PRN_VAR_DATA */
-      if(prn_flg.PRN_GLB_METADATA) prn_flg.PRN_VAR_METADATA=False;
+      /* In JSON, notation 0. or 20. is invalid---correct is 0.0, 20.0 */
+      prn_flg.nbr_zro=1;
+      /* JSON numerical arrays have no notion of missing values */
+      prn_flg.PRN_MSS_VAL_BLANK=False;
+      prn_flg.jsn_att_fmt=JSN_ATT_FMT;  
     } /* endif JSON */
+
     if(prn_flg.xml) prn_flg.PRN_MSS_VAL_BLANK=False;
 
     /* File summary */
@@ -1192,7 +1204,7 @@ main(int argc,char **argv)
       smr_xtn_sng=(char *)nco_malloc(300L*sizeof(char)); /* [sng] File extended summary string */
       if(nco_dbg_lvl > nco_dbg_std) (void)sprintf(smr_xtn_sng," (representation of extended/underlying filetype %s)",nco_fmt_xtn_sng(nco_fmt_xtn_get())); else smr_xtn_sng[0]='\0';
       (void)sprintf(smr_sng,"Summary of %s: filetype = %s%s, %i groups (max. depth = %i), %i dimensions (%i fixed, %i record), %i variables (%i atomic-type, %i non-atomic), %i attributes (%i global, %i group, %i variable)",fl_in,nco_fmt_sng(fl_in_fmt),smr_xtn_sng,grp_nbr_fl,grp_dpt_fl,trv_tbl->nbr_dmn,trv_tbl->nbr_dmn-dmn_rec_fl,dmn_rec_fl,var_nbr_fl+var_ntm_fl,var_nbr_fl,var_ntm_fl,att_glb_nbr+att_grp_nbr+att_var_nbr,att_glb_nbr,att_grp_nbr,att_var_nbr);
-      if(!prn_flg.cdl && !prn_flg.xml && !prn_flg.srm) (void)fprintf(stdout,"%s\n\n",smr_sng);
+      // if(!prn_flg.cdl && !prn_flg.xml && !prn_flg.srm) (void)fprintf(stdout,"%s\n\n",smr_sng);
     } /* endif summary */
 
     if(!prn_flg.new_fmt){
@@ -1229,8 +1241,14 @@ main(int argc,char **argv)
       } /* !PRN_SRM */
 
       if(ALPHA_BY_FULL_GROUP || ALPHA_BY_STUB_GROUP){
-	/* Ineptly named nco_grp_prn() emits full CDL and XML formats, and partial JSN */
-        rcd+=nco_grp_prn(in_id,trv_pth,&prn_flg,trv_tbl);
+	/* Ineptly named nco_grp_prn() emits full CDL and XML formats, and partial JSN 
+	   rcd+=nco_grp_prn(in_id,trv_pth,&prn_flg,trv_tbl); */
+
+        if(prn_flg.jsn) rcd+=nco_grp_prn_jsn(in_id,trv_pth,&prn_flg,trv_tbl);
+        else if(prn_flg.xml) rcd+=nco_grp_prn_xml(in_id,trv_pth,&prn_flg,trv_tbl);
+        else rcd+=nco_grp_prn(in_id,trv_pth,&prn_flg,trv_tbl);
+        /* else if(prn_flg.cdl || prn_flg.trd) rcd+=nco_grp_prn_cdl_trd(in_id,trv_pth,&prn_flg,trv_tbl); */   
+ 
       }else{
 	/* Place-holder for other options for organization/alphabetization */
 	if(PRN_VAR_METADATA) (void)nco_prn_xtr_mtd(in_id,&prn_flg,trv_tbl);

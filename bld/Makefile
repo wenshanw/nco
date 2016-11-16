@@ -15,17 +15,19 @@
 # Machine build parameters
 #                         Source     Method   Packages Compiler
 # aerosol.ess.uci.edu: NCO          Configure All else LLVM
-# firn.ess.uci.edu   : NCO          Configure All else LLVM
-# givre.ess.uci.edu  : NCO + netCDF Makefile  All else LLVM
-# roulee.ess.uci.edu : NCO + netCDF Makefile  All else GCC
-# neige.ess.uci.edu  : NCO          Makefile  All else GCC
-# glace.ess.uci.edu  : NCO          Configure All else GCC
-# grele.ess.uci.edu  : NCO          Makefile  All else GCC
-# yellowstone.ucar.e : NCO          Makefile  All else Intel
-# rhea.ccs.ornl.gov  : NCO          Makefile  All else GCC
 # cooley.alcf.anl.g  : NCO          Configure All else GCC
 # edison.nersc.gov   : NCO          Configure All else Intel
+# firn.ess.uci.edu   : NCO          Configure All else LLVM
+# frazil.ess.uci.edu : NCO + netCDF Configure All else GCC
+# givre.ess.uci.edu  : NCO + netCDF Makefile  All else LLVM
+# glace.ess.uci.edu  : NCO          Configure All else GCC
+# grele.ess.uci.edu  : NCO          Makefile  All else GCC
+# neige.ess.uci.edu  : NCO          Makefile  All else GCC
+# rhea.ccs.ornl.gov  : NCO          Makefile  All else GCC
+# roulee.ess.uci.edu : NCO + netCDF Makefile  All else GCC
+# skyglow.ess.uci.edu: NCO          Configure All else GCC
 # travis CI          : NCO          Configure All else gcc,clang,g++
+# yellowstone.ucar.e : NCO          Makefile  All else Intel
 
 # Usage (testing):
 # make tst                           # Vanilla regression test
@@ -918,6 +920,9 @@ endif
 
 # Works on LINUX, LINUXALPHA, LINUXAMD64, LINUXARM, and FREEBSD and MACOSX
 ifneq (${null},$(findstring ${PVM_ARCH},LINUXALPHALINUXAMD64LINUXARMFREEBSDMACOSX))
+# 20161001 Linux ar with Ubuntu Xenial began using deterministic mode. -U undoes that.
+# 20161001 GNU ar -s is equivalent to ranlib
+ARFLAGS := rsUv
 CXX := ${LINUX_CXX}
 CC := ${LINUX_CC}
 CPP := ${CC}
@@ -1933,6 +1938,7 @@ ${libnco}.a: ${libnco}.a(${MY_OBJ_DIR}/nco_att_utl.o) \
 	${libnco}.a(${MY_OBJ_DIR}/nco_mmr.o) \
 	${libnco}.a(${MY_OBJ_DIR}/nco_msa.o) \
 	${libnco}.a(${MY_OBJ_DIR}/nco_mss_val.o) \
+	${libnco}.a(${MY_OBJ_DIR}/nco_mta.o) \
 	${libnco}.a(${MY_OBJ_DIR}/nco_netcdf.o) \
 	${libnco}.a(${MY_OBJ_DIR}/nco_omp.o) \
 	${libnco}.a(${MY_OBJ_DIR}/nco_pck.o) \
@@ -1952,6 +1958,7 @@ ${libnco}.a: ${libnco}.a(${MY_OBJ_DIR}/nco_att_utl.o) \
 	${libnco}.a(${MY_OBJ_DIR}/nco_var_rth.o) \
 	${libnco}.a(${MY_OBJ_DIR}/nco_var_scv.o) \
 	${libnco}.a(${MY_OBJ_DIR}/nco_var_utl.o)
+	$(AR) rsv $@ $^
 libclean: lib_cln
 lib_cln:
 	rm -f ${libnco}.* ${libnco}*.* ${libnco}++.a ${libnco}_c++.a

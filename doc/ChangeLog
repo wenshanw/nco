@@ -1,3 +1,181 @@
+2016-11-16  Charlie Zender  <zender@uci.edu>
+
+	* Merge spelling fixes from Sebastian Couwenberg
+
+	* NCO 4.6.2 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.2 final changes';git push
+	git tag -a 4.6.2 -m 'Version 4.6.2 new features: JSON, multi-arguments, module compatibility';git push --tags
+
+	* NB: 4.6.2-beta04 was never tagged or released. Instead it became 4.6.2-final.
+
+	* NCO 4.6.2-beta04 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.2-beta04 final changes';git push
+	git tag -a 4.6.2-beta04 -m 'Version 4.6.2-beta04 new features: multi-argument documentation, ncap2 value_list simplification, JSON indentation';git push --tags
+
+	* Henry fixed regular brace staircases in JSON
+
+2016-11-15  Charlie Zender  <zender@uci.edu>
+
+	* Tweak JSON indentation
+
+2016-11-14  Charlie Zender  <zender@uci.edu>
+
+	* Update hidden attribute documentation
+
+2016-11-14  Henry Butowsky  <henryb@hush.com>
+
+	* Modify ncap2 value_list() so all values same type as first element
+	  Previously the final type equalled "highest" type in list
+
+2016-11-13  Charlie Zender  <zender@uci.edu>
+
+	* Document multi-arguments
+
+2016-11-12  Charlie Zender  <zender@uci.edu>
+
+	* Tidy JSON documentation
+
+	* --jsn_att_fmt automatically triggers --json
+
+	* NCO 4.6.2-beta03 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.2-beta03 final changes';git push
+	git tag -a 4.6.2-beta03 -m 'Version 4.6.2-beta03 new features: uint, int64, uint64 suffixes';git push --tags
+
+	* Henry added NCO_PATH environment variable for ncap2 #include searches
+
+2016-11-10  Charlie Zender  <zender@uci.edu>
+
+	* Update CDL attribute tags for uint, int64, uint64 to "ul", "ll", "ull", respectively
+	This may break builds on netCDF <= 4.3.0 because ncgen chokes on "ll" syntax
+	This is why att_var is in in_4.cdl and not in in_grp.cdl
+
+2016-11-09  Charlie Zender  <zender@uci.edu>
+
+	* Document JSON options in nco.texi
+
+2016-11-08  Charlie Zender  <zender@uci.edu>
+
+	* Expose JSON options in documentation
+
+	* Fix help options for fl_fmt to include 64bit_data/CDF5
+
+	* Henry added capability for increasing default level of attribute verbosity, now named jsn_att_fmt
+
+2016-11-07  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.2-beta02 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.2-beta02 final changes';git push
+	git tag -a 4.6.2-beta02 -m 'Version 4.6.2-beta02 new features: MSVC/C++ compliance, JSON "attributes" and "variables" blocks';git push --tags
+
+	* Henry added "attributes" and "variables" blocks to JSON backend
+
+2016-11-06  Charlie Zender  <zender@uci.edu>
+
+	* Make nco_mta.[ch] C++-compliant
+
+	* Re-prototype nco_join_sng() to avert compiler warnings
+
+	* Add strsep() replacement code for MSVC
+
+2016-11-04  Charlie Zender  <zender@uci.edu>
+
+	* Implement/use jsn_typ_nm() to define JSON types
+
+	* Draft fix so ncatted understands NaN on MinGW
+
+2016-11-03  Charlie Zender  <zender@uci.edu>
+
+	* Fix C++ (and thus Windows) build
+
+	* NCO 4.6.2-beta01 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.2-beta01 final changes';git push
+	git tag -a 4.6.2-beta01 -m 'Version 4.6.2-beta01 new features: mta backslashes, concise warnings, JSON';git push --tags
+
+	* Tidy JSON output whitespace
+
+2016-11-03  Henry Butowsky  <henryb@hush.com>
+
+	* First cut of JSON output from ncks
+
+2016-10-25  Charlie Zender  <zender@uci.edu>
+
+	* Limit number of non-CCW errors
+
+	* Clarify missing value error message for multi-arguments
+
+2016-10-22  Charlie Zender  <zender@uci.edu>
+
+	* Clarify how to create new record dimensions in ncra/ncrcat messages
+
+2016-10-13  Charlie Zender  <zender@uci.edu>
+
+	* ncremap now loads ncl module on edison to find ESMF_RegridWeightGen
+
+2016-10-12  Charlie Zender  <zender@uci.edu>
+
+	* Add HINT to multi-arg error handling, NCO'ize routines
+
+2016-10-11  Charlie Zender  <zender@uci.edu>
+
+	* Suppress all but first WARNING from nco_is_spc_in_cf_att()
+
+2016-10-10  Charlie Zender  <zender@uci.edu>
+
+	* Jerome added support for double-backslash quoting in multi-arguments
+
+2016-10-07  Charlie Zender  <zender@uci.edu>
+
+	* Jerome changed multi-args to use strstr() instead of strtok() or strsep()
+
+2016-10-02  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.2-alpha02 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.2-alpha02 final changes';git push
+	git tag -a 4.6.2-alpha02 -m 'Version 4.6.2-alpha02 new features: multi-arguments (nco_mta.[ch]), ARFLAGS, LLVM 8.0.0, GCC 6.2.1';git push --tags
+
+	* nco_rgr_ini() now only calls nco_arg_mlt_prs() when rgr_arg_nbr > 0
+
+2016-10-01  Charlie Zender  <zender@uci.edu>
+
+	* Alter nco_mta_get() to initialize delimiter if NULL
+
+	* Makefile sets ARFLAGS to rsUv (U is new) to create non-deterministic library archives
+	Prevents GCC toolchain i18n warnings on Ubuntu 16.04 (xenial) and later
+
+2016-09-30  Charlie Zender  <zender@uci.edu>
+
+	* Fix compiler warnings emitted by clang LLVM 8.0.0
+
+	* Update configure.ac MAKEINFO_VERSION to grep for texinfo so MacOS 'texi2any' works
+
+	* #include netcdf_mem.h for nc_open_mem() prototype
+
+	* Fix compiler warnings emitted by GCC 6.2.1
+
+2016-09-26  Charlie Zender  <zender@uci.edu>
+
+	* Fix false-positives in multi-argument regression tests
+
+2016-09-26  Charlie Zender  <zender@uci.edu>
+
+	* Adopt Jerome's implementation of multi-arg for trr, rgr, gaa, ppc
+
+2016-09-23  Charlie Zender  <zender@uci.edu>
+
+	* Split multi-argument parsing and KVM routines into nco_mta.[ch]
+
+2016-09-23  Henry Butowsky  <henryb@hush.com>
+
+	* Add manual section on vpointers
+
+2016-09-21  Charlie Zender  <zender@uci.edu>
+
+	* Improve exact non-spherical area solution
+
+2016-09-21  Henry Butowsky  <henryb@hush.com>
+
+	* Modify prn_cls(), change snprint() to sprint4, document sprint() and sprint4()
+
 2016-09-18  Charlie Zender  <zender@uci.edu>
 
 	* Add exact solution (untested) for non-spherical area of latitude-triangles
@@ -73,7 +251,7 @@
 	cd ~/nco;git commit -a -m 'Version 4.6.1-beta01 final changes';git push
 	git tag -a 4.6.1-beta01 -m 'Version 4.6.1-beta01 new features: ncremap crv, constance, nco_fl_mv(), cnk';git push --tags
 
-	* ncremap: give-up on confirming overwriting existing maps until it works in interactive shells only
+	* ncremap: gave-up confirming overwriting existing maps until it works in interactive shells only
 
 	* Use different output dimensions bounds names for mappings to curvilinear axes
 	Default is now to use temporal bounds name for spatial bounds for rectangular grids,
@@ -6467,10 +6645,10 @@
 2011-06-26  Charlie Zender  <zender@uci.edu>
 
 	* Remove UDUNITS section of configure.in because it was overly
-	complex to maintain with UDUNITS2 which supercedes it
+	complex to maintain with UDUNITS2 which supersedes it
 
 	* Remove DAP-OPENDAP section of configure.in because it was overly
-	complex to maintain with DAP-NETCDF which supercedes it
+	complex to maintain with DAP-NETCDF which supersedes it
 
 	* Re-introduce ENABLE_NETCDF4
 
