@@ -2,7 +2,7 @@
 
 /* Purpose: netCDF arithmetic processor class methods for GSL */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2017 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -120,7 +120,7 @@ void gsl_cls::gsl_ini_sf(void) {
 # if NCO_GSL_VERSION >= 108
       gpr_vtr.push_back(gpr_cls("gsl_sf_debye_5",f_unn(gsl_sf_debye_5_e),hnd_fnc_x,NC_DOUBLE));
       gpr_vtr.push_back(gpr_cls("gsl_sf_debye_6",f_unn(gsl_sf_debye_6_e),hnd_fnc_x,NC_DOUBLE));
-# endif // NCO_GSL_VERSION < 8
+# endif // NCO_GSL_VERSION < 108
     
     // Dilogarithm
     // not implemented as all involve complex numbers
@@ -272,14 +272,14 @@ void gsl_cls::gsl_ini_sf(void) {
     gpr_vtr.push_back(gpr_cls("gsl_sf_legendre_Ql",f_unn(gsl_sf_legendre_Ql_e),hnd_fnc_xd,NC_INT));
     gpr_vtr.push_back(gpr_cls("gsl_sf_legendre_Plm",f_unn(gsl_sf_legendre_Plm_e),hnd_fnc_iid));
 
-    #if NCO_GSL_VERSION < 200    
-    gpr_vtr.push_back(gpr_cls("gsl_sf_legendre_Plm_array",f_unn(gsl_sf_legendre_Plm_array),hnd_fnc_iidpd,PLEGEND));
-    #endif
     // gpr_vtr.push_back(gpr_cls("gsl_sf_legendre_Plm_deriv_array",f_unn(gsl_sf_legendre_Plm_deriv_array),));
     gpr_vtr.push_back(gpr_cls("gsl_sf_legendre_sphPlm",f_unn(gsl_sf_legendre_sphPlm_e),hnd_fnc_iid));
 
+    // 20161118: These two functions were deprecated after GSL version 1.x
+    // Unable them working on grele with bld/Makefile, temporarily disable
     #if NCO_GSL_VERSION < 200    
-    gpr_vtr.push_back(gpr_cls("gsl_sf_legendre_sphPlm_array",f_unn(gsl_sf_legendre_sphPlm_array),hnd_fnc_iidpd,PLEGEND));
+    //    gpr_vtr.push_back(gpr_cls("gsl_sf_legendre_Plm_array",f_unn(gsl_sf_legendre_Plm_array),hnd_fnc_iidpd,PLEGEND));
+    //    gpr_vtr.push_back(gpr_cls("gsl_sf_legendre_sphPlm_array",f_unn(gsl_sf_legendre_sphPlm_array),hnd_fnc_iidpd,PLEGEND));
     #endif
 
     // gpr_vtr.push_back(gpr_cls("gsl_sf_legendre_sphPlm_deriv_array",f_unn(gsl_sf_legendre_sphPlm_deriv_array),));
@@ -407,14 +407,14 @@ void gsl_cls::gsl_ini_cdf(void){
 # if NCO_GSL_VERSION >= 108 
     gpr_vtr.push_back(gpr_cls("gsl_cdf_fdist_Pinv",f_unn(gsl_cdf_fdist_Pinv),hnd_fnc_nd,P3DBLX));
     gpr_vtr.push_back(gpr_cls("gsl_cdf_fdist_Qinv",f_unn(gsl_cdf_fdist_Qinv),hnd_fnc_nd,P3DBLX));
-# endif // NCO_GSL_VERSION < 8
+# endif // NCO_GSL_VERSION < 108
 
     gpr_vtr.push_back(gpr_cls("gsl_cdf_beta_P",f_unn(gsl_cdf_beta_P),hnd_fnc_nd,P3DBLX));
     gpr_vtr.push_back(gpr_cls("gsl_cdf_beta_Q",f_unn(gsl_cdf_beta_Q),hnd_fnc_nd,P3DBLX));
-# if NCO_GSL_MINOR_VERSION >= 8 
+# if NCO_GSL_MAJOR_VERSION >= 2 || ( NCO_GSL_MAJOR_VERSION == 1 && NCO_GSL_MINOR_VERSION >= 8 )
     gpr_vtr.push_back(gpr_cls("gsl_cdf_beta_Pinv",f_unn(gsl_cdf_beta_Pinv),hnd_fnc_nd,P3DBLX));
     gpr_vtr.push_back(gpr_cls("gsl_cdf_beta_Qinv",f_unn(gsl_cdf_beta_Qinv),hnd_fnc_nd,P3DBLX));
-# endif // NCO_GSL_MINOR_VERSION < 8
+# endif // GSL VERSION > 1.8
 
     gpr_vtr.push_back(gpr_cls("gsl_cdf_flat_P",f_unn(gsl_cdf_flat_P),hnd_fnc_nd,P3DBLX));
     gpr_vtr.push_back(gpr_cls("gsl_cdf_flat_Q",f_unn(gsl_cdf_flat_Q),hnd_fnc_nd,P3DBLX));
@@ -525,7 +525,7 @@ void gsl_cls::gsl_ini_ran(void){
 
 # if NCO_GSL_VERSION >= 108 
   gpr_vtr.push_back(gpr_cls("gsl_ran_gaussian_ziggurat",f_unn(gsl_ran_gaussian_ziggurat),hnd_fnc_rnd,P1DBLX));
-# endif // NCO_GSL_MINOR_VERSION < 8
+# endif // NCO_GSL_VERSION < 108
 
   gpr_vtr.push_back(gpr_cls("gsl_ran_gaussian_pdf",f_unn(gsl_ran_gaussian_pdf),hnd_fnc_nd,P2DBLX));
 
@@ -3659,7 +3659,7 @@ var_sct *gsl_cls::hnd_fnc_stat4(bool& is_mtd,std::vector<RefAST>&args_vtr,gpr_cl
 #endif /* !ENABLE_NETCDF4 */
      default: nco_dfl_case_nc_type_err(); break;    
      }  break;  
-# endif // NCO_GSL_MINOR_VERSION < 10
+# endif // NCO_GSL_VERSION < 110
     
    case PS_PVAR:
      switch(var_arr[0]->type){
@@ -4232,8 +4232,12 @@ var_sct *gsl_cls::hnd_fnc_stat4(bool& is_mtd,std::vector<RefAST>&args_vtr,gpr_cl
       case PEVAL:
         return eval_fnd(is_mtd,vtr_args,fmc_obj,walker);  
         break;
+	// 20161205: Always return value to non-void functions: good practice and required by rpmlint
+    default:
+      return NULL;
+      break;
     }// end switch  
-
+    
   }
 
 // nb this method is only call with fdx==PEVAL
@@ -4499,18 +4503,10 @@ var_sct *gsl_spl_cls::spl_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_c
       Nvar->var->val.cp=(char*)spline;  
       (void)cast_nctype_void(NC_CHAR,&Nvar->var->val); 
 
-
-
-
-
       // return true
       return ncap_sclr_var_mk("~gsl_spl_cls",(nco_int)1); 
 
-
 } // end gsl_spl_cls::spl_fnd 
-
-
-
 
 //GSL  /****************************************/
 // gsl Least Squares Fitting
@@ -4558,9 +4554,11 @@ var_sct *gsl_spl_cls::spl_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_c
       case PMUL_EST:
         return fit_est_fnd(is_mtd,vtr_args,fmc_obj,walker);  
         break;
+	// 20161205: Always return value to non-void functions: good practice and required by rpmlint
+    default:
+      return NULL;
+      break;
     }
-
-
 
 } // end gsl_fit_cls::fnd 
 

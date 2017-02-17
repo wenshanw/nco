@@ -5,7 +5,7 @@
 /* Purpose: Compute averages of specified hyperslabs of specfied variables
    in a single input netCDF file and output them to a single file. */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2017 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3.
@@ -195,6 +195,8 @@ main(int argc,char **argv)
   nco_bool EXCLUDE_INPUT_LIST=False; /* Option c */
   nco_bool EXTRACT_ALL_COORDINATES=False; /* Option c */
   nco_bool EXTRACT_ASSOCIATED_COORDINATES=True; /* Option C */
+  nco_bool EXTRACT_CLL_MSR=True; /* [flg] Extract cell_measures variables */
+  nco_bool EXTRACT_FRM_TRM=True; /* [flg] Extract formula_terms variables */
   nco_bool FL_RTR_RMT_LCN;
   nco_bool FL_LST_IN_FROM_STDIN=False; /* [flg] fl_lst_in comes from stdin */
   nco_bool FORCE_APPEND=False; /* Option A */
@@ -220,6 +222,7 @@ main(int argc,char **argv)
   nco_bool flg_rdd=False; /* [flg] Retain degenerate dimensions */
   
   size_t bfr_sz_hnt=NC_SIZEHINT_DEFAULT; /* [B] Buffer size hint */
+  size_t cnk_csh_byt=NCO_CNK_CSH_BYT_DFL; /* [B] Chunk cache size */
   size_t cnk_min_byt=NCO_CNK_SZ_MIN_BYT_DFL; /* [B] Minimize size of variable to chunk */
   size_t cnk_sz_byt=0UL; /* [B] Chunk size in bytes */
   size_t cnk_sz_scl=0UL; /* [nbr] Chunk size scalar */
@@ -252,9 +255,18 @@ main(int argc,char **argv)
   
   static struct option opt_lng[]={ /* Structure ordered by short option key if possible */
     /* Long options with no argument, no short option counterpart */
+    {"cll_msr",no_argument,0,0}, /* [flg] Extract cell_measures variables */
+    {"cell_measures",no_argument,0,0}, /* [flg] Extract cell_measures variables */
+    {"no_cll_msr",no_argument,0,0}, /* [flg] Do not extract cell_measures variables */
+    {"no_cell_measures",no_argument,0,0}, /* [flg] Do not extract cell_measures variables */
+    {"frm_trm",no_argument,0,0}, /* [flg] Extract formula_terms variables */
+    {"formula_terms",no_argument,0,0}, /* [flg] Extract formula_terms variables */
+    {"no_frm_trm",no_argument,0,0}, /* [flg] Do not extract formula_terms variables */
+    {"no_formula_terms",no_argument,0,0}, /* [flg] Do not extract formula_terms variables */
     {"cll_mth",no_argument,0,0}, /* [flg] Add/modify cell_methods attributes */
     {"cell_methods",no_argument,0,0}, /* [flg] Add/modify cell_methods attributes */
     {"no_cll_mth",no_argument,0,0}, /* [flg] Do not add/modify cell_methods attributes */
+    {"no_cell_methods",no_argument,0,0}, /* [flg] Do not add/modify cell_methods attributes */
     {"cln",no_argument,0,0}, /* [flg] Clean memory prior to exit */
     {"clean",no_argument,0,0}, /* [flg] Clean memory prior to exit */
     {"mmr_cln",no_argument,0,0}, /* [flg] Clean memory prior to exit */
@@ -433,6 +445,10 @@ main(int argc,char **argv)
         cnk_plc_sng=(char *)strdup(optarg);
         cnk_plc=nco_cnk_plc_get(cnk_plc_sng);
       } /* endif cnk */
+      if(!strcmp(opt_crr,"cll_msr") || !strcmp(opt_crr,"cell_measures")) EXTRACT_CLL_MSR=True; /* [flg] Extract cell_measures variables */
+      if(!strcmp(opt_crr,"no_cll_msr") || !strcmp(opt_crr,"no_cell_measures")) EXTRACT_CLL_MSR=False; /* [flg] Do not extract cell_measures variables */
+      if(!strcmp(opt_crr,"frm_trm") || !strcmp(opt_crr,"formula_terms")) EXTRACT_FRM_TRM=True; /* [flg] Extract formula_terms variables */
+      if(!strcmp(opt_crr,"no_frm_trm") || !strcmp(opt_crr,"no_formula_terms")) EXTRACT_FRM_TRM=False; /* [flg] Do not extract formula_terms variables */
       if(!strcmp(opt_crr,"cll_mth") || !strcmp(opt_crr,"cell_methods")) flg_cll_mth=True; /* [flg] Add/modify cell_methods attributes */
       if(!strcmp(opt_crr,"no_cll_mth") || !strcmp(opt_crr,"no_cell_methods")) flg_cll_mth=False; /* [flg] Add/modify cell_methods attributes */
       if(!strcmp(opt_crr,"cln") || !strcmp(opt_crr,"mmr_cln") || !strcmp(opt_crr,"clean")) flg_cln=True; /* [flg] Clean memory prior to exit */
@@ -682,7 +698,7 @@ main(int argc,char **argv)
   (void)nco_inq_format(in_id,&fl_in_fmt);
 
   /* Construct GTT, Group Traversal Table (groups,variables,dimensions, limits) */
-  (void)nco_bld_trv_tbl(in_id,trv_pth,lmt_nbr,lmt_arg,aux_nbr,aux_arg,MSA_USR_RDR,FORTRAN_IDX_CNV,grp_lst_in,grp_lst_in_nbr,var_lst_in,xtr_nbr,EXTRACT_ALL_COORDINATES,GRP_VAR_UNN,False,EXCLUDE_INPUT_LIST,EXTRACT_ASSOCIATED_COORDINATES,nco_pck_plc_nil,&flg_dne,trv_tbl);
+  (void)nco_bld_trv_tbl(in_id,trv_pth,lmt_nbr,lmt_arg,aux_nbr,aux_arg,MSA_USR_RDR,FORTRAN_IDX_CNV,grp_lst_in,grp_lst_in_nbr,var_lst_in,xtr_nbr,EXTRACT_ALL_COORDINATES,GRP_VAR_UNN,False,EXCLUDE_INPUT_LIST,EXTRACT_ASSOCIATED_COORDINATES,EXTRACT_CLL_MSR,EXTRACT_FRM_TRM,nco_pck_plc_nil,&flg_dne,trv_tbl);
 
   /* Get number of variables, dimensions, and global attributes in file, file format */
   (void)trv_tbl_inq((int *)NULL,(int *)NULL,(int *)NULL,&nbr_dmn_fl,(int *)NULL,(int *)NULL,(int *)NULL,(int *)NULL,&nbr_var_fl,trv_tbl);
@@ -759,7 +775,7 @@ main(int argc,char **argv)
   fl_out_tmp=nco_fl_out_open(fl_out,&FORCE_APPEND,FORCE_OVERWRITE,fl_out_fmt,&bfr_sz_hnt,RAM_CREATE,RAM_OPEN,WRT_TMP_FL,&out_id);
 
   /* Initialize chunking from user-specified inputs */
-  if(fl_out_fmt == NC_FORMAT_NETCDF4 || fl_out_fmt == NC_FORMAT_NETCDF4_CLASSIC) rcd+=nco_cnk_ini(in_id,fl_out,cnk_arg,cnk_nbr,cnk_map,cnk_plc,cnk_min_byt,cnk_sz_byt,cnk_sz_scl,&cnk);
+  if(fl_out_fmt == NC_FORMAT_NETCDF4 || fl_out_fmt == NC_FORMAT_NETCDF4_CLASSIC) rcd+=nco_cnk_ini(in_id,fl_out,cnk_arg,cnk_nbr,cnk_map,cnk_plc,cnk_csh_byt,cnk_min_byt,cnk_sz_byt,cnk_sz_scl,&cnk);
 
   /* Define dimensions, extracted groups, variables, and attributes in output file.  */
   (void)nco_xtr_dfn(in_id,out_id,&cnk,dfl_lvl,gpe,md5,!FORCE_APPEND,True,False,nco_pck_plc_nil,(char *)NULL,trv_tbl);
@@ -968,7 +984,7 @@ main(int argc,char **argv)
 	 nco_var_avg() will perform nco_op_typ on all variables except coordinate variables
 	 nco_var_avg() always averages coordinate variables */
       var_prc_out[idx]=nco_var_avg(var_prc_out[idx],dmn_avg,dmn_avg_nbr,nco_op_typ,flg_rdd,&ddra_info);
-      /* var_prc_out[idx]->val now holds numerator of averaging expression documented in NCO User's Guide
+      /* var_prc_out[idx]->val now holds numerator of averaging expression documented in NCO Users Guide
 	 Denominator is also tricky due to sundry normalization options
 	 These logical switches are tricky---modify them with care */
       if(NRM_BY_DNM && DO_CONFORM_WGT && (!var_prc[idx]->is_crd_var || WGT_MSK_CRD_VAR)){

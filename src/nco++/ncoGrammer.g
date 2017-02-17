@@ -3,7 +3,7 @@ header {
 
 /* Purpose: ANTLR Grammar and support files for ncap2 */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2017 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -24,9 +24,12 @@ header {
     #include <fstream>
     #include <string>
   
+    // custom exception -used for "exit" function
+    #include "ExitException.hpp" 
     // Custom Headers
     #include "prs_cls.hh"
     #include "ncap2_utl.hh"
+    #include "ncap2_att.hh"
     #include "fmc_cls.hh"
     #include "NcapVar.hh"
     #include "NcapVarVector.hh"
@@ -108,6 +111,8 @@ statement:
              if( #def2 ){  #def2->setType(DEFDIM);#def2->setText("0");}
  
         }
+        //exit statement 
+        | EXIT^ LPAREN! expr RPAREN! SEMI!
         // while loop
         | WHILE^ LPAREN! expr RPAREN! statement 
         // for statement
@@ -117,7 +122,7 @@ statement:
         | CONTINUE SEMI!        
         //deal with empty statement
         | SEMI! { #statement = #([ NULL_NODE, "null_stmt"]); } 
-
+         
         // if statement
         | IF^ LPAREN! expr RPAREN! statement 
          ( //standard if-else ambiguity
@@ -325,6 +330,7 @@ tokens {
    
     DEFDIMA="defdim";
     DEFDIMU="defdimunlim";
+    EXIT="exit";
  
     /*
 
@@ -1114,7 +1120,7 @@ if( nbr_dmn!=lmt_init(lmt,ast_lmt_vtr) )
     for(idx=0 ; idx < nbr_stmt; idx++){
       ntyp=ntr->getType();
       // we have hit an IF or a basic block
-      if(ntyp==BLOCK || ntyp==IF ||ntyp==DEFDIM || ntyp==WHILE ||ntyp==FOR || ntyp==FEXPR ||ntyp==WHERE) {
+      if(ntyp==BLOCK || ntyp==IF ||ntyp==DEFDIM || ntyp==WHILE ||ntyp==FOR || ntyp==FEXPR ||ntyp==WHERE || ntyp==EXIT) {
       //  if(ntyp != EXPR ){ 
         if(icnt>0) 
          (void)run_dbl(etr,icnt);
@@ -1368,6 +1374,23 @@ static std::vector<std::string> lpp_vtr;
         
     } // end  for action
 
+    // throw a custom ExitException 
+    | #(EXIT var=out ) { 
+      int sret;
+      ostringstream os;       
+      
+      // convert to INT   
+      nco_var_cnf_typ(NC_INT,var);  
+      cast_void_nctype(NC_INT,&var->val);
+      sret=var->val.ip[0];
+      cast_nctype_void(NC_INT,&var->val);
+      var=nco_var_free(var); 
+      
+      iret=EXIT; 
+      os<<sret;
+      throw  ANTLR_USE_NAMESPACE(antlr)ExitException(os.str());
+
+    }
     | ELSE { iret=ELSE;}
     | BREAK { iret=BREAK;}
     | CONTINUE {iret=CONTINUE;} 
@@ -3283,23 +3306,27 @@ var=NULL_CEWI;
 where_assign [var_sct *var_msk] returns [bool bret=false]
 {
 const std::string fnc_nm("where_assign");
+var_sct *var_lhs;
 var_sct *var_rhs;
 
 }
-  :#(EXPR #(ASSIGN vid:VAR_ID var_rhs=out)) {
+  //:#(EXPR #(ASSIGN vid:VAR_ID var_rhs=out)) {
+:#(EXPR #(ASSIGN var_lhs=out var_rhs=out)) {
     
    bool bfr=false;
    nco_bool DO_CONFORM;
-   std::string var_nm=vid->getText();
-   var_sct *var_lhs;
+   //std::string var_nm=vid->getText();
+   std::string var_nm;
    NcapVar *Nvar;
 
    bret=false;
 
-   var_lhs=prs_arg->ncap_var_init(var_nm,true);
+   //var_lhs=prs_arg->ncap_var_init(var_nm,true);
    if(var_lhs==NULL_CEWI) 
      nco_exit(EXIT_FAILURE);
             
+   var_nm=std::string(var_lhs->nm); 
+
    var_rhs=nco_var_cnf_typ(var_lhs->type,var_rhs);         
    if(var_rhs->sz >1L && var_rhs->sz != var_lhs->sz) {
      var_sct *var_tmp=NULL_CEWI;
@@ -3756,7 +3783,7 @@ var=NULL_CEWI;
            // copy lmt_sct to dmn_sct;
            for(idx=0 ;idx <nbr_dmn ; idx++){
               dmn_sct *dmn_nw;
-              dmn_nw=(dmn_sct*)nco_malloc(sizeof(dmn_sct));
+              dmn_nw=(dmn_sct*)nco_calloc(1,sizeof(dmn_sct));
               dmn_nw->nm=strdup(lmt_vtr[idx]->nm);
 
               // Fudge -if the variable is from input then nco_lmt_evl

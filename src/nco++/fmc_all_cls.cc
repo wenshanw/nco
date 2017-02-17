@@ -2,13 +2,12 @@
 
 /* Purpose: netCDF arithmetic processor class methods: families of functions/methods */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2017 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
 
 #include "fmc_all_cls.hh"
-
 //Conversion Functions /***********************************/
  
   cnv_cls::cnv_cls(bool flg_dbg){
@@ -1621,63 +1620,59 @@ var_sct * bsc_cls::getdims_fnd(bool &is_mtd, std::vector<RefAST> &vtr_args, fmc_
 
 }
 
-
-
 //Sort Functions /***********************************/
  
-  srt_cls::srt_cls(bool flg_dbg){
-    //Populate only on  constructor call
-    if(fmc_vtr.empty()){
-          fmc_vtr.push_back( fmc_cls("sort" , this,PASORT)); 
-          fmc_vtr.push_back( fmc_cls("asort" , this,PASORT)); 
-          fmc_vtr.push_back( fmc_cls("dsort" , this,PDSORT)); 
-          fmc_vtr.push_back( fmc_cls("remap" , this,PREMAP)); 
-          fmc_vtr.push_back( fmc_cls("unmap" , this,PUNMAP)); 
-          fmc_vtr.push_back( fmc_cls("invert_map" , this,PIMAP)); 
+srt_cls::srt_cls(bool flg_dbg){
+  //Populate only on  constructor call
+  if(fmc_vtr.empty()){
+    fmc_vtr.push_back( fmc_cls("sort" , this,PASORT)); 
+    fmc_vtr.push_back( fmc_cls("asort" , this,PASORT)); 
+    fmc_vtr.push_back( fmc_cls("dsort" , this,PDSORT)); 
+    fmc_vtr.push_back( fmc_cls("remap" , this,PREMAP)); 
+    fmc_vtr.push_back( fmc_cls("unmap" , this,PUNMAP)); 
+    fmc_vtr.push_back( fmc_cls("invert_map" , this,PIMAP)); 
+    
+    
+  }
+}
 
-			     		      
-    }
+
+var_sct *srt_cls::fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker){
+  const std::string fnc_nm("gsl_fit_cls::fnd");
+  bool is_mtd;
+  int fdx=fmc_obj.fdx();   //index
+  RefAST tr;    
+  std::vector<RefAST> vtr_args; 
+  
+  if(expr)
+    vtr_args.push_back(expr);
+  
+  if(tr=fargs->getFirstChild()) {
+    do  
+      vtr_args.push_back(tr);
+    while(tr=tr->getNextSibling());    
+  }
+  
+  is_mtd=(expr ? true: false);
+  
+  switch(fdx){
+  case PASORT:
+  case PDSORT: 
+    return srt_fnd(is_mtd,vtr_args,fmc_obj,walker);  
+    break;
+  case PREMAP:
+  case PUNMAP:
+    return mst_fnd(is_mtd,vtr_args,fmc_obj,walker);  
+  case PIMAP:
+    return imap_fnd(is_mtd,vtr_args,fmc_obj,walker);   
+    break;
+    // 20161205: Always return value to non-void functions: good practice and required by rpmlint
+  default:
+    return NULL;
+    break;
   }
 
-
-  var_sct *srt_cls::fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker){
-  const std::string fnc_nm("gsl_fit_cls::fnd");
-    bool is_mtd;
-    int fdx=fmc_obj.fdx();   //index
-    RefAST tr;    
-    std::vector<RefAST> vtr_args; 
-       
-
-    if(expr)
-      vtr_args.push_back(expr);
-
-    if(tr=fargs->getFirstChild()) {
-      do  
-	vtr_args.push_back(tr);
-      while(tr=tr->getNextSibling());    
-    }
-    
-
-    is_mtd=(expr ? true: false);
-
-    switch(fdx){
-      case PASORT:
-      case PDSORT: 
-        return srt_fnd(is_mtd,vtr_args,fmc_obj,walker);  
-        break;
-      case PREMAP:
-      case PUNMAP:
-        return mst_fnd(is_mtd,vtr_args,fmc_obj,walker);  
-      case PIMAP:
-        return imap_fnd(is_mtd,vtr_args,fmc_obj,walker);   
-        break;
-    }
-
-
-
 } // end gsl_fit_cls::fnd 
-
-
   
 var_sct * srt_cls::imap_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker){
   const std::string fnc_nm("srt_cls::imap_fnd");
@@ -2719,16 +2714,17 @@ var_sct * srt_cls::mst_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls 
 
 
 //Bilinear  Interpolation Functions /****************************************/
-  bil_cls::bil_cls(bool flg_dbg){
-    //Populate only on  constructor call
-    if(fmc_vtr.empty()){
-          fmc_vtr.push_back( fmc_cls("bilinear_interp",this,PBIL_ALL)); 
-          fmc_vtr.push_back( fmc_cls("bilinear_interp_wrap",this,PBIL_ALL_WRP)); 
+bil_cls::bil_cls(bool flg_dbg){
+  //Populate only on  constructor call
+  if(fmc_vtr.empty()){
+    fmc_vtr.push_back( fmc_cls("bilinear_interp",this,PBIL_ALL)); 
+    fmc_vtr.push_back( fmc_cls("bilinear_interp_wrap",this,PBIL_ALL_WRP)); 
+    
+  }		      
+} 
 
-    }		      
-  } 
-  var_sct * bil_cls::fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker){
-   const std::string fnc_nm("bil_cls::fnd");
+var_sct * bil_cls::fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker){
+  const std::string fnc_nm("bil_cls::fnd");
   bool bwrp;  //if tue then wrap X and Y coo-ordinates in grid
   bool b_rev_y;
   bool b_rev_x;
@@ -2738,94 +2734,82 @@ var_sct * srt_cls::mst_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls 
   int idx;
   int nbr_dim;
   var_sct *var_arr[6];
-
+  
   nc_type in_typ;           
-
+  
   std::string susg;
   std::string sfnm=fmc_obj.fnm();
   std::string serr;
-
+  
   RefAST tr;
   std::vector<RefAST> vtr_args; 
   // de-reference 
   prs_cls *prs_arg=walker.prs_arg;            
   vtl_typ lcl_typ;
-
+  
   fdx=fmc_obj.fdx();
- 
-
+  
   if(expr)
-      vtr_args.push_back(expr);
-
-    if(tr=fargs->getFirstChild()) {
-      do  
-	vtr_args.push_back(tr);
-      while(tr=tr->getNextSibling());    
-    } 
-      
+    vtr_args.push_back(expr);
+  
+  if(tr=fargs->getFirstChild()) {
+    do  
+      vtr_args.push_back(tr);
+    while(tr=tr->getNextSibling());    
+  } 
+  
   nbr_args=vtr_args.size();  
-
+  
   switch(fdx){
-
-    case PBIL_ALL:
-           in_nbr_args=nbr_args;  
-           susg="usage: var_out="+sfnm+"(Data_in, Data_out, X_out?, Y_out?, X_in?, Y_in?)"; 
-           bwrp=false;
-           break;
-
-    case PBIL_ALL_WRP: 
-           in_nbr_args=nbr_args;  
-           susg="usage: var_out="+sfnm+"(Data_in, Data_out, X_out?, Y_out?, X_in?, Y_in?)"; 
-           bwrp=true;
-           break;
-
-
+    
+  case PBIL_ALL:
+    in_nbr_args=nbr_args;  
+    susg="usage: var_out="+sfnm+"(Data_in, Data_out, X_out?, Y_out?, X_in?, Y_in?)"; 
+    bwrp=false;
+    break;
+    
+  case PBIL_ALL_WRP: 
+    in_nbr_args=nbr_args;  
+    susg="usage: var_out="+sfnm+"(Data_in, Data_out, X_out?, Y_out?, X_in?, Y_in?)"; 
+    bwrp=true;
+    break;
   } // end switch
-
-
-
-    if(in_nbr_args <2 ){   
-      serr="function requires at least two arguments. You have only supplied "+nbr2sng(in_nbr_args)+ " arguments\n"; 
-      err_prn(sfnm,serr+susg);
-    }
-
-
-    if(in_nbr_args >6 &&!prs_arg->ntl_scn) 
-      wrn_prn(sfnm,"Function been called with more than "+ nbr2sng(in_nbr_args)+ "arguments"); 
-
-    // process input args 
-    for(idx=0 ; idx<in_nbr_args; idx++)
-      var_arr[idx]=walker.out(vtr_args[idx]);
- 
-    in_typ=var_arr[0]->type;    
-
-
-
-    // initial scan
-    if(prs_arg->ntl_scn){
-        var_arr[1]=nco_var_cnf_typ(in_typ,var_arr[1]);
-        for(idx=0 ; idx<in_nbr_args ; idx++)
-	  if(idx !=1) nco_var_free(var_arr[idx]);
-
-        return var_arr[1];
-    }
-
-
-
-    if(fdx==PBIL_ALL || fdx==PBIL_ALL_WRP){
-      // recall input arguments in order
-      // 0 - input data
-      // 1 - output data
-      // 2 - output X  co-ordinate var
-      // 3 - output Y  co-ordinate var
-      // 4 - input X   co-ordinate var
-      // 5 - input Y   co-ordinate var
-     
-
-        
-      if(in_nbr_args<4){
-        if(var_arr[1]->nbr_dim <2 )
-          err_prn(sfnm,"Output data variable "+std::string(var_arr[1]->nm) + " must have at least two dimensions ");
+  
+  if(in_nbr_args <2 ){   
+    serr="function requires at least two arguments. You have only supplied "+nbr2sng(in_nbr_args)+ " arguments\n"; 
+    err_prn(sfnm,serr+susg);
+  }
+  
+  if(in_nbr_args >6 &&!prs_arg->ntl_scn) 
+    wrn_prn(sfnm,"Function been called with more than "+ nbr2sng(in_nbr_args)+ "arguments"); 
+  
+  // process input args 
+  for(idx=0 ; idx<in_nbr_args; idx++)
+    var_arr[idx]=walker.out(vtr_args[idx]);
+  
+  in_typ=var_arr[0]->type;    
+  
+  // initial scan
+  if(prs_arg->ntl_scn){
+    var_arr[1]=nco_var_cnf_typ(in_typ,var_arr[1]);
+    for(idx=0 ; idx<in_nbr_args ; idx++)
+      if(idx !=1) nco_var_free(var_arr[idx]);
+    
+    return var_arr[1];
+  }
+  
+  if(fdx==PBIL_ALL || fdx==PBIL_ALL_WRP){
+    // recall input arguments in order
+    // 0 - input data
+    // 1 - output data
+    // 2 - output X  co-ordinate var
+    // 3 - output Y  co-ordinate var
+    // 4 - input X   co-ordinate var
+    // 5 - input Y   co-ordinate var
+    
+    if(in_nbr_args<4){
+      if(var_arr[1]->nbr_dim <2 )
+	err_prn(sfnm,"Output data variable "+std::string(var_arr[1]->nm) + " must have at least two dimensions ");
 
         // get output co-ordinate vars   
         if(in_nbr_args <3) 
@@ -2845,8 +2829,6 @@ var_sct * srt_cls::mst_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls 
            
         var_arr[5]=prs_arg->ncap_var_init(std::string(var_arr[0]->dim[1]->nm),true); 
       }
-
-
 
       // convert all args to type double and then cast
       for(idx=0 ; idx<6; idx++){
@@ -2871,6 +2853,8 @@ var_sct * srt_cls::mst_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls 
 
     }
 
+    // 20161205: Always return value to non-void functions: good practice and required by rpmlint
+    return NULL;
 
   } // end fnc
 
@@ -2884,7 +2868,6 @@ void bil_cls::clc_bil_fnc(var_sct *v_xin,var_sct *v_yin, var_sct *v_din, var_sct
    long y_sz;    // size of Y dim in OUTPUT  
    long jdx;
    long kdx;
-
 
   // Sanity check for input/ooooutput data
   if( v_xin->sz *v_yin->sz != v_din->sz)
@@ -3262,19 +3245,27 @@ double bil_cls::clc_lin_ipl(double x1,double x2, double x, double Q0,double Q1){
   var2=walker.out(args_vtr[1]);  
 
   
-  if(prs_arg->ntl_scn  ){
+  var_ret=nco_var_dpl(var2);     
+  
+  if(!var_ret->undefined)
+      var_ret=nco_var_cnf_typ(NC_INT,var_ret);
+  
+  if(prs_arg->ntl_scn  )
+  {
     nco_var_free(var1);
     nco_var_free(var2);
-    return ncap_sclr_var_mk(SCS("~coord_function"),(nc_type)NC_INT,false);  ;
+    return var_ret;
   }
 
-
+  // do heavy lifting 
   {
     bool bInc;
     long idx;
-    long sz;
+    long jdx;
+    long c_sz;
+    long r_sz;  
+    nco_int *ip;
     double dval;
-    double dmin; 
     double *dp_crd; 
     
     var1=nco_var_cnf_typ(NC_DOUBLE,var1);
@@ -3283,37 +3274,54 @@ double bil_cls::clc_lin_ipl(double x1,double x2, double x, double Q0,double Q1){
     // convert everything to type double         
     (void)cast_void_nctype(NC_DOUBLE,&(var1->val));
     (void)cast_void_nctype(NC_DOUBLE,&(var2->val));
+    (void)cast_void_nctype(NC_INT,&(var_ret->val));
 
+    r_sz=var_ret->sz;
+    ip=var_ret->val.ip;  
+
+    c_sz=var1->sz;  
     dp_crd=var1->val.dp;  
-    dval=var2->val.dp[0];   
-    sz=var1->sz;  
+       
+    // dval=var2->val.dp[0];   
+
     
     // determine if co-ord is montonic increasing or decreasing 
     // true if increasing 
     bInc= ( dp_crd[1] > dp_crd[0]); 
         
-    lret=-1; // set to not in range
     // check limits co-ord increasing 
     if(bInc){
-      if(dval>=dp_crd[0] && dval<=dp_crd[sz-1] )
-         for(idx=0 ; idx<sz-1 ; idx++)
-           if( dval >= dp_crd[idx] && dval <= dp_crd[idx+1] ){  
-	      lret=(dval-dp_crd[idx]<= dp_crd[idx+1]-dval ? idx: idx+1 );    
-              break;
-	   }  
-    }  
+      for(idx=0;idx<r_sz;idx++){ 
+	 dval=var2->val.dp[idx]; 
+         /* default set to out of range */   
+         ip[idx]=-1;  
+         if(dval>=dp_crd[0] && dval<=dp_crd[c_sz-1] )
+           for(jdx=0 ; jdx<c_sz-1 ; jdx++)
+             if( dval >= dp_crd[jdx] && dval <= dp_crd[jdx+1] )
+             {  
+	        ip[idx]=(dval-dp_crd[jdx]<= dp_crd[jdx+1]-dval ? jdx: jdx+1 );    
+                break;
+	     }  
+      }
+    }
     // check limits co-ord decreasing
     if(!bInc){
-      if(dval<=dp_crd[0] && dval>=dp_crd[sz-1] )
-         for(idx=0 ; idx<sz-1 ; idx++)
-           if( dval <= dp_crd[idx] && dval >= dp_crd[idx+1] ){  
-	      lret=(dp_crd[idx]-dval <= dval-dp_crd[idx+1] ? idx: idx+1 );    
-              break;
-	   }  
-    }  
-                  
-     (void)cast_nctype_void(NC_DOUBLE,&var1->val);
+      for(idx=0;idx<r_sz;idx++){  
+	 dval=var2->val.dp[idx]; 
+         /* default set to out of range */   
+         ip[idx]=-1;  
+         if(dval<=dp_crd[0] && dval>=dp_crd[c_sz-1] )
+           for(jdx=0 ; jdx<c_sz-1 ; jdx++)
+             if( dval <= dp_crd[jdx] && dval >= dp_crd[jdx+1] )
+             {  
+	        ip[idx]=(dp_crd[jdx]-dval <= dval-dp_crd[jdx+1] ? jdx: jdx+1 );    
+                break;
+	     }  
+      }  
+    }              
+    (void)cast_nctype_void(NC_DOUBLE,&var1->val);
     (void)cast_nctype_void(NC_DOUBLE,&var2->val);
+    (void)cast_nctype_void(NC_INT,&var_ret->val);
   
    
   }
@@ -3321,7 +3329,7 @@ double bil_cls::clc_lin_ipl(double x1,double x2, double x, double Q0,double Q1){
   nco_var_free(var1);   
   nco_var_free(var2);
 
-  return ncap_sclr_var_mk(SCS("~coord_function"),(nco_int)lret);        
+  return var_ret;        
   }
 
 
@@ -4674,6 +4682,180 @@ var_sct *vlist_cls::push_fnd(bool &is_mtd, std::vector<RefAST> &vtr_args, fmc_cl
  return var;
 
 }
+
+
+
+//udunits Functions /***********************************/ 
+  udunits_cls::udunits_cls(bool flg_dbg){
+    //Populate only on  constructor call
+    if(fmc_vtr.empty()){
+          fmc_vtr.push_back( fmc_cls("udunits",this,PUNITS1)); 
+
+    }		      
+  } 
+
+  var_sct * udunits_cls::fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker){
+  const std::string fnc_nm("udunits_cls::fnd");
+  int fdx;
+  int nbr_args;
+  int nbr_dim;
+  int rcd;
+  long lret;
+  dmn_sct **dim;
+  var_sct *var=NULL_CEWI;
+  var_sct *var_ud_in=NULL_CEWI;
+  var_sct *var_ud_out=NULL_CEWI;
+  var_sct *var_cln=NULL_CEWI;
+  var_sct *var_ret;
+           
+  std::string susg;
+  std::string sfnm=fmc_obj.fnm();
+  RefAST tr;
+  std::vector<RefAST> args_vtr; 
+  std::vector<std::string> cst_vtr;              
+
+  // de-reference 
+  prs_cls *prs_arg=walker.prs_arg;            
+  nc_type lcl_typ;
+
+  NcapVar *Nvar;
+
+
+  fdx=fmc_obj.fdx();
+ 
+
+  if(expr)
+      args_vtr.push_back(expr);
+
+    if(tr=fargs->getFirstChild()) {
+      do  
+	args_vtr.push_back(tr);
+      while(tr=tr->getNextSibling());    
+    } 
+      
+  nbr_args=args_vtr.size();  
+
+  susg="usage: var_out="+sfnm+"(var_in ,unitsOutString)"; 
+
+  
+  if(nbr_args<2)
+      err_prn(sfnm,"Function has been called with less than two arguments\n"+susg); 
+
+
+
+  if(nbr_args >2 &&!prs_arg->ntl_scn) 
+      wrn_prn(sfnm,"Function been called with more than two arguments"); 
+
+  
+  /* data to convert */ 
+  var=walker.out(args_vtr[0]);  
+
+  /* text string output units */
+  var_ud_out=walker.out(args_vtr[1]);  
+
+  lcl_typ=var->type;
+  if( !var->undefined && var->type !=NC_FLOAT && var->type !=NC_DOUBLE )
+    nco_var_cnf_typ(NC_DOUBLE,var); 
+
+  
+  if(prs_arg->ntl_scn  ){
+    nco_var_free(var_ud_out);
+    return var;
+  }
+
+  if(var_ud_out->type !=NC_CHAR && var_ud_out->type !=NC_STRING)
+     err_prn(sfnm,"The second argument must be a netCDF text type\n"+susg); 
+
+
+
+  { 
+
+    /* hack RefAST to something so that we dont  have to call astFactory that is protected */
+    RefAST atr=walker.nco_dupList(args_vtr[0]);  
+    std::string units_att_nm;
+
+    units_att_nm=std::string(var->nm)+"@units";          
+   
+    atr->setText(units_att_nm);
+    atr->setType(ATT_ID);
+
+    var_ud_in=walker.out(atr);
+
+    if(var_ud_in->type !=NC_CHAR && var_ud_in->type !=NC_STRING)
+       err_prn(sfnm,"The attribute \""+units_att_nm+"\" argument must be a netCDF text type\n"+susg); 
+  
+    
+    /* look for calendar att - may not be present */  
+    units_att_nm=std::string(var->nm)+"@calendar";          
+    
+    Nvar=prs_arg->var_vtr.find(units_att_nm);
+
+    if(Nvar !=NULL)
+      var_cln=nco_var_dpl(Nvar->var);
+    else    
+      var_cln=ncap_att_init(units_att_nm,prs_arg);
+
+    if(var_cln && var_cln->type !=NC_CHAR && var_cln->type !=NC_STRING)
+       err_prn(sfnm,"The attribute \""+units_att_nm+"\" argument must be a netCDF text type\n"+susg); 
+ 
+  
+  }
+
+  // do heavy lifting 
+  {
+   
+   char *units_in_sng;
+   char *units_out_sng;    
+   char *cln_sng=NULL_CEWI;   
+
+   nco_cln_typ cln_typ=cln_nil;
+
+   units_in_sng=ncap_att_char(var_ud_in);         
+   units_out_sng=ncap_att_char(var_ud_out);   
+
+   if(var_cln)
+   {
+     cln_sng=ncap_att_char(var_cln); 
+     cln_typ=nco_cln_get_cln_typ(cln_sng);
+   }
+   
+
+
+    #ifdef ENABLE_UDUNITS
+    # ifdef HAVE_UDUNITS2_H
+       rcd=nco_cln_clc_dbl_var_dff(units_in_sng,units_out_sng,cln_typ,(double*)NULL, var);
+    #endif
+    #endif
+   
+    if(rcd!=NCO_NOERR)   
+      err_prn(sfnm, "Udunits was unable to convert data in the var '"+std::string(var->nm)+"' from '" +std::string(units_in_sng) +"' to '"+std::string(units_out_sng)+"'\n");
+
+    nco_free(units_in_sng);
+    nco_free(units_out_sng);
+    if(cln_sng)
+      nco_free(cln_sng);
+
+  }
+  
+
+  /* revert var back to original type */
+  if( var->type != lcl_typ)
+    nco_var_cnf_typ(lcl_typ,var);
+ 
+
+  if(var_cln)
+    var_cln=nco_var_free(var_cln);
+
+  if(var_ud_in)
+    var_ud_in=nco_var_free(var_ud_in); 
+  
+
+  return var;
+
+}
+
+
+
 
 /* ncap2 functions and methods */
 

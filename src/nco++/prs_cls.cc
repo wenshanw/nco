@@ -3,7 +3,7 @@
 /* Purpose: netCDF arithmetic processor */
 /* prs_cls -- symbol table - class methods */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2017 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -466,7 +466,20 @@ prs_cls::ncap_var_write_omp(
 	  
 	  /* Set chunk sizes, if requested */
 	  // fxm: must first allow cnk_sz specification in ncap2.cc main()
-	  //if(var->cnk_sz && var->nbr_dim > 0) (void)nco_def_var_chunking(out_id,var_id,(int)NC_CHUNKED,var->cnk_sz);
+           
+          /* if var does NOT contain a rec dim then set all chunking to contiguous */  
+	  {
+            int idx;
+            size_t cnks[NC_MAX_VAR_DIMS]={0};
+	    for(idx=0;idx<var->nbr_dim;idx++) 
+              if( var->dim[idx]->is_rec_dmn )
+		break; 
+
+            if( idx==var->nbr_dim)    
+               (void)nco_def_var_chunking(out_id,var_out_id,(int)NC_CONTIGUOUS,cnks);          
+          }
+
+
 	} /* endif netCDF4 */
       } /* endif */
     } // bdef
@@ -529,8 +542,10 @@ prs_cls::ncap_var_write_omp(
 void prs_cls::ncap_def_ntl_scn(void)
 {
   int idx;
+  int jdx;
   int sz;
   int var_id;
+  size_t cnks[NC_MAX_VAR_DIMS]={0};
   NcapVar *Nvar;
   NcapVar *Cvar;
   var_sct *var1;
@@ -567,7 +582,13 @@ void prs_cls::ncap_def_ntl_scn(void)
 	    
 	    /* Set chunk sizes, if requested */
 	    // fxm: must first allow cnk_sz specification in ncap2.cc main()
-	    //if(var1->cnk_sz && var1->nbr_dim > 0) (void)nco_def_var_chunking(out_id,var_id,(int)NC_CHUNKED,var1->cnk_sz);
+	    for(jdx=0;jdx<var1->nbr_dim;jdx++) 
+              if( var1->dim[jdx]->is_rec_dmn )
+		break; 
+
+            if( jdx==var1->nbr_dim)    
+               (void)nco_def_var_chunking(out_id,var_id,(int)NC_CONTIGUOUS,cnks);          
+
 	  } /* endif */
 	} /* endif netCDF4 */
 	

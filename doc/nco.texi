@@ -12,7 +12,7 @@ Purpose: TeXInfo documentation for netCDF Operators (NCO)
 
 URL: http://nco.sf.net/nco.texi
 
-Copyright (C) 1995--2016 Charlie Zender
+Copyright (C) 1995--2017 Charlie Zender
 Permission is granted to copy, distribute and/or modify this document
 under the terms of the GNU Free Documentation License, Version 1.3
 or any later version published by the Free Software Foundation;
@@ -118,12 +118,12 @@ Octave TeXInfo manual shows clean TeXInfo structure
 @setfilename nco.info
 
 @c Define edition, date, ...
-@set nco-edition 4.6.2
-@set doc-edition 4.6.2
-@set copyright-years 1995--2016
-@set update-year 2016
-@set update-date 16 November 2016
-@set update-month November 2016
+@set nco-edition 4.6.5-alpha02
+@set doc-edition 4.6.5-alpha02
+@set copyright-years 1995--2017
+@set update-year 2017
+@set update-date 9 February 2017
+@set update-month February 2017
 
 @settitle @acronym{NCO} @value{nco-edition} User Guide
 
@@ -554,10 +554,16 @@ Irvine, California@*
 
 @ignore
 The @acronym{DOE} @acronym{ACME} program generously supported ...
+
+Matching @acronym{NCO} against other analysis software, and often
+besting them, has been exhilirating.
+Henry Butowsky has re-joined our efforts.
+Without him, much of this work would have been impossible.
+
 @sp 1
 @noindent
 Charlie Zender@*
-November, 2016@*
+January, 2017@*
 Laguna Beach, California@*
 @end ignore
 
@@ -2366,16 +2372,16 @@ The operators have the following memory requirements:
 @command{ncwa} requires @math{MS <= 8VT} (see below).
 Note that only variables that are processed, e.g., averaged,
 concatenated, or differenced, contribute to @math{MS}. 
-Variables which do not appear in the output file 
+Variables that do not appear in the output file 
 (@pxref{Subsetting Files}) are never read and contribute nothing
 to the memory requirements. 
 
 Further note that some operators perform internal type-promotion on some
 variables prior to arithmetic (@pxref{Type Conversion}).
-For example, @command{ncra} and @command{nces} both promote integer
-types to double-precision floating-point prior to arithmetic, then 
-perform the arithmetic, then demote back to the original integer type
-after arithmetic.
+For example, @command{ncra}, @command{nces}, and @command{ncwa} all
+promote integer types to double-precision floating-point prior to
+arithmetic, then perform the arithmetic, then demote back to the
+original integer type after arithmetic.
 This preserves the on-disk storage type while obtaining the accuracy
 advantages of floating-point arithmetic. 
 Since version 4.3.6 (released in September, 2013), @acronym{NCO} also
@@ -2401,19 +2407,40 @@ See @ref{RAM disks} for further details.
 @html
 <a name="mmr_ncwa"></a> <!-- http://nco.sf.net/nco.html#mmr_ncwa -->
 @end html
-@command{ncwa} consumes between two and seven times the memory of a
-variable in order to process it. 
+@command{ncwa} consumes between two and eight times the memory of an
+@code{NC_DOUBLE} variable in order to process it. 
 Peak consumption occurs when storing simultaneously in memory 
 one input variable, one tally array,
 one input weight, one conformed/working weight, one weight tally, 
 one input mask, one conformed/working mask, and
 one output variable. 
+@acronym{NCO}'s tally arrays are of type C-type @code{long}, whose size 
+is 8-bytes on all modern computers, the same as @code{NC_DOUBLE}.
 When invoked, the weighting and masking features contribute up to
-three-sevenths and two-sevenths of these requirements apiece.
+three-eighths and two-eighths of these requirements apiece.
 If weights and masks are @emph{not} specified 
 (i.e., no @samp{-w} or @samp{-a} options)
 then @command{ncwa} requirements drop to @math{MS <= 3VT}
 (one input variable, one tally array, and the output variable). 
+The output variable is the same size as the input variable when
+averaging over a degenerate dimension.
+However, normally the output variable is much smaller than the input, 
+and is often a simple scalar, in which case the memory requirements
+drop by @math{1VT} since the output array requires essentially no
+memory. 
+
+All of this is subject to the type promotion rules mentioned above.
+For example, @command{ncwa} averaging a variable of type
+@code{NC_FLOAT} requires @math{MS <= 16VT} (rather than @math{MS <= 8VT}) 
+since all arrays are (at least temporarily) composed of eight-byte
+elements.
+Without mask or weights, the requirements for @code{NC_FLOAT} are
+@math{MS <= 6VT} (rather than @math{MS <= 3VT} as for @code{NC_DOUBLE}) 
+due to temporary internal promotion of both the input variable and the
+output variable to type @code{NC_DOUBLE}. 
+The @samp{--flt} option that suppresses promotion reduces this to
+@math{MS <= 4VT} (the tally elements do not change size), and to
+@math{MS <= 3VT} when the output array is a scalar.
 
 @cindex OpenMP
 @cindex threads
@@ -4589,12 +4616,18 @@ convention described in @ref{CF Conventions}.
 As of @acronym{NCO} version 4.0.8 (April, 2011) 
 both @samp{-c} and @samp{-C} honor the @acronym{CF} @code{bounds}
 convention described in @ref{CF Conventions}. 
+As of @acronym{NCO} version 4.6.4 (January, 2017) 
+both @samp{-c} and @samp{-C} honor the @acronym{CF} @code{cell_measures}
+convention described in @ref{CF Conventions}. 
 As of @acronym{NCO} version 4.4.9 (May, 2015) 
 both @samp{-c} and @samp{-C} honor the @acronym{CF} @code{climatology}
 convention described in @ref{CF Conventions}. 
 As of @acronym{NCO} version 3.9.6 (January, 2009) 
 both @samp{-c} and @samp{-C} honor the @acronym{CF} @code{coordinates}
 convention described in @ref{CF Conventions}.
+As of @acronym{NCO} version 4.6.4 (January, 2017) 
+both @samp{-c} and @samp{-C} honor the @acronym{CF} @code{formula_terms}
+convention described in @ref{CF Conventions}. 
 As of @acronym{NCO} version 4.6.0 (May, 2016) 
 both @samp{-c} and @samp{-C} honor the @acronym{CF} @code{grid_mapping}
 convention described in @ref{CF Conventions}. 
@@ -5675,11 +5708,13 @@ ncra --mro -O -d time,,,12,12 -n 150,4,1 1850.nc 1850_2009.nc
 These operations generate and require no intermediate files.
 This contrasts to previous @acronym{NCO} methods, which require
 generating, averaging, then catenating 150 files.  
-The @samp{--mro} option has no effect on, or rather is redundant for, 
-@command{ncrcat} since @command{ncrcat} always outputs all selected
-records.
+The @samp{--mro} option only works on @command{ncra} and has no effect
+on (or rather is redundant for) @command{ncrcat}, since @command{ncrcat}
+always outputs all selected records.
 
 @html
+<a name="multislab"></a> <!-- http://nco.sf.net/nco.html#multislab -->
+<a name="multislabs"></a> <!-- http://nco.sf.net/nco.html#multislabs -->
 <a name="msa"></a> <!-- http://nco.sf.net/nco.html#msa -->
 <a name="mlt"></a> <!-- http://nco.sf.net/nco.html#mlt -->
 @end html
@@ -5791,6 +5826,7 @@ commands to gather the desired range of data.
 
 @html
 <a name="msa_usr_rdr"></a> <!-- http://nco.sf.net/nco.html#msa_usr_rdr -->
+<a name="rotate_longitude"></a> <!-- http://nco.sf.net/nco.html#rotate_longitude -->
 @end html
 The @acronym{MSA} user-order switch @samp{--msa_usr_rdr} (or
 @samp{--msa_user_order}, both of which shorten to @samp{--msa}) 
@@ -5800,9 +5836,9 @@ storage order.
 This allows the user to perform complex data re-ordering in one
 operation that would otherwise require cumbersome steps of
 hyperslabbing, concatenating, and permuting. 
-Consider the recent example of a user who needed to convert datasets
-stored with the longitude coordinate @code{Lon} ranging from
-[@minus{}180,180) to datasets that follow the [0,360) convention.
+Consider the example of converting datasets stored with the longitude
+coordinate @code{Lon} ranging from [@minus{}180,180) to datasets that
+follow the [0,360) convention.
 @example
 % ncks -H -v Lon in.nc
 Lon[0]=-180
@@ -5811,6 +5847,7 @@ Lon[2]=0
 Lon[3]=90
 @end example
 @noindent
+What is needed is a simple way to rotate longitudes.
 Although simple in theory, this task requires both mathematics to
 change the numerical value of the longitude coordinate, data
 hyperslabbing to split the input on-disk arrays at Greenwich, and data
@@ -7087,7 +7124,7 @@ requesting units conversion.
 
 @cindex @code{units}
 @cindex @code{time} 
-The translation and dimensional innterpretation of time coordinates
+The translation and dimensional interpretation of time coordinates
 shows a more powerful, and probably more common, UDUnits application.
 In this example, the user prints all data between @w{4 PM} and @w{7 PM}
 on @w{December 8}, 1999, from a variable whose time dimension is hours 
@@ -7196,11 +7233,10 @@ calendar attributes specified by the @acronym{CF} conventions.
 @item  @strong{Unsupported types:} 
 "366_day"/"all_leap","proleptic_gregorian","julian","none" 
 @end table
-Unsupported types default to mixed Gregorian/Julian as defined by 
+Unsupported types default to mixed Gregorian/Julian as defined by  
 UDUnits. 
 
 @noindent An Example: Consider the following netCDF variable
-
 @example
 variables:
   double lon_cal(lon_cal) ;
@@ -7239,12 +7275,13 @@ Short options: None@*
 @end cartouche
 
 Time rebasing is invoked when numerous files share a common record
-coordinate, and the record coordinate units change among input files.
+coordinate, and the record coordinate basetime (not the time increment,
+e.g., days or hours) changes among input files. 
 The rebasing is performed automatically if and only if UDUnits is
 installed. 
-Usually rebasing occurs when the recoordinate is a time-based variable, 
-and times are recorded in units of a time-since-basetime, and the
-basetime changes from file to file.
+Rebasing occurs when the record coordinate is a time-based variable, and
+times are recorded in units of a time-since-basetime, and the basetime
+changes from file to file. 
 Since the output file can have only one unit (i.e., one basetime) for
 the record coordinate, @acronym{NCO}, in such cases, chooses the units
 of the first input file to be the units of the output file.
@@ -7285,13 +7322,20 @@ ncrcat -v tpt -d time,"1990-1-2 12:00:00","1990-1-3 11:59:59" \
 time = 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, \ 
      26, 27, 28, 29, 30, 31, 32, 33, 34, 35 ;
 @end example
+
 As of @acronym{NCO} version 4.2.1 (August, 2012), @acronym{NCO}
 automatically rebases not only the record coordinate (@code{time}, here) 
 but also any cell boundaries associated with the record coordinate
 (e.g., @code{time_bnds}) (@pxref{CF Conventions}). 
+
 As of @acronym{NCO} version 4.4.9 (May, 2015), @acronym{NCO}
 also rebases any climatology boundaries associated with the record
 coordinate (e.g., @code{climatology_bounds}) (@pxref{CF Conventions}). 
+
+As of @acronym{NCO} version 4.6.3 (December, 2016), @acronym{NCO}
+also rebases the time coordinate when the unit between files differ
+For example the first file may have @code{units="days since 2014-03-01"} 
+and  the second file @code{units="hours since 2014-03-10 00:00"}.
 
 @html
 <a name="mrd"></a> <!-- http://nco.sf.net/nco.html#mrd -->
@@ -9849,7 +9893,7 @@ final step.
 This ensures the standard deviation is correctly normalized by one fewer
 than the number of time samples.
 The procedure to compute the variance is identical except for the use of 
-@samp{-y var} instead of @samp{-y rmssdn} in the final step.
+@samp{-y avgsqr} instead of @samp{-y rmssdn} in the final step.
 
 @command{ncap2} can also compute statistics like standard deviations.
 Brute-force implementation of formulae is one option, e.g.,
@@ -11042,6 +11086,97 @@ Ancillary variables are subject to the user-specified override switches
 @ref{Subsetting Coordinate Variables}. 
 
 @html
+<a name="cnv_CF_cll_msr"></a> <!-- http://nco.sf.net/nco.html#cnv_CF_cll_msr -->
+<a name="cll_msr"></a> <!-- http://nco.sf.net/nco.html#cll_msr -->
+<a name="cell_measures"></a> <!-- http://nco.sf.net/nco.html#cell_measures -->
+<a name="no_cll_msr"></a> <!-- http://nco.sf.net/nco.html#no_cll_msr -->
+<a name="no_cell_measures"></a> <!-- http://nco.sf.net/nco.html#no_cell_measures -->
+@end html
+@cindex @code{cell_measures} attribute
+@cindex cell measures convention
+As of @acronym{NCO} version 4.6.4 (January, 2017), @acronym{NCO} 
+supports the @acronym{CF} @code{cell_measures} convention 
+described 
+@uref{http://cfconventions.org/1.6.html#cell-measures, here}.
+This convention allows variables to indicate which other variable or
+variables contains area or volume information about a gridcell.
+These measures variables are pointed to by the @code{cell_measures}
+attribute.
+The @acronym{CDL} specification of a measures variable for area looks
+like 
+@example
+orog:cell_measures = "area: areacella"
+@end example
+where @code{areacella} is the name of the measures variable.
+Unless the default behavior is overridden, @acronym{NCO} attaches any
+measures variables to the extraction list along with the primary
+variable and other associated variables. 
+By definition, measures variables are a subset of the rank of the
+variable they measure.
+The most common case is that the measures variable for area is the same
+size as @w{2D fields} (like surface air temperature) and much smaller
+than @w{3D fields} (like full air temperature). 
+In such cases the measures variable might occupy 50% of the space of a
+dataset consisting of only one @w{2D field}.
+Extraction of measures variables is subject to the user-specified
+override switches (including @samp{-c} and @samp{-C}) described in  
+@ref{Subsetting Coordinate Variables}. 
+To conserve space without sacrificing too much metadata, @acronym{NCO}
+makes it possible to override the extraction of measures variables
+independent of extracting other associated variables.
+Override the default with @samp{--no_cell_measures} or
+@samp{--no_cll_msr}. 
+These options are available in all operators that perform subsetting
+(i.e., all operators except @command{ncatted} and @command{ncrename}).
+
+@html
+<a name="cnv_CF_frm_trm"></a> <!-- http://nco.sf.net/nco.html#cnv_CF_frm_trm -->
+<a name="frm_trm"></a> <!-- http://nco.sf.net/nco.html#frm_trm -->
+<a name="formula_terms"></a> <!-- http://nco.sf.net/nco.html#formula_terms -->
+<a name="no_frm_trm"></a> <!-- http://nco.sf.net/nco.html#no_frm_trm -->
+<a name="no_formula_terms"></a> <!-- http://nco.sf.net/nco.html#no_formula_terms -->
+@end html
+@cindex @code{formula_terms} attribute
+@cindex cell measures convention
+As of @acronym{NCO} version 4.6.4 (January, 2017), @acronym{NCO} 
+supports the @acronym{CF} @code{formula_terms} convention 
+described 
+@uref{http://cfconventions.org/1.6.html#formula-terms, here}.
+This convention encodes formulas used to construct (usually vertical)
+coordinate grids.
+The @acronym{CDL} specification of a vertical coordinate formula for
+looks like 
+@example
+lev:standard_name = "atmosphere_hybrid_sigma_pressure_coordinate"
+lev:formula_terms = "a: hyam b: hybm p0: P0 ps: PS"
+@end example
+where @code{standard_name} contains the standardized name of the
+formula variable and @code{formula_terms} contains a list of the
+variables used, called formula variables.
+Above the formula variables are @code{hyam}, @code{hybm}, @code{P0}, and
+@code{PS}. 
+Unless the default behavior is overridden, @acronym{NCO} attaches any 
+formula variables to the extraction list along with the primary
+variable and other associated variables. 
+By definition, formula variables are a subset of the rank of the
+variable they define.
+One common case is that the formula variables for constructing a 
+@w{3D height} grid involves a 2D variable (like surface pressure,
+or elevation).
+In such cases the formula variables typically constitute only a 
+small fraction of a dataset consisting of one @w{3D field}.
+Extraction of formula variables is subject to the user-specified
+override switches (including @samp{-c} and @samp{-C}) described in  
+@ref{Subsetting Coordinate Variables}. 
+To conserve space without sacrificing too much metadata, @acronym{NCO}
+makes it possible to override the extraction of formula variables
+independent of extracting other associated variables.
+Override the default with @samp{--no_formula_terms} or
+@samp{--no_frm_trm}. 
+These options are available in all operators that perform subsetting
+(i.e., all operators except @command{ncatted} and @command{ncrename}).
+
+@html
 <a name="cnv_CF_grd"></a> <!-- http://nco.sf.net/nco.html#cnv_CF_grd -->
 <a name="grd_map"></a> <!-- http://nco.sf.net/nco.html#grd_map -->
 <a name="grid_mapping"></a> <!-- http://nco.sf.net/nco.html#grid_mapping -->
@@ -11105,8 +11240,9 @@ history of a variable's analysis.
 @html
 <a name="cnv_CF_cll_mth"></a> <!-- http://nco.sf.net/nco.html#cnv_CF_cll_mth -->
 <a name="cll_mth"></a> <!-- http://nco.sf.net/nco.html#cll_mth -->
-<a name="no_cll_mth"></a> <!-- http://nco.sf.net/nco.html#no_cll_mth -->
 <a name="cell_methods"></a> <!-- http://nco.sf.net/nco.html#cell_methods -->
+<a name="no_cll_mth"></a> <!-- http://nco.sf.net/nco.html#no_cll_mth -->
+<a name="no_cell_methods"></a> <!-- http://nco.sf.net/nco.html#no_cell_methods -->
 @end html
 @cindex @code{cell_methods}
 @cindex @code{--cll_mth}
@@ -11253,8 +11389,8 @@ described in any detail in the sections below.
 * ncatted netCDF Attribute Editor::
 * ncbo netCDF Binary Operator::
 * ncclimo netCDF Climatology Generator::
-* nces netCDF Ensemble Statistics::
 * ncecat netCDF Ensemble Concatenator::
+* nces netCDF Ensemble Statistics::
 * ncflint netCDF File Interpolator::
 * ncks netCDF Kitchen Sink::
 * ncpdq netCDF Permute Dimensions Quickly::
@@ -11363,6 +11499,7 @@ already contain the appended dimensions.
 * Loops::
 * Include files::
 * Sort methods::
+* UDUnits script::
 * Vpointer::
 * Irregular grids::
 * Bilinear interpolation::
@@ -13172,11 +13309,13 @@ print("Total of odd elements ");print(sum);print("\n");
 The syntax of an @var{include-file} is:
 @example
 #include "script.nco"
+#include "/opt/SOURCES/nco/data/tst.nco"
 @end example
-The script filename is searched relative to the run directory. 
+If the filename is relative and not absolute then the directory searched is relative to the run-time directory. 
 It is possible to nest include files to an arbitrary depth. 
 A handy use of inlcude files is to store often used constants. 
-Use @acronym{RAM} variables if you do not want these constants written to
+Use @acronym{RAM} variables if you do not want these constants written to nc-file.
+
 @var{output-file}.  
 @example
 // script.nco
@@ -13186,12 +13325,20 @@ Use @acronym{RAM} variables if you do not want these constants written to
 e=2.71828; // Regular (disk) variable, written to output
 @end example
 
+As of @acronym{NCO} version 4.6.3 (December, 2016), The user can specify the directory(s) to be searched by specifing them in the UNIX environment var @code{NCO_PATH}. The format used is identical to the UNIX @code{PATH}. The directory(s) are only searched if the include filename is relative.   
+
+@example
+export NCO_PATH=":/home/henryb/bin/:/usr/local/scripts:/opt/SOURCES/nco/data:"
+@end example
+
+
+
 @html
 <a name="srt"></a> <!-- http://nco.sf.net/nco.html#srt -->
 <a name="sort"></a> <!-- http://nco.sf.net/nco.html#sort -->
 <a name="remap"></a> <!-- http://nco.sf.net/nco.html#remap -->
 @end html
-@node Sort methods, Vpointer, Include files, ncap2 netCDF Arithmetic Processor
+@node Sort methods, UDUnits script, Include files, ncap2 netCDF Arithmetic Processor
 @subsection @command{sort} methods
 @cindex @command{sort}
 @cindex @command{asort}
@@ -13463,12 +13610,72 @@ EOF
 ncap2 -O -v -S ~/ncap2_foo.nco ~/nco/data/in.nc ~/foo.nc
 @end example
 
-
 @html
-<a name="vpointer"></a> <!-- http://nco.sf.net/nco.html#vpointer -->
+<a name="udunits_fnc"></a> <!-- http://nco.sf.net/nco.html#udunits_fnc -->
+<a name="units_cnv"></a> <!-- http://nco.sf.net/nco.html#units_cnv -->
 @end html
+@node UDUnits script, Vpointer, Sort methods, ncap2 netCDF Arithmetic Processor
+@subsection UDUnits script
+@cindex UDUnits
 
-@node Vpointer, Irregular grids, Sort methods, ncap2 netCDF Arithmetic Processor
+As of @acronym{NCO} version 4.6.3 (December, 2016), @acronym{ncap2}
+includes support for UDUnits conversions. 
+The function is called @code{udunits}. 
+Its syntax is
+@example
+varOut=udunits(varIn, "UnitsOutString")
+@end example
+
+The @code{udunits()} function looks for the attribute of
+@code{varIn@@units} and fails if it is not found. 
+A quirk of this function that due to attribute propagation
+@code{varOut@@units} will be overwritten by @code{varIn@@units}. 
+It is best to re-initialize this attribute AFTER the call. 
+In addition if @code{varIn@@units} is of the form 
+@code{"time_interval since basetime"} then the calendar attribute
+@code{varIn@@calendar} will read it.
+If it does not exist then the calendar used defaults to mixed
+Gregorian/Julian as defined by UDUnits. 
+ 
+If @code{varIn} is not a floating point type then it is promoted to
+@code{NC_DOUBLE} for the system call in the Udunits library;  
+and then demoted back to to its original type after.
+@example
+@verbatim
+T[lon]={0.0,100.0,150.0,200.0};
+T@units="Celsius";
+// Overwrite variable
+T=udunits(T,"kelvin"); 
+print(T);  
+// 273.15, 373.15, 423.15, 473.15 ;
+T@units="kelvin";
+
+// Rebase coordinate days to hours 
+timeOld=time;
+print(timeOld);
+// 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ;
+timeOld@units="days since 2012-01-30";
+
+@units="hours since 2012-02-01 01:00";
+timeNew=udunits(timeOld, @units);
+timeNew@units=@units;
+print(timeNew);
+// -25, -1, 23, 47, 71, 95, 119, 143, 167, 191 ;
+
+tOld=time;
+// nb in this calendar NO Leap year
+tOld@calendar="365_day";
+tOld@units="minutes since 2012-02-28 23:58:00.00";
+
+@units="seconds since 2012-03-01 00:00";
+tNew=udunits(tOld, @units);
+tNew@units=@units;
+print(tNew);
+// -60, 0, 60, 120, 180, 240, 300, 360, 420, 480 
+@end verbatim
+@end example
+
+@node Vpointer, Irregular grids, UDUnits script, ncap2 netCDF Arithmetic Processor
 @subsection Vpointer
 @cindex vpointer
 
@@ -13595,8 +13802,6 @@ three_dmn_var_int:total = 2701.f ;
 three_dmn_var_int:units = "watt meter-2" ;
 @end verbatim
 @end example
-
-
 
 @html
 <a name="rrg"></a> <!-- http://nco.sf.net/nco.html#rrg -->
@@ -16132,7 +16337,7 @@ ncbo [-3] [-4] [-6] [-7] [-A] [-C] [-c]
 [--cnk_min @var{sz_byt}] [--cnk_plc @var{plc}] [--cnk_scl @var{sz_lmn}]
 [-D @var{dbg}] [-d @var{dim},[@var{min}][,[@var{max}][,[@var{stride}]]] [-F] 
 [-G @var{gpe_dsc}] [-g @var{grp}[,@dots{}]] [--glb ...] [-h] [--hdr_pad @var{nbr}]
-[-L @var{dfl_lvl}] [-l @var{path}] [--no_tmp_fl]
+[-L @var{dfl_lvl}] [-l @var{path}] [--no_cll_msr] [--no_frm_trm] [--no_tmp_fl] 
 [-O] [-o @var{file_3}] [-p @var{path}] [-R] [-r] [--ram_all]
 [-t @var{thr_nbr}] [--unn] [-v @var{var}[,@dots{}]] [-X ...] [-x] [-y @var{op_typ}]
 @var{file_1} @var{file_2} [@var{file_3}]
@@ -16544,8 +16749,9 @@ ncrcat t_anm_8589_??.nc t_anm_8589_0112.nc
 @page
 @html
 <a name="ncclimo"></a> <!-- http://nco.sf.net/nco.html#ncclimo -->
+<a name="ncsplit"></a> <!-- http://nco.sf.net/nco.html#ncsplit -->
 @end html
-@node ncclimo netCDF Climatology Generator, nces netCDF Ensemble Statistics, ncbo netCDF Binary Operator, Reference Manual
+@node ncclimo netCDF Climatology Generator, ncecat netCDF Ensemble Concatenator, ncbo netCDF Binary Operator, Reference Manual
 @section @command{ncclimo} netCDF Climatology Generator
 @cindex climo
 @cindex climatology
@@ -16554,39 +16760,66 @@ ncrcat t_anm_8589_??.nc t_anm_8589_0112.nc
 @noindent
 SYNTAX
 @example
-ncclimo [-a @var{clm_md}] [-b @var{bnd_nm}] [-c @var{caseid}] [-d @var{dbg_lvl}]
-[-e @var{yr_end}] [-f @var{fml_nm}] [-h @var{hst_nm}] [-i @var{drc_in}]
-[-l @var{lnk_flg}] [-m @var{mdl_nm}] [-n @var{nco_opt}] [-O @var{drc_rgr}] [-o @var{drc_out}]
-[-p @var{par_typ}] [-R @var{rgr_opt}] [-r @var{rgr_map}] 
-[-S @var{yr_prv}] [-s @var{yr_srt}] [-t @var{thr_nbr}] [-v @var{var_lst}] [-x @var{cf_flg}] 
-[-X @var{drc_xtn}] [-x @var{drc_prv}] [-Y @var{rgr_xtn}] [-y @var{rgr_prv}]
+ncclimo [-a @var{dec_md}] [-C @var{clm_md}] [-c @var{caseid}] [-d @var{dbg_lvl}]
+[-E @var{yr_prv}] [-e @var{yr_end}] [-f @var{fml_nm}] [-h @var{hst_nm}] [-i @var{drc_in}]
+[-j @var{job_nbr}] [-l @var{lnk_flg}] [-m @var{mdl_nm}] [-n @var{nco_opt}] 
+[-O @var{drc_rgr}] [-o @var{drc_out}] [-p @var{par_typ}] [-R @var{rgr_opt}] [-r @var{rgr_map}] 
+[-S @var{yr_prv}] [-s @var{yr_srt}] [--stdin] [--tpd=@var{tpd_dly}] [-t @var{thr_nbr}] [--tpd=@var{tpd_dly}] 
+[-v @var{var_lst}] [-x @var{cf_flg}] [-X @var{drc_xtn}] [-x @var{drc_prv}] [-Y @var{rgr_xtn}] [-y @var{rgr_prv}]
+[--ypf=@var{ypf_max}]
 @end example
 
 @noindent
 DESCRIPTION
 
-@command{ncclimo} produces climatological monthly means, seasonal means,
-annual mean, and optionally regrids all these files.
+In climatology generation mode, @command{ncclimo} ingests ``raw'' data
+consisting of a monthly or annual timeseries of files and from these
+produces climatological monthly means, seasonal means, and/or annual
+means.
+Alternatively, in timeseries reshaping mode, @command{ncclimo} will
+subset and temporally split the input raw data timeseries into
+per-variable files spanning the entire period. 
+@command{ncclimo} can optionally regrid all output files in either mode. 
+
 There are five required options (@samp{-c}, @samp{-s}, @samp{-e},
-@samp{-i}, and @samp{-o})), and more options are available to customize
-the processing.
-Options are similar but not identical (due to shell limitations) to
-@command{ncremap} options.
-Standard @command{ncclimo} usage looks like
+@samp{-i}, and @samp{-o})) to generate climatologies, and many more
+options are available to customize the processing.
+Options are similar to @command{ncremap} options.
+Standard @command{ncclimo} usage for climatology generation looks like
 @example
 ncclimo            -c caseid -s srt_yr -e end_yr -i drc_in -o drc_out
 ncclimo -m mdl_nm  -c caseid -s srt_yr -e end_yr -i drc_in -o drc_out
 ncclimo -v var_lst -c caseid -s srt_yr -e end_yr -i drc_in -o drc_out
+ncclimo --case=caseid --start=srt_yr --end=end_yr --input=drc_in --output=drc_out
 @end example
-A complete description of all available flags is given in comments
-embedded in @command{ncclimo}, and a more succinct description is given 
-below.
-Options in alphabetical order are:
+In climatology generation mode, @command{ncclimo} constructs the list of
+input filenames from the argument to the date and model-type options.
+@cindex standard input
+@cindex @code{stdin}
+@command{ncclimo} automatically switches to timeseries reshaping mode
+if it receives a list of files from @code{stdin}, or, alternatively,
+placed as positional arguments (after the last command-line option), or
+if neither of these is done and no @var{caseid} is specified, in which
+case it assumes all @code{*.nc} files in @var{drc_in} constitute the
+input file list. 
+
+Options come in both short (single-letter) and long forms.
+The handful of long-option synonyms for each option allows the user 
+to imbue the commands with a level of verbosity and precision that suits
+her taste. 
+A complete description of all options is given below, in alphabetical
+order of the short option letter.
+Long option synonyms are given just after the letter.
+When invoked without options, @command{ncclimo} prints a succinct table
+of all options and some examples.
 @table @option
-@cindex @code{-a @var{clm_md}}
-@cindex @var{clm_md}
-@item -a @var{clm_md}
-Climatology mode that determines type of @acronym{DJF} average.
+@cindex @code{-a @var{dec_md}}
+@cindex @code{--dec_md}
+@cindex @code{--dec_mode}
+@cindex @code{--december_mode}
+@cindex @var{dec_md}
+@item -a @var{dec_md} (@code{--dec_md}, @code{--december_mode}, @code{--dec_mode})
+December mode determines the type of @acronym{DJF} average.
 The two valid options are @code{scd} (default) and @code{sdd}.
 @acronym{SCD}-mode stands for ``Seasonally Continuous December''. 
 The first month used is December of the year before the start year
@@ -16595,10 +16828,27 @@ The last month is November of the end year specified with @samp{-e}.
 @acronym{SDD}-mode stands for ``Seasonally Discontinuous December''. 
 The first month used is January of the specified start year. 
 The last month is December of the end year specified with @samp{-e}.
+@cindex @code{-C @var{clm_md}}
+@cindex @var{clm_md}
+@cindex @code{--clm_md}
+@cindex @code{--climatology_mode}
+@cindex @code{--mode}
+@cindex @code{--climatology}
+@item -C @var{clm_md} (@code{--clm_md}, @code{--climatology_mode}, @code{--mode}, @code{--climatology})
+Climatology mode.
+Valid values are @samp{ann} and @samp{mth}.
+The value indicates the timespan of the averages in each input file.  
+The default mode is @samp{mth}, which means input files are monthly averages. 
+Use @samp{ann} if the input files are a series of annual means.
 @cindex @code{-c @var{caseid}}
 @cindex @var{caseid}
-@item -c @var{caseid}
+@cindex @code{--caseid}
+@cindex @code{--case}
+@item -c @var{caseid} (@code{--case}, @code{--caseid}, @code{--case_id})
 Simulation name, or any input filename for non-@acronym{CESM}'ish files.  
+The use of @var{caseid} is required in climate generation mode (unless
+equivalent information is provided through other options), where
+@var{caseid} is used to construct both input and output filenames.
 For @acronym{CESM}'ish input files like
 @file{famipc5_ne30_v0.3_00001.cam.h0.1980-01.nc}, 
 specify @samp{-c famipc5_ne30_v0.3_00001}. 
@@ -16608,20 +16858,32 @@ These can be modified via the @option{-m @var{mdl_nm}} and
 @option{-h @var{hst_nm}} switches if needed.  
 For input files like @file{merra2_198001.nc},
 specify @samp{-c merra2_198001.nc}. 
-See comments in @command{ncclimo} for further documentation.   
+In timeseries reshaping mode, @var{caseid} will be used, if supplied,
+as an additional string in the output filename.
+For example, specifying @samp{-c control} would cause
+@file{T_000101_000912.nc} to be instead named 
+@file{T_control_000101_000912.nc}.
 @cindex @code{-D @var{dbg_lvl}}
 @cindex @var{dbg_lvl}
-@item -D @var{dbg_lvl}
+@cindex @code{--dbg_lvl}
+@cindex @code{--debug_level}
+@item -D @var{dbg_lvl} (@code{--dbg_lvl}, @code{--dbg}, @code{--debug}, @code{--debug_level})
 Specifies a debugging level similar to the rest of @acronym{NCO}.
-If @math{@var{dbg_lvl} = 1}, @command{ncremap} prints more extensive
+If @math{@var{dbg_lvl} = 1}, @command{ncclimo} prints more extensive
 diagnostics of its behavior.
-If @math{@var{dbg_lvl} = 2}, @command{ncremap} prints the commands
+If @math{@var{dbg_lvl} = 2}, @command{ncclimo} prints the commands
 it would execute at any higher or lower debugging level, but does
 not execute these commands.
-If @math{@var{dbg_lvl} > 2}, @command{ncremap} prints the diagnostic
+If @math{@var{dbg_lvl} > 2}, @command{ncclimo} prints the diagnostic
 information, executes all commands, and passes-through the debugging
 level to the regridder (@command{ncks}) for additional diagnostics.
-@item -e @var{end_yr}
+@cindex @code{-e @var{end_yr}}
+@cindex @var{end_yr}
+@cindex @code{--end_yr}
+@cindex @code{--end_year}
+@cindex @code{--year_end}
+@cindex @code{--end}
+@item -e @var{end_yr} (@code{--end_yr}, @code{--yr_end}, @code{--end_year}, @code{--year_end}, @code{--end})
 End year (example: 2000). 
 Unless the option @samp{-a sdd} is specified, the last month used 
 is November of the specified end year. 
@@ -16629,10 +16891,13 @@ If @samp{-a sdd} is specified, the last month is December of the
 specified end year.  
 @cindex @code{-f @var{fml_nm}}
 @cindex @var{fml_nm}
-@item -f @var{fml_nm}
+@cindex @code{--fml_nm}
+@cindex @code{--family}
+@cindex @code{--family_name}
+@item -f @var{fml_nm} (@code{--fml_nm}, @code{--family}, @code{--family_name})
 Family name (nickname) of output files.
-By default output climo file names are constructed from the @var{caseid}
-of the input files.
+In climate generation mode, output climo file names are constructed by
+default with the same @var{caseid} as the input files.
 The @var{fml_nm}, if supplied, replaces @var{caseid} in output climo
 names, which are of the form
 @var{fml_nm}_XX_YYYYMM_YYYYMM.nc where @var{XX} is the month or seasonal
@@ -16640,9 +16905,17 @@ abbreviation.
 Use @samp{-f @var{fml_nm}} to simplify long names, avoid overlap, etc.
 Example values of @var{fml_nm} are @samp{control}, @samp{experiment},
 and (for a single-variable climo) @samp{FSNT}.
+In timeseries reshaping mode, @var{fml_nm} will be used, if supplied,
+as an additional string in the output filename.
+For example, specifying @samp{-f control} would cause
+@file{T_000101_000912.nc} to be instead named 
+@file{T_control_000101_000912.nc}.
 @cindex @code{-h @var{hst_nm}}
 @cindex @var{hst_nm}
-@item -h @var{hst_nm}
+@cindex @code{--history_name}
+@cindex @code{--hst_nm}
+@cindex @code{--history}
+@item -h @var{hst_nm} (@code{--hst_nm}, @code{--history_name}, @code{--history})
 History volume name of file used to generate climatologies.
 This referring to the @var{hst_nm} character sequence used to construct
 input file names: @code{caseid.mdl_nm.}@var{hst_nm}@code{.YYYY-MM.nc}.
@@ -16654,13 +16927,68 @@ Examples include @samp{h0} (default, works for @acronym{CAM},
 @acronym{ALM/CLM}), @samp{h1}, and @samp{h} (for @acronym{CISM}).
 @cindex @code{-i @var{drc_in}}
 @cindex @var{drc_in}
-@item -i @var{drc_in}
+@cindex @code{--drc_in}
+@cindex @code{--in_drc}
+@cindex @code{--dir_in}
+@cindex @code{--input}
+@item -i @var{drc_in} (@code{--drc_in}, @code{--in_drc}, @code{--dir_in}, @code{--input})
 Directory containing all monthly mean files to read as input to the
-climatology.  
+climatology.
+The use of @var{drc_in} is mandatory in climate generation mode but is 
+optional in timeseries reshaping mode.
+In timeseries reshaping mode, @command{ncclimo} uses all netCDF files
+(meaning files with suffixes @code{.nc}, @code{.nc3}, @code{.nc4},
+@code{.cdf}, @code{.hdf}, @code{.he5}, or @code{.h5}) in @var{drc_in} to 
+create the list of input files when no list is provided through
+@code{stdin} or as positional arguments to the command-line. 
+@cindex @code{-j @var{job_nbr}}
+@cindex @var{job_nbr}
+@cindex @code{--job_nbr}
+@cindex @code{--job_number}
+@cindex @code{--job_number}
+@cindex @code{--jobs}
+@item -j @var{job_nbr} (@code{--job_nbr}, @code{--job_number}, @code{--jobs})
+Specifies the number of simultaneous subsetting processes to spawn  
+during parallel execution for both Background and @acronym{MPI} modes. 
+This applies to timeseries reshaping mode only, and has no effect in 
+climatology generation mode.
+In both parallel modes @command{ncclimo} spawns processes in batches 
+of @var{job_nbr} jobs, then waits for those processes to complete.
+Once a batch finishes, @command{ncclimo} spawns the next batch.
+In Background mode, all jobs are spawned to the local node.
+In @acronym{MPI} mode, all jobs are spawned in round-robin fashion
+to all available nodes until @var{job_nbr} jobs are running.
+
+If subsetting consumes so much @acronym{RAM} (e.g., because
+variables are large and/or the number of threads is large) that a
+single node can perform only one subsetting job at a time, then a
+reasonable value for @var{job_nbr} is the number of nodes,
+@var{node_nbr}. 
+Often, however, nodes can usually subset (and then regrid, if requested) 
+multiple variables simultaneously.
+
+By default @math{@var{job_nbr} = 2} in Background mode, and
+@math{@var{job_nbr} = @var{node_nbr}} in @acronym{MPI} mode.
+This helps prevent users from overloading nodes with too many jobs.
+Subject to the availability of adequate @acronym{RAM},
+expand the number of jobs per node by increasing @var{job_nbr}
+until, ideally, each core on the node is used. 
+
+The main throughput bottleneck in timeseries reshaping mode is I/O. 
+It is possible that each node can write to only one file at a time,
+in which case increasing @var{job_nbr} may have little effect.
+Regridding requires math that can relieve some I/O contention and
+allows for some throughput gains with increasing @var{job_nbr}.
+In general, though, increasing @var{job_nbr} is expected to improve
+throughput much more in @command{ncremap} than in @command{ncclimo}. 
+
 @cindex @code{-l}
-@item -l 
-This switch (which takes no option) turns-off the default linking of
-@acronym{ACME}-climo to @acronym{AMWG}-climo filenames.  
+@cindex @code{--lnk_flg}
+@cindex @code{--link_flag}
+@cindex @code{--no_amwg_links}
+@item -l (@code{--lnk_flg}, @code{--link_flag}, @code{--no_amwg_links})
+This switch (which takes no argument) turns-off the default linking of
+@acronym{ACME}-climo to @acronym{AMWG}-climo filenames.   
 @acronym{AMWG} omits the @acronym{YYYYMM} components of climo filenames,
 resulting in shorter names.
 By default @command{ncclimo} symbolically links the full
@@ -16671,25 +16999,50 @@ Use this switch to turn-off that linking and reduce filename
 proliferation if you do not need @acronym{AMWG} filenames.
 @cindex @code{-m @var{mdl_nm}}
 @cindex @var{mdl_nm}
-@item -m @var{mdl_nm}
+@cindex @code{--model_name}
+@cindex @code{--model}
+@cindex @code{--mdl_nm}
+@item -m @var{mdl_nm} (@code{--mdl_nm}, @code{--model_name}, @code{--model})
 Model name (as embedded in monthly input filenames). 
 Default is @samp{cam}. Other options are @samp{clm2}, @samp{ocn},
 @samp{ice}, @samp{cism}, @samp{cice}, @samp{pop}. 
+@cindex @code{-n @var{nco_opt}}
+@cindex @var{nco_opt}
+@cindex @code{--nco_opt}
+@cindex @code{--nco_options}
+@cindex @code{--nco}
+@item -n @var{nco_opt} (@code{nco_opt}, @code{nco}, @code{nco_options})
+Specifies a string of options to pass-through unaltered to
+@command{ncks}. 
+@var{nco_opt} defaults to @samp{-O --no_tmp_fl}.
 @cindex @code{-O @var{drc_rgr}}
 @cindex @var{drc_rgr}
-@item -O @var{drc_rgr}
+@cindex @code{--drc_rgr}
+@cindex @code{--rgr_drc}
+@cindex @code{--dir_rgr}
+@cindex @code{--regrid}
+@item -O @var{drc_rgr} (@code{--drc_rgr}, @code{--rgr_drc}, @code{--dir_rgr}, @code{--regrid})
 Directory to hold regridded climo files.
 Regridded climos are placed in @var{drc_out} unless a separate
 directory for them is specified with @samp{-O} (NB: capital ``O''). 
 @cindex @code{-o @var{drc_out}}
 @cindex @var{drc_out}
-@item -o @var{drc_out}
+@cindex @code{--drc_out}
+@cindex @code{--out_drc}
+@cindex @code{--dir_out}
+@cindex @code{--output}
+@item -o @var{drc_out} (@code{--drc_out}, @code{--out_drc}, @code{--dir_out}, @code{--output})
 Directory to hold computed (output) native grid climo files.
 Regridded climos are also placed here unless a separate directory
 for them is specified with @samp{-O} (NB: capital ``O''). 
 @cindex @code{-p @var{par_typ}}
 @cindex @var{par_typ}
-@item -p @var{par_typ}
+@cindex @code{--par_typ}
+@cindex @code{--par_md}
+@cindex @code{--parallel_type}
+@cindex @code{--parallel_mode}
+@cindex @code{--parallel}
+@item -p @var{par_typ} (@code{--par_typ}, @code{--par_md}, @code{--parallel_type}, @code{--parallel_mode}, @code{--parallel})
 Specifies the parallelism mode desired.
 The options are serial mode (@samp{-p nil} or @samp{-p serial}), 
 background mode parallelism (@samp{-p bck}), and @acronym{MPI}
@@ -16698,9 +17051,20 @@ The default is background-mode parallelism.
 The default @var{par_typ} is @samp{bck}, which means @command{ncclimo} 
 runs spawns up to twelve (one for each month) parallel processes at a time.
 See discussion below under Memory Considerations.
+@cindex @code{-R @var{rgr_opt}}
+@cindex @var{rgr_opt}
+@cindex @code{--rgr_opt}
+@cindex @code{--regrid_options}
+@item -R @var{rgr_opt} (@code{rgr_opt}, @code{regrid_options})
+Specifies a string of options to pass-through unaltered to
+@command{ncks}. 
+@var{rgr_opt} defaults to @samp{-O --no_tmp_fl}.
 @cindex @code{-r @var{rgr_map}}
 @cindex @var{rgr_map}
-@item -r @var{rgr_map}
+@cindex @code{--rgr_map}
+@cindex @code{--regrid_map}
+@cindex @code{--map}
+@item -r @var{rgr_map} (@code{--rgr_map}, @code{--regrid_map}, @code{--map})
 Regridding map.
 Unless @samp{-r} is specified @command{ncclimo} produces only a 
 climatology on the native grid of the input datasets.
@@ -16714,16 +17078,45 @@ arguments to the @samp{-R} switch.
 See below the discussion on regridding.
 @cindex @code{-s @var{srt_yr}}
 @cindex @var{srt_yr}
-@item -s @var{srt_yr}
+@cindex @code{--srt_yr}
+@cindex @code{--start_year}
+@cindex @code{--year_start}
+@cindex @code{--start}
+@item -s @var{srt_yr} (@code{--srt_yr}, @code{--yr_srt}, @code{--start_year}, @code{--year_start}, @code{--start})
 Start year (example: 1980). 
 Unless the option @samp{-a sdd} is specified, the first month used will
 be December of the year before the start year (to allow for contiguous
 @acronym{DJF} climos).   
 If @samp{-a sdd} is specified, the first month used is January of
 the specified start year. 
+@cindex @code{--stdin}
+@cindex @code{--inp_std}
+@cindex @code{--std_flg}
+@cindex @code{--redirect}
+@cindex @code{--standard_input}
+@item --stdin (@code{--stdin}, @code{--inp_std}, @code{--std_flg}, @code{--redirect}, @code{--standard_input})
+This switch (which takes no argument) explicitly indicates that 
+input file lists are provided via @code{stdin}, i.e., standard input.
+In interactive environments, @command{ncclimo} can automatically 
+(i.e., without any switch) detect whether input is provided via
+@code{stdin}. 
+This switch is never required for jobs run in an interactive shell. 
+However, non-interactive batch jobs (such as those submitted to the 
+@acronym{SLURM} and @acronym{PBS} schedulers) make it impossible to 
+unambiguously determine whether input has been provided via
+@code{stdin}. 
+Specifically, the @samp{--stdin} switch @emph{must} be used in
+non-interactive batch jobs on @acronym{PBS} when the input files
+are piped to @code{stdin}, and on @acronym{SLURM} when the input files 
+are redirected from a file to @code{stdin}.
+Using this switch in any other context (e.g., interactive shells) is
+optional. 
 @cindex @code{-t @var{thr_nbr}}
 @cindex @var{thr_nbr}
-@item -t @var{thr_nbr}
+@cindex @code{--thr_nbr}
+@cindex @code{--threads}
+@cindex @code{--thread_number}
+@item -t @var{thr_nbr} (@code{--thr_nbr}, @code{--threads}, @code{--thread_number})
 Specifies the number of threads used per regridding process
 (@pxref{OpenMP Threading}).
 The @acronym{NCO} regridder scales well to 8--16 threads.
@@ -16731,28 +17124,109 @@ However, regridding with the maximum number of threads can interfere
 with climatology generation in parallel climatology mode (i.e., when
 @math{@var{par_typ}} = @code{mpi} or @code{bck}). 
 Hence @command{ncclimo} defaults to @var{thr_nbr}=2.
+@cindex @code{--tpd_out @var{tpd_out}}
+@cindex @var{tpd_out}
+@cindex @code{--tpd_out}
+@cindex @code{--tpd}
+@item --tpd_out @var{tpd_out} (@code{--tpd_out}, @code{--tpd}, @code{--timesteps_per_day})
+The number of timesteps-per-day in output created by @command{ncclimo}'s
+climatology generator in daily average mode.
+The climatology output from input files at daily or sub-daily resolution
+is, by default, averaged to daily resolution, i.e., @var{tpd_out}=1. 
+If the number of timesteps per day in each input file is @var{tpd_in},
+then the user may select any value of @var{tpd_out} that is smaller 
+than and integrally divides @var{tpd_in}.
+For example, an input timeseries with @var{tpd_in}=8 (i.e., 3-hourly
+resolution), can be used to produce climatological output at 3, 6,
+or 12-hourly resolution by setting @var{tpd_out} to 8, 4, or 2,
+respectively. 
+This option only takes effect in daily-average climatology mode.
 @cindex @code{-v @var{var_lst}}
-@cindex @var{var_lsty}
-@item -v @var{var_lst}
-Variables to subset.
+@cindex @var{var_lst}
+@cindex @code{--var_lst}
+@cindex @code{--var}
+@cindex @code{--vars}
+@cindex @code{--variables}
+@cindex @code{--variable_list}
+@item -v @var{var_lst} (@code{--var_lst}, @code{--var}, @code{--vars}, @code{--variables}, @code{--variable_list})
+Variables to subset or split.
 Same behavior as @ref{Subsetting Files}.
+The use of @var{var_lst} is optional in climate generation mode but is 
+mandatory in timeseries reshaping mode (to prevent inadvertently copying 
+the results of an entire model simulation).
 Regular expressions are allowed so, e.g., @samp{PREC.?} extracts
 the variables @samp{PRECC,PRECL,PRECSC,PRECSL} if present.
+Note that in reshaping mode all matches to a regular expression are
+placed in the same output file.
+@cindex @code{--ypf_max @var{ypf_max}}
+@cindex @var{ypf_max}
+@cindex @code{--ypf_max}
+@item --ypf_max @var{ypf_max} (@code{--ypf}, @code{--years}, @code{--years_per_file})
+The maximum number of years-per-file output by @command{ncclimo}'s
+splitting operation. 
+When @command{ncclimo} subsets and splits a collection of input files
+spanning a timerseries, it places each subset variable in its own output
+file. 
+The maximum length, in years, of each output file is @var{ypf_max},
+which defaults to @var{ypf_max}=50.
+If an input timeseries spans @w{237 years} and @var{ypf_max}=50, then
+@command{ncclimo} will generate four output files of length @w{50 years}  
+and one output file of length @w{37 years}.
+This option only takes effect in timeseries reshaping mode.
 @end table
 @noindent
 
+@unnumberedsubsec Timeseries Reshaping mode, aka Splitting
+This section of the @command{ncclimo} documentation applies only to
+resphaping mode, whereas all subsequent sections apply to climatology
+generation mode. 
+As mentioned above, 
+@command{ncclimo} automatically switches to timeseries reshaping mode 
+if it receives a list of files through @code{stdin}, or, alternatively,
+placed as positional arguments (after the last command-line option), or
+if neither of these is done and no @var{caseid} is specified, in which
+case it assumes all @code{*.nc} files in @var{drc_in} constitute the
+input file list. 
+These examples invoke reshaping mode in the three possible ways:
+@example
+# Pipe list to stdin
+cd $drc_in;ls *mdl*000[1-9]*.nc | ncclimo -v T,Q,RH -s 1 -e 9 -o $drc_out
+# Redirect list from file to stdin
+cd $drc_in;ls *mdl*000[1-9]*.nc > foo;ncclimo -v T,Q,RH -s 1 -e 9 -o $drc_out < foo
+# List as positional arguments
+ncclimo -v T,Q,RH -s 1 -e 9 -o $drc_out $drc_in/*mdl*000[1-9]*.nc
+# Glob directory
+ncclimo -v T,Q,RH -s 1 -e 9 -i $drc_in -o $drc_out
+@end example
+Assuming each input file is a monthly average comprising the variables
+@var{T}, @var{Q}, and @var{RH}, then the output will be files
+@file{T_000101_000912.nc}, 
+@file{Q_000101_000912.nc}, and
+@file{RH_000101_000912.nc}. 
+@command{ncclimo} @emph{reshapes} the input so that the outputs are
+continuous timeseries of each variable taken from all input files. 
+When necessary, the output is split into segments each containing no
+more than @var{ypf_max} (default 50) years of input, i.e., 
+@file{T_000101_005012.nc}, @file{T_005101_009912.nc},
+@file{T_010001_014912.nc}, etc.
+
 @unnumberedsubsec @acronym{MPAS-O/I} considerations
 @acronym{MPAS} ocean and ice models currently have their own
-(non-@acronym{CESM}'ish) naming convention for monthly output files.  
-@command{ncclimo} recognizes input files as being from @acronym{MPAS}
-when invoked with @samp{-c hist} and @samp{-m ocn} or @samp{-m ice}. 
-Use the optional @option{-f @var{fml_nm}} switch to replace @code{hist}
-with a more descriptive simulation name for the output. 
-Invocation looks like
+(non-CESM'ish) naming convention that guarantees output files have the
+same names for all simulations. 
+By default @command{ncclimo} analyzes the ``timeSeriesStatsMonthly''
+analysis member output (tell us if you want options for other analysis
+members). 
+@command{ncclimo} recognizes input files as being
+@acronym{MPAS}-style when invoked with @samp{-m mpaso} or 
+@samp{-m mpascice} like this: 
 @example
-ncclimo -c hist -m ocn -s 1980 -e 1983 -i $drc_in -o $drc_out # MPAS-O
-ncclimo -c hist -m ice -s 1980 -e 1983 -i $drc_in -o $drc_out # MPAS-I
+@verbatim
+ncclimo -m mpaso    -s 1980 -e 1983 -i $drc_in -o $drc_out # MPAS-O
+ncclimo -m mpascice -s 1980 -e 1983 -i $drc_in -o $drc_out # MPAS-I
+@end verbatim
 @end example
+
 @acronym{MPAS} climos are unaware of missing values until/unless
 input files are ``fixed''. 
 We recommend that simulation producers annotate all floating point
@@ -16774,7 +17248,28 @@ although under-the-hood @command{ncclimo} does do some special
 pre-processing (dimension permutation, metadata annotation) for
 @acronym{MPAS}.  
 A five-year oEC60to30 @acronym{MPAS-O} climo with regridding to T62
-takes < 10 minutes on @file{rhea}. 
+takes less than @w{10 minutes} on the machine @file{rhea}. 
+
+@unnumberedsubsec Annual climos
+Not all model or observed history files are created as monthly means. 
+To create a climatological annual mean from a series of annual mean
+inputs, select @command{ncclimo}'s annual climatology mode with 
+the @samp{-C ann} option:  
+@example
+@verbatim
+ncclimo -C ann -m cism -h h -c caseid -s 1851 -e 1900 -i drc_in -o drc_out
+@end verbatim
+@end example
+The options @samp{-m mdl_nm} and @samp{-h hst_nm} (that default to 
+@code{cam} and @code{h0}, respectively) tell @command{ncclimo} how to
+construct the input filenames. 
+The above formula names the files
+@code{caseid.cism.h.1851-01-01-00000.nc},
+@code{caseid.cism.h.1852-01-01-00000.nc}, 
+and so on. 
+Annual climatology mode produces a single output file (or two if
+regridding is selected), and in all other respects behaves the same as
+monthly climatology mode.  
 
 @unnumberedsubsec Regridding Climos and Other Files
 @command{ncclimo} will (optionally) regrid during climatology generation 
@@ -16828,77 +17323,123 @@ ls drc_out/*climo* | ncremap -m map.nc -O drc_rgr
 See @ref{ncremap netCDF Remapper} for more details (including
 @acronym{MPAS}!).  
  
-@cindex incremental climatologies (climos)
+@cindex incremental climatology (climo)
+@cindex binary climatology (climo)
 @cindex extended climatology (climo)
 @cindex previous climatology (climo)
 @cindex current climatology (climo)
-@unnumberedsubsec Incremental Climatologies
-As of @acronym{NCO} version 4.6.1 (released August, 2016),
-@command{ncclimo} supports generating climatologies incrementally,
-rather as monolithic products generated from the raw monthly data.
-The so-called ``extended climo'' is computed as a weighted mean of two 
-consecutive shorter climatologies, called the ``previous'' and
-``current'' climos.
-The extended climo is computed from the earlier climos, not the original
-monthly input that generated them.
-This permits ongoing simulations (or lengthy observations) to be
-analyzed in shorter segments that are incrementaly combined, instead of 
-requiring all raw, native-grid data to be simultaneously accessible.
+@unnumberedsubsec Extended Climatologies
+@command{ncclimo} supports two methods for generating extended
+climatologies: Binary and Incremental.
+Both methods lengthen a climatology without requiring access to 
+all the raw monthly data spanning the time period.
+The binary method combines, with appropriate weighting, two previously
+computed climatologies into a single climatology. 
+No raw monthly data are employed.
+The incremental method computes a climatology from raw monthly data
+and (with appropriate weighting) combines that with a previously
+computed climatology that ends the month prior to raw data.
+The incremental method was introduced in @acronym{NCO} version 4.6.1
+(released August, 2016), and the binary method was introduced in
+@acronym{NCO} version 4.6.3 (released December, 2016).
 
-Without incremental climatology capability, generating a one-hundred
+@c fxm edit to distinguish extended from binary
+Both methods, binary and incremental, compute the so-called ``extended
+climo'' as a weighted mean of two shorter climatologies,
+called the ``previous'' and ``current'' climos.
+The incremental method uses the original monthly input to compute the
+curent climo, which must immediately follow in time the previous climo 
+which has been pre-computed.
+The binary method use pre-computed climos for both the previous and
+current climos, and these climos need not be sequential nor
+chronological. 
+Both previous and current climos for both binary and incremental methods
+may be of any length (in years); their weights will be automatically
+adjusted in computing the extended climo.
+
+The use of pre-computed climos permits ongoing simulations (or lengthy
+observations) to be analyzed in shorter segments combined piecemeal,
+instead of requiring all raw, native-grid data to be simultaneously
+accessible.
+Without extended climatology capability, generating a one-hundred
 year climatology requires that one-hundred years of monthly data be
 available on disk. 
 Disk-space requirements for large datasets may make this untenable.
-The incremental climo feature permits this one-hundred year climo to be
+Extended climo methods permits a one-hundred year climo to be
 generated as the weighted mean of, say, the current ten year climatology
-(weighted at 10%) combined with the climatology of the previous 90-years
-(weighted at 90%). 
-The 90-year climo could itself have been generated incrementally, and so
-on. 
+(weighted at 10%) combined with the pre-computed climatology of the
+previous 90-years (weighted at 90%).
+The 90-year climo could itself have been generated incrementally or
+binary-wise, and so on. 
 Climatologies occupy at most 17/(12@var{N}) the amount of space
-of @var{N} years of monthly data, so incremental climatologies
-vastly reduce disk-space requirements.
+of @var{N} years of monthly data, so the extended methods vastly
+reduce disk-space requirements. 
 
-@command{ncclimo} first generates the current climatology from the
-current monthly input files then, if requested (with @samp{-S}), weights 
-that current climo with the previous climo to produce the extended
-climo.   
+Incremental mode is selected by specifying @samp{-S}, the start year
+of the pre-computed, previous climo.
 The argument to @samp{-S}) is the previous climo start year.
 That, together with the current climo end year, determines the extended
 climo range.
 @command{ncclimo} assumes that the previous climo ends the month before
 the current climo begins.
-Most users will run incremental clmos the same way they run regular climos
+In incremental mode, @command{ncclimo} first generates the current
+climatology from the current monthly input files then weights  
+that current climo with the previous climo to produce the extended
+climo.
+
+Binary mode is selected by specifying both @samp{-S} and @samp{-E}, the 
+end year of the pre-computed, previous climo.
+In binary mode, the previous and current climatologies can be of any
+length, and from any time-period, even overlapping.
+Most users will run extended clmos the same way they run regular climos
 in terms of parallelism and regridding, although that is not required.  
 Both climos must treat Decembers same way (or else previous climo files
 will not be found), and if subsetting (i.e., @samp{-v var_lst}) is
 performed, then the subset must remain the same, and if nicknames (i.e.,
 @samp{-f fml_nm}) are employed, then the nickname must remain the same. 
 
-As of 20160621, the @code{climatology_bounds} attributes of the extended
+As of 20161129, the @code{climatology_bounds} attributes of extended
 climo are incorrect. 
 This is a work in progress...
 
 Options:
 @table @option
+@cindex @code{-E @var{yr_end_prv}}
+@cindex @var{yr_end_prv}
+@cindex @code{--yr_end_prv}
+@cindex @code{--prv_yr_end}
+@cindex @code{--previous_end}
+@item -E @var{yr_end_prv} (@code{--yr_end_prv}, @code{--prv_yr_end}, @code{--previous_end})
+The ending year of the previous climo. 
+This argument is required to trigger binary climatologies,
+and should not be used for incremental climatologies.
 @cindex @code{-S @var{yr_srt_prv}}
 @cindex @var{yr_srt_prv}
-@item -S @var{yr_srt_prv}
+@cindex @code{--yr_srt_prv}
+@cindex @code{--prv_yr_srt}
+@cindex @code{--previous_start}
+@item -S @var{yr_srt_prv} (@code{--yr_srt_prv}, @code{--prv_yr_srt}, @code{--previous_start})
 The starting year of the previous climo. 
-This is the only mandatory argument.
-It is required to trigger incremental climatologies.
+This argument is required to trigger incremental climatologies,
+and is also mandatory for binary climatologies.
 @cindex @code{-X @var{drc_xtn}}
 @cindex @var{drc_xtn}
-@item -X @var{drc_xtn}
+@cindex @code{--drc_xtn}
+@cindex @code{--xtn_drc}
+@cindex @code{--extended}
+@item -X @var{drc_xtn} (@code{--drc_xtn}, @code{--xtn_drc}, @code{--extended})
 Directory in which the extended native grid climo files will be stored
-for an incremental climatology.
+for an extended climatology.
 Default value is @var{drc_prv}. 
 Unless a separate directory is specified (with @samp{-Y}) for the
 extended climo on the analysis grid, it will be stored in @var{drc_xtn},
 too.  
 @cindex @code{-x @var{drc_prv}}
 @cindex @var{drc_prv}
-@item -x @var{drc_prv}
+@cindex @code{--drc_prv}
+@cindex @code{--prv_drc}
+@cindex @code{--previous}
+@item -x @var{drc_prv} (@code{--drc_prv}, @code{--prv_drc}, @code{--previous})
 Directory in which the previous native grid climo files reside for an
 incremental climatology. 
 Default value is @var{drc_out}. 
@@ -16907,21 +17448,29 @@ previous climo on the analysis grid, it is assumed to reside in
 @var{drc_prv}, too. 
 @cindex @code{-Y @var{drc_rgr_xtn}}
 @cindex @var{drc_rgr_xtn}
-@item -Y @var{drc_rgr_xtn}
+@cindex @code{--drc_rgr_xtn}
+@cindex @code{--drc_xtn_rgr}
+@cindex @code{--extended_regridded}
+@cindex @code{--regridded_extended}
+@item -Y @var{drc_rgr_xtn} (@code{--drc_rgr_xtn}, @code{--drc_xtn_rgr}, @code{--extended_regridded}, @code{--regridded_extended})
 Directory in which the extended analysis grid climo files will be
 stored in an incremental climatology. 
 Default value is @var{drc_xtn}.
 @cindex @code{-y @var{drc_rgr_prv}}
 @cindex @var{drc_rgr_prv}
-@item -y @var{drc_rgr_prv}
+@cindex @code{--drc_rgr_prv}
+@cindex @code{--drc_prv_rgr}
+@cindex @code{--regridded_previous}
+@cindex @code{--previous_regridded}
+@item -y @var{drc_rgr_prv} (@code{--drc_rgr_prv}, @code{--drc_prv_rgr}, @code{--regridded_previous}, @code{--previous_regridded})
 Directory in which the previous climo on the analysis grid resides in an
 incremental climatology. 
 Default value is @var{drc_prv}.
 @end table
 @noindent
 
-Incremental climatologies can be as simple as providing a start year for
-the previous climo, e.g., 
+Incremental method climatologies can be as simple as providing a start
+year for the previous climo, e.g., 
 @example
 ncclimo -v FSNT,AODVIS -c caseid -s 1980 -e 1981 -i raw -o clm -r map.nc
 ncclimo -v FSNT,AODVIS -c caseid -s 1982 -e 1983 -i raw -o clm -r map.nc -S 1980
@@ -16965,6 +17514,19 @@ ncclimo -v FSNT,AODVIS -c caseid -s 1982 -e 1983 -i raw -o clm -O rgr -r map.nc 
         -S 1980 -x prv -X xtn -y rgr_prv -Y rgr_xtn
 @end example
 
+@command{ncclimo} does not know whether a pre-computed climo is on a
+native grid or an analysis grid, i.e., whether it has been regridded.
+In binary mode, @command{ncclimo} may be pointed to two pre-computed
+native grid climatologies, or to two pre-computed analysis grid
+climatologies.
+In other words, it is not necessary to maintain native grid
+climatologies for use in creating extended climatologies.
+It is sufficient to generate climatologies on the analysis grid, and
+feed them to @command{ncclimo} in binary mode, without a mapping file:
+@example
+ncclimo -c caseid -S 1980 -E 1981 -x prv -s 1980 -e 1981 -i crr -o clm 
+@end example
+
 @unnumberedsubsec Coupled Runs
 @command{ncclimo} works on all @acronym{ACME} and @acronym{CESM} models. 
 It can simultaneously generate climatologies for a coupled run, where
@@ -16983,8 +17545,8 @@ map_ocn=${DATA}/maps/map_oEC60to30_to_t62_bilin.20160301.nc
 map_ice=$map_ocn
 ncclimo -p mpi -c $caseid -m cam  -s 2 -e 5 -i $drc_in -r $map_atm -o $drc_out/atm
 ncclimo        -c $caseid -m clm2 -s 2 -e 5 -i $drc_in -r $map_lnd -o $drc_out/lnd
-ncclimo -p mpi -c hist    -m ocn  -s 2 -e 5 -i $drc_in -r $map_ocn -o $drc_out/ocn 
-ncclimo        -c hist    -m ice  -s 2 -e 5 -i $drc_in -r $map_ice -o $drc_out/ice
+ncclimo -p mpi -m mpaso           -s 2 -e 5 -i $drc_in -r $map_ocn -o $drc_out/ocn 
+ncclimo        -m mpascice        -s 2 -e 5 -i $drc_in -r $map_ice -o $drc_out/ice
 @end verbatim
 @end example
 Atmosphere and ocean model output is typically larger than land and ice
@@ -17420,236 +17982,9 @@ Moreover, the climatologies can be generated in parallel.
 
 @page
 @html
-<a name="nces"></a> <!-- http://nco.sf.net/nco.html#nces -->
-<a name="ncea"></a> <!-- http://nco.sf.net/nco.html#ncea -->
-@end html
-@node nces netCDF Ensemble Statistics, ncecat netCDF Ensemble Concatenator, ncclimo netCDF Climatology Generator, Reference Manual
-@section @command{nces} netCDF Ensemble Statistics
-@cindex averaging data
-@cindex ensemble average
-@findex nces
-
-@noindent
-SYNTAX
-@example
-nces [-3] [-4] [-6] [-7] [-A] [-C] [-c]
-[--cnk_byt @var{sz_byt}] [--cnk_dmn @var{nm},@var{sz_lmn}] [--cnk_map @var{map}]
-[--cnk_min @var{sz_byt}] [--cnk_plc @var{plc}] [--cnk_scl @var{sz_lmn}]
-[-D @var{dbg}] [-d @var{dim},[@var{min}][,[@var{max}][,[@var{stride}]]] [-F]
-[-G @var{gpe_dsc}] [-g @var{grp}[,@dots{}]] [--glb ...] [-h] [--hdf] [--hdr_pad @var{nbr}] 
-[-L @var{dfl_lvl}] [-l @var{path}] [-n @var{loop}] [--no_tmp_fl] [--nsm_fl|grp] [--nsm_sfx sfx]
-[-O] [-o @var{output-file}] [-p @var{path}] [--ppc ...] [-R] [-r] [--ram_all] [--rth_dbl|flt]
-[-t @var{thr_nbr}] [--unn] [-v @var{var}[,@dots{}]] [-X ...] [-x] [-y @var{op_typ}]
-[@var{input-files}] [@var{output-file}]
-@end example
-
-@noindent
-DESCRIPTION
-
-@command{nces} performs gridpoint statistics (including, but not limited
-to, averages) on variables across an arbitrary number (an
-@dfn{ensemble}) of @var{input-files} and/or of input groups within each
-file. 
-Each file (or group) receives an equal weight.
-@command{nces} was formerly (until @acronym{NCO} version 4.3.9,
-released December, 2013) known as @command{ncea} (netCDF Ensemble
-Averager)@footnote{
-The old ncea command was deprecated in @acronym{NCO} version 4.3.9,  
-released December, 2013.
-@acronym{NCO} will attempt to maintain back-compatibility and work
-as expected with invocations of @command{ncea} for as long as possible.
-Please replace @command{ncea} by @command{nces} in all future work.}.
-@cindex ensemble
-For example, @command{nces} will average a set of files or groups,
-weighting each file or group evenly. 
-This is distinct from @command{ncra}, which performs statistics only
-over the record dimension(s) (e.g., @var{time}), and weights each record 
-in each record dimension evenly.
-
-The file or group is the logical unit of organization for the results of
-many scientific studies.
-Often one wishes to generate a file or group which is the statistical
-product (e.g., average) of many separate files or groups. 
-This may be to reduce statistical noise by combining the results of a
-large number of experiments, or it may simply be a step in a procedure 
-whose goal is to compute anomalies from a mean state. 
-In any case, when one desires to generate a file whose statistical
-properties are equally influenced by all the inputs, then @command{nces}
-is the operator to use. 
-
-Variables in the @var{output-file} are the same size as the variable
-hyperslab in each input file or group, and each input file or group
-must be the same size after hyperslabbing
-@footnote{As of @acronym{NCO} version 4.4.2 (released February, 2014)
-@command{nces} allows hyperslabs in all dimensions so long as the
-hyperslabs resolve to the same size. 
-The fixed (i.e., non-record) dimensions should be the same size in
-all ensemble members both before and after hyperslabbing, although
-the hyperslabs may (and usually do) change the size of the dimensions
-from the input to the output files.
-Prior to this, @command{nces} was only guaranteed to work on hyperslabs
-in the record dimension that resolved to the same size.}
-@cindex record dimension
-@cindex hyperslab
-@command{nces} does allow files to differ in the record dimension size
-if the requested record hyperslab (@pxref{Hyperslabs}) resolves to the
-same size for all files.  
-@command{nces} recomputes the record dimension hyperslab limits for
-each input file so that coordinate limits may be used to select equal
-length timeseries from unequal length files.
-@cindex @acronym{IPCC}
-@cindex @acronym{AR4}
-@cindex @acronym{CMIP}
-This simplifies analysis of unequal length timeseries from simulation
-ensembles (e.g., the @acronym{CMIP3} @acronym{IPCC} @acronym{AR4}
-archive).   
-
-@html
-<a name="nsm_fl"></a> <!-- http://nco.sf.net/nco.html#nsm_fl -->
-<a name="nsm_grp"></a> <!-- http://nco.sf.net/nco.html#nsm_grp -->
-<a name="nsm_sfx"></a> <!-- http://nco.sf.net/nco.html#nsm_sfx -->
-@end html
-@cindex @code{--nsm_fl}
-@cindex @code{--nsm_grp}
-@cindex @code{--ensemble_file}
-@cindex @code{--ensemble_group}
-@cindex @code{--nsm_sfx}
-@cindex @code{--ensemble_suffix}
-@command{nces} works in one of two modes, file ensembles 
-or group ensembles.
-File ensembles are the default (equivalent to the old @command{ncea}) 
-and may also be explicitly specified by the @samp{--nsm_fl} or
-@samp{--ensemble_file} switches.
-To perform statistics on ensembles of groups, a newer feature, use
-@samp{--nsm_grp} or @samp{--ensemble_group}.
-Members of a group ensemble are groups that share the same structure,
-parent group, and nesting level. 
-Members must be @dfn{leaf groups}, i.e., not contain any sub-groups.
-Their contents usually have different values because they are
-realizations of replicated experiments.  
-In group ensemble mode @command{nces} computes the statistics across 
-the ensemble, which may span multiple input files. 
-Files may contain members of multiple, distinct ensembles. 
-However, all ensembles must have at least one member in the first input 
-file. 
-Group ensembles behave as an unlimited dimension of datasets: 
-they may contain an arbitrary and extensible number of realizations in
-each file, and may be composed from multiple files. 
-
-Output statistics in group ensemble mode are stored in the parent group
-by default. 
-If the ensemble members are @file{/cesm/cesm_01} and
-@file{/cesm/cesm_02}, then the computed statistic will be in
-@file{/cesm} in the output file.   
-The @samp{--nsm_sfx} option instructs nces to instead store output in  
-a new child group of the parent created by attaching the suffix
-to the parent group's name, e.g., @samp{--nsm_sfx='_avg'} would store
-results in the output group @file{/cesm/cesm_avg}:
-@example
-nces --nsm_grp                  mdl1.nc mdl2.nc mdl3.nc out.nc
-nces --nsm_grp --nsm_sfx='_avg' mdl1.nc mdl2.nc mdl3.nc out.nc
-@end example
-
-@xref{Statistics vs. Concatenation}, for a description of the
-distinctions between the statistics tools and concatenators. 
-@cindex multi-file operators
-@cindex standard input
-@cindex @code{stdin}
-As a multi-file operator, @command{nces} will read the list of
-@var{input-files} from @code{stdin} if they are not specified 
-as positional arguments on the command line 
-(@pxref{Large Numbers of Files}).
-
-Like @command{ncra} and @command{ncwa}, @command{nces} treats coordinate
-variables as a special case.
-Coordinate variables are assumed to be the same in all ensemble members,
-so @command{nces} simply copies the coordinate variables that appear in 
-ensemble members directly to the output file.
-This has the same effect as averaging the coordinate variable across the
-ensemble, yet does not incur the time- or precision- penalties of
-actually averaging them.
-@command{ncra} and @command{ncwa} allow coordinate variables to be
-processed only by the linear average operation, regardless of the
-arithmetic operation type performed on the non-coordinate variables
-(@pxref{Operation Types}). 
-Thus it can be said that the three operators (@command{ncra},
-@command{ncwa}, and @command{nces}) all average coordinate variables
-(even though @command{nces} simply copies them).
-All other requested arithmetic operations (e.g., maximization,
-square-root, RMS) are applied only to non-coordinate variables.
-In these cases the linear average of the coordinate variable will be
-returned.
-
-@noindent
-@html
-<a name="xmp_ncea"></a> <!-- http://nco.sf.net/nco.html#xmp_ncea -->
-<a name="xmp_nces"></a> <!-- http://nco.sf.net/nco.html#xmp_nces -->
-@end html
-EXAMPLES
-
-Consider a model experiment which generated five realizations of one
-year of data, say 1985.
-Imagine that the experimenter slightly perturbs the initial conditions
-of the problem before generating each new solution.   
-Assume each file contains all twelve months (a seasonal cycle) of data
-and we want to produce a single file containing the ensemble average
-(mean) seasonal cycle.  
-Here the numeric filename suffix denotes the realization number
-(@emph{not} the month):
-@example
-nces 85_01.nc 85_02.nc 85_03.nc 85_04.nc 85_05.nc 85.nc
-nces 85_0[1-5].nc 85.nc
-nces -n 5,2,1 85_01.nc 85.nc
-@end example
-@noindent
-These three commands produce identical answers.
-@xref{Specifying Input Files}, for an explanation of the distinctions
-between these methods.
-The output file, @file{85.nc}, is the same size as the inputs files.
-It contains 12 months of data (which might or might not be stored in the 
-record dimension, depending on the input files), but each value in the
-output file is the average of the five values in the input files.
-
-In the previous example, the user could have obtained the ensemble
-average values in a particular spatio-temporal region by adding a 
-hyperslab argument to the command, e.g.,
-@example
-nces -d time,0,2 -d lat,-23.5,23.5 85_??.nc 85.nc
-@end example
-@noindent
-In this case the output file would contain only three slices of data in
-the @var{time} dimension. 
-These three slices are the average of the first three slices from the
-input files.
-Additionally, only data inside the tropics is included.
-
-As of @acronym{NCO} version 4.3.9 (released December, 2013)
-@command{nces} also works with groups (rather than files) as the
-fundamental unit of the ensemble.
-Consider two ensembles, @code{/ecmwf} and @code{/cesm} stored across
-three input files @file{mdl1.nc}, @file{mdl2.nc}, and @file{mdl3.nc}.
-Ensemble members would be leaf groups with names like @code{/ecmwf/01},
-@code{/ecmwf/02} etc. and @code{/cesm/01}, @code{/cesm/02}, etc.
-These commands average both ensembles: 
-@example
-nces --nsm_grp mdl1.nc mdl2.nc mdl3.nc out.nc
-nces --nsm_grp --nsm_sfx='_min' --op_typ=min -n 3,1,1 mdl1.nc out.nc
-nces --nsm_grp -g cesm -v tas -d time,0,3 -n 3,1,1 mdl1.nc out.nc
-@end example
-The first command stores averages in the output groups @file{/cesm} and 
-@file{/ecmwf}, while the second stores minima in the output groups
-@file{/cesm/cesm_min} and @file{/ecmwf/ecmwf_min}:
-The third command demonstrates that sub-setting and hyperslabbing work
-as expected.
-Note that each input file may contain different numbers of members
-of each ensemble, as long as all distinct ensembles contain at least one
-member in the first file.
-
-@page
-@html
 <a name="ncecat"></a> <!-- http://nco.sf.net/nco.html#ncecat -->
 @end html
-@node ncecat netCDF Ensemble Concatenator, ncflint netCDF File Interpolator, nces netCDF Ensemble Statistics, Reference Manual
+@node ncecat netCDF Ensemble Concatenator, nces netCDF Ensemble Statistics, ncclimo netCDF Climatology Generator, Reference Manual
 @section @command{ncecat} netCDF Ensemble Concatenator
 @cindex concatenation
 @cindex ensemble concatenation
@@ -17663,7 +17998,8 @@ ncecat [-3] [-4] [-6] [-7] [-A] [-C] [-c]
 [--cnk_min @var{sz_byt}] [--cnk_plc @var{plc}] [--cnk_scl @var{sz_lmn}]
 [-D @var{dbg}] [-d @var{dim},[@var{min}][,[@var{max}][,[@var{stride}]]] [-F]
 [-G @var{gpe_dsc}] [-g @var{grp}[,@dots{}]] [--gag] [--glb ...] [-h] [--hdf] [--hdr_pad @var{nbr}]
-[-L @var{dfl_lvl}] [-l @var{path}] [-M] [--md5_digest] [--mrd] [-n @var{loop}] [--no_tmp_fl] 
+[-L @var{dfl_lvl}] [-l @var{path}] [-M] [--md5_digest] [--mrd] [-n @var{loop}]
+[--no_cll_msr] [--no_frm_trm] [--no_tmp_fl] 
 [-O] [-o @var{output-file}] [-p @var{path}] [--ppc ...] [-R] [-r] [--ram_all] 
 [-t @var{thr_nbr}] [-u @var{ulm_nm}] [--unn] [-v @var{var}[,@dots{}]] [-X ...] [-x] 
 [@var{input-files}] [@var{output-file}]
@@ -17913,9 +18249,237 @@ of changing variable dimensionality, including the record dimension.
 
 @page
 @html
+<a name="nces"></a> <!-- http://nco.sf.net/nco.html#nces -->
+<a name="ncea"></a> <!-- http://nco.sf.net/nco.html#ncea -->
+@end html
+@node nces netCDF Ensemble Statistics, ncflint netCDF File Interpolator, ncecat netCDF Ensemble Concatenator, Reference Manual
+@section @command{nces} netCDF Ensemble Statistics
+@cindex averaging data
+@cindex ensemble average
+@findex nces
+
+@noindent
+SYNTAX
+@example
+nces [-3] [-4] [-6] [-7] [-A] [-C] [-c]
+[--cnk_byt @var{sz_byt}] [--cnk_dmn @var{nm},@var{sz_lmn}] [--cnk_map @var{map}]
+[--cnk_min @var{sz_byt}] [--cnk_plc @var{plc}] [--cnk_scl @var{sz_lmn}]
+[-D @var{dbg}] [-d @var{dim},[@var{min}][,[@var{max}][,[@var{stride}]]] [-F]
+[-G @var{gpe_dsc}] [-g @var{grp}[,@dots{}]] [--glb ...] [-h] [--hdf] [--hdr_pad @var{nbr}] 
+[-L @var{dfl_lvl}] [-l @var{path}] [-n @var{loop}]
+[--no_cll_msr] [--no_frm_trm] [--no_tmp_fl] [--nsm_fl|grp] [--nsm_sfx sfx]
+[-O] [-o @var{output-file}] [-p @var{path}] [--ppc ...] [-R] [-r] [--ram_all] [--rth_dbl|flt]
+[-t @var{thr_nbr}] [--unn] [-v @var{var}[,@dots{}]] [-X ...] [-x] [-y @var{op_typ}]
+[@var{input-files}] [@var{output-file}]
+@end example
+
+@noindent
+DESCRIPTION
+
+@command{nces} performs gridpoint statistics (including, but not limited
+to, averages) on variables across an arbitrary number (an
+@dfn{ensemble}) of @var{input-files} and/or of input groups within each
+file. 
+Each file (or group) receives an equal weight.
+@command{nces} was formerly (until @acronym{NCO} version 4.3.9,
+released December, 2013) known as @command{ncea} (netCDF Ensemble
+Averager)@footnote{
+The old ncea command was deprecated in @acronym{NCO} version 4.3.9,  
+released December, 2013.
+@acronym{NCO} will attempt to maintain back-compatibility and work
+as expected with invocations of @command{ncea} for as long as possible.
+Please replace @command{ncea} by @command{nces} in all future work.}.
+@cindex ensemble
+For example, @command{nces} will average a set of files or groups,
+weighting each file or group evenly. 
+This is distinct from @command{ncra}, which performs statistics only
+over the record dimension(s) (e.g., @var{time}), and weights each record 
+in each record dimension evenly.
+
+The file or group is the logical unit of organization for the results of
+many scientific studies.
+Often one wishes to generate a file or group which is the statistical
+product (e.g., average) of many separate files or groups. 
+This may be to reduce statistical noise by combining the results of a
+large number of experiments, or it may simply be a step in a procedure 
+whose goal is to compute anomalies from a mean state. 
+In any case, when one desires to generate a file whose statistical
+properties are equally influenced by all the inputs, then @command{nces}
+is the operator to use. 
+
+Variables in the @var{output-file} are the same size as the variable
+hyperslab in each input file or group, and each input file or group
+must be the same size after hyperslabbing
+@footnote{As of @acronym{NCO} version 4.4.2 (released February, 2014)
+@command{nces} allows hyperslabs in all dimensions so long as the
+hyperslabs resolve to the same size. 
+The fixed (i.e., non-record) dimensions should be the same size in
+all ensemble members both before and after hyperslabbing, although
+the hyperslabs may (and usually do) change the size of the dimensions
+from the input to the output files.
+Prior to this, @command{nces} was only guaranteed to work on hyperslabs
+in the record dimension that resolved to the same size.}
+@cindex record dimension
+@cindex hyperslab
+@command{nces} does allow files to differ in the record dimension size
+if the requested record hyperslab (@pxref{Hyperslabs}) resolves to the
+same size for all files.  
+@command{nces} recomputes the record dimension hyperslab limits for
+each input file so that coordinate limits may be used to select equal
+length timeseries from unequal length files.
+@cindex @acronym{IPCC}
+@cindex @acronym{AR4}
+@cindex @acronym{CMIP}
+This simplifies analysis of unequal length timeseries from simulation
+ensembles (e.g., the @acronym{CMIP3} @acronym{IPCC} @acronym{AR4}
+archive).   
+
+@html
+<a name="nsm_fl"></a> <!-- http://nco.sf.net/nco.html#nsm_fl -->
+<a name="nsm_grp"></a> <!-- http://nco.sf.net/nco.html#nsm_grp -->
+<a name="nsm_sfx"></a> <!-- http://nco.sf.net/nco.html#nsm_sfx -->
+@end html
+@cindex @code{--nsm_fl}
+@cindex @code{--nsm_grp}
+@cindex @code{--ensemble_file}
+@cindex @code{--ensemble_group}
+@cindex @code{--nsm_sfx}
+@cindex @code{--ensemble_suffix}
+@command{nces} works in one of two modes, file ensembles 
+or group ensembles.
+File ensembles are the default (equivalent to the old @command{ncea}) 
+and may also be explicitly specified by the @samp{--nsm_fl} or
+@samp{--ensemble_file} switches.
+To perform statistics on ensembles of groups, a newer feature, use
+@samp{--nsm_grp} or @samp{--ensemble_group}.
+Members of a group ensemble are groups that share the same structure,
+parent group, and nesting level. 
+Members must be @dfn{leaf groups}, i.e., not contain any sub-groups.
+Their contents usually have different values because they are
+realizations of replicated experiments.  
+In group ensemble mode @command{nces} computes the statistics across 
+the ensemble, which may span multiple input files. 
+Files may contain members of multiple, distinct ensembles. 
+However, all ensembles must have at least one member in the first input 
+file. 
+Group ensembles behave as an unlimited dimension of datasets: 
+they may contain an arbitrary and extensible number of realizations in
+each file, and may be composed from multiple files. 
+
+Output statistics in group ensemble mode are stored in the parent group
+by default. 
+If the ensemble members are @file{/cesm/cesm_01} and
+@file{/cesm/cesm_02}, then the computed statistic will be in
+@file{/cesm} in the output file.   
+The @samp{--nsm_sfx} option instructs nces to instead store output in  
+a new child group of the parent created by attaching the suffix
+to the parent group's name, e.g., @samp{--nsm_sfx='_avg'} would store
+results in the output group @file{/cesm/cesm_avg}:
+@example
+nces --nsm_grp                  mdl1.nc mdl2.nc mdl3.nc out.nc
+nces --nsm_grp --nsm_sfx='_avg' mdl1.nc mdl2.nc mdl3.nc out.nc
+@end example
+
+@xref{Statistics vs. Concatenation}, for a description of the
+distinctions between the statistics tools and concatenators. 
+@cindex multi-file operators
+@cindex standard input
+@cindex @code{stdin}
+As a multi-file operator, @command{nces} will read the list of
+@var{input-files} from @code{stdin} if they are not specified 
+as positional arguments on the command line 
+(@pxref{Large Numbers of Files}).
+
+Like @command{ncra} and @command{ncwa}, @command{nces} treats coordinate
+variables as a special case.
+Coordinate variables are assumed to be the same in all ensemble members,
+so @command{nces} simply copies the coordinate variables that appear in 
+ensemble members directly to the output file.
+This has the same effect as averaging the coordinate variable across the
+ensemble, yet does not incur the time- or precision- penalties of
+actually averaging them.
+@command{ncra} and @command{ncwa} allow coordinate variables to be
+processed only by the linear average operation, regardless of the
+arithmetic operation type performed on the non-coordinate variables
+(@pxref{Operation Types}). 
+Thus it can be said that the three operators (@command{ncra},
+@command{ncwa}, and @command{nces}) all average coordinate variables
+(even though @command{nces} simply copies them).
+All other requested arithmetic operations (e.g., maximization,
+square-root, RMS) are applied only to non-coordinate variables.
+In these cases the linear average of the coordinate variable will be
+returned.
+
+@noindent
+@html
+<a name="xmp_ncea"></a> <!-- http://nco.sf.net/nco.html#xmp_ncea -->
+<a name="xmp_nces"></a> <!-- http://nco.sf.net/nco.html#xmp_nces -->
+@end html
+EXAMPLES
+
+Consider a model experiment which generated five realizations of one
+year of data, say 1985.
+Imagine that the experimenter slightly perturbs the initial conditions
+of the problem before generating each new solution.   
+Assume each file contains all twelve months (a seasonal cycle) of data
+and we want to produce a single file containing the ensemble average
+(mean) seasonal cycle.  
+Here the numeric filename suffix denotes the realization number
+(@emph{not} the month):
+@example
+nces 85_01.nc 85_02.nc 85_03.nc 85_04.nc 85_05.nc 85.nc
+nces 85_0[1-5].nc 85.nc
+nces -n 5,2,1 85_01.nc 85.nc
+@end example
+@noindent
+These three commands produce identical answers.
+@xref{Specifying Input Files}, for an explanation of the distinctions
+between these methods.
+The output file, @file{85.nc}, is the same size as the inputs files.
+It contains 12 months of data (which might or might not be stored in the 
+record dimension, depending on the input files), but each value in the
+output file is the average of the five values in the input files.
+
+In the previous example, the user could have obtained the ensemble
+average values in a particular spatio-temporal region by adding a 
+hyperslab argument to the command, e.g.,
+@example
+nces -d time,0,2 -d lat,-23.5,23.5 85_??.nc 85.nc
+@end example
+@noindent
+In this case the output file would contain only three slices of data in
+the @var{time} dimension. 
+These three slices are the average of the first three slices from the
+input files.
+Additionally, only data inside the tropics is included.
+
+As of @acronym{NCO} version 4.3.9 (released December, 2013)
+@command{nces} also works with groups (rather than files) as the
+fundamental unit of the ensemble.
+Consider two ensembles, @code{/ecmwf} and @code{/cesm} stored across
+three input files @file{mdl1.nc}, @file{mdl2.nc}, and @file{mdl3.nc}.
+Ensemble members would be leaf groups with names like @code{/ecmwf/01},
+@code{/ecmwf/02} etc. and @code{/cesm/01}, @code{/cesm/02}, etc.
+These commands average both ensembles: 
+@example
+nces --nsm_grp mdl1.nc mdl2.nc mdl3.nc out.nc
+nces --nsm_grp --nsm_sfx='_min' --op_typ=min -n 3,1,1 mdl1.nc out.nc
+nces --nsm_grp -g cesm -v tas -d time,0,3 -n 3,1,1 mdl1.nc out.nc
+@end example
+The first command stores averages in the output groups @file{/cesm} and 
+@file{/ecmwf}, while the second stores minima in the output groups
+@file{/cesm/cesm_min} and @file{/ecmwf/ecmwf_min}:
+The third command demonstrates that sub-setting and hyperslabbing work
+as expected.
+Note that each input file may contain different numbers of members
+of each ensemble, as long as all distinct ensembles contain at least one
+member in the first file.
+
+@page
+@html
 <a name="ncflint"></a> <!-- http://nco.sf.net/nco.html#ncflint -->
 @end html
-@node ncflint netCDF File Interpolator, ncks netCDF Kitchen Sink, ncecat netCDF Ensemble Concatenator, Reference Manual
+@node ncflint netCDF File Interpolator, ncks netCDF Kitchen Sink, nces netCDF Ensemble Statistics, Reference Manual
 @section @command{ncflint} netCDF File Interpolator
 @cindex interpolation
 @cindex adding data
@@ -17931,7 +18495,8 @@ ncflint [-3] [-4] [-6] [-7] [-A] [-C] [-c]
 [--cnk_min @var{sz_byt}] [--cnk_plc @var{plc}] [--cnk_scl @var{sz_lmn}]
 [-D @var{dbg}] [-d @var{dim},[@var{min}][,[@var{max}][,[@var{stride}]]]
 [-F] [--fix_rec_crd] [-G @var{gpe_dsc}] [-g @var{grp}[,@dots{}]] [--glb ...] [-h] [--hdr_pad @var{nbr}]
-[-i @var{var},@var{val3}] [-L @var{dfl_lvl}] [-l @var{path}] [-N] [--no_tmp_fl] 
+[-i @var{var},@var{val3}] [-L @var{dfl_lvl}] [-l @var{path}] [-N]
+[--no_cll_msr] [--no_frm_trm] [--no_tmp_fl] 
 [-O] [-o @var{file_3}] [-p @var{path}] [--ppc ...] [-R] [-r] [--ram_all] 
 [-t @var{thr_nbr}] [--unn] [-v @var{var}[,@dots{}]] [-w @var{wgt1}[,@var{wgt2}]] [-X ...] [-x]
 @var{file_1} @var{file_2} [@var{file_3}]
@@ -18225,9 +18790,9 @@ ncks [-3] [-4] [-5] [-6] [-7] [-A] [-a] [-b @var{fl_bnr}] [-C] [-c] [--cdl]
 [--cnk_min @var{sz_byt}] [--cnk_plc @var{plc}] [--cnk_scl @var{sz_lmn}]
 [-D @var{dbg}] [-d @var{dim},[@var{min}][,[@var{max}][,[@var{stride}]]] [-F] [--fix_rec_dmn @var{dim}] 
 [-G @var{gpe_dsc}] [-g @var{grp}[,@dots{}]] [--glb ...] [--grp_xtr_var_xcl]
-[-H] [-h] [--hdn] [--hdr_pad @var{nbr}] [--jsn] [--jsn_att_fmt @var{lvl}] 
+[-H] [-h] [--hdn] [--hdr_pad @var{nbr}] [--jsn] [--jsn_fmt @var{lvl}] 
 [-L @var{dfl_lvl}] [-l @var{path}] [-M] [-m] [--map @var{map-file}] 
-[--md5] [--mk_rec_dmn @var{dim}] [--no_blank] [--no_tmp_fl] 
+[--md5] [--mk_rec_dmn @var{dim}] [--no_blank] [--no_cll_msr] [--no_frm_trm] [--no_tmp_fl] 
 [-O] [-o @var{output-file}] [-P] [-p @var{path}] [--ppc ...]
 [-Q] [-q] [-R] [-r] [--rad] [--ram_all] [--rgr ...] [--rnr=wgt] [-s @var{format}] 
 [-u] [--unn] [-V] [-v @var{var}[,@dots{}]] [-X ...] [-x] [--xml]
@@ -18409,6 +18974,27 @@ coordinates to the binary file:
 % ls -l bnr.dat | cut -d ' ' -f # 40 B contains one_dmn_rec_var only
 40
 @end example
+
+
+@html
+<a name="chunk_cache"></a> <!-- http://nco.sf.net/nco.html#chunk_cache -->
+<a name="cnk_csh"></a> <!-- http://nco.sf.net/nco.html#cnk_csh -->
+<a name="cache"></a> <!-- http://nco.sf.net/nco.html#cache -->
+<a name="csh"></a> <!-- http://nco.sf.net/nco.html#csh -->
+@end html
+@cindex chunk cache size
+@cindex cache size
+@cindex @code{--cnk_csh @var{sz}}
+@cindex @code{--chunk_cache @var{sz}}
+Set the per-variable chunk cache size to @var{sz} bytes.
+By default, the per-variable cache size is set (by the 
+@code{--with-chunk-cache-size} option to @command{configure}) at netCDF
+compile time. 
+This option changes the per-variable cache size.
+When the debugging level is set (with @code{-D @var{dbg_lvl}}) to three
+or higher, @acronym{NCO} prints the current value of the cache settings
+for informational purposes. 
+Also @samp{--chunk_cache}.
 
 @html
 <a name="dmn_fix_mk"></a> <!-- http://nco.sf.net/nco.html#dmn_fix_mk -->
@@ -18639,7 +19225,7 @@ lat[0]=90 lev[0]=1000 lon[3]=270 three_dmn_var[3]=23
 <a name="jsn"></a> <!-- http://nco.sf.net/nco.html#jsn -->
 <a name="json"></a> <!-- http://nco.sf.net/nco.html#json -->
 @end html
-@cindex @code{--jsn_att_fmt}
+@cindex @code{--jsn_fmt}
 @cindex @code{--jsn}
 @cindex @code{--json}
 @cindex @acronym{JSN}
@@ -18697,17 +19283,40 @@ Each @acronym{JSON} configuration option automatically triggers
 a @acronym{JSON} configuration option is redundant and unnecessary. 
 
 Request a specific format level with the pedantic level argument to
-the @samp{--jsn_att_fmt @var{lvl}} option.
-This choice has the following effects for the given value of @var{lvl}: 
+the @samp{--jsn_fmt @var{lvl}} option.
+As of @acronym{NCO} version 4.6.3 (December, 2016), the option formerly
+known as @samp{--jsn_att_fmt} was renamed simply @samp{--jsn_fmt}.
+The more general name reflects the fact that the option controls
+all @acronym{JSON} formatting, not just attribute formatting.
+As of version 4.6.3, @acronym{NCO} defaults to demarcate inner 
+dimensions of variable data with (nested) square brackets rather than 
+printing data as an unrolled single dimensional array.
+An array with C-ordered dimensionality [2,3,4] prints as:
+@example
+@verbatim
+% ncks --jsn -v three_dmn_var ~/nco/data/in.nc
+...
+"data": [[[0.0, 1.0, 2.0, 3.0], [4.0, 5.0, 6.0, 7.0], [8.0, 9.0, 10.0,11.0]], [[12.0, 13.0, 14.0, 15.0], [16.0, 17.0, 18.0, 19.0], [20.0,21.0, 22.0, 23.0]]]
+...
+% ncks --jsn_fmt=4 -v three_dmn_var ~/nco/data/in.nc
+...
+"data": [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0,22.0, 23.0]
+...
+@end verbatim
+@end example
+One can recover the former behavior (and omit the brackets) by adding
+four to the base pedantic level @var{lvl} (as shown above).
+Besides the potential offset of four, @var{lvl} may take one of three 
+values between 0--2: 
 @itemize @bullet
 @item @math{@var{lvl} = 0} is the default mode, and is also explicitly
-selectable with @samp{--jsn_att_fmt=0}.
+selectable with @samp{--jsn_fmt=0}.
 All values are output without the original @acronym{NC_TYPE} token.
 This allows attributes to print as @acronym{JSON} name-value pairs,
 rather than as more complex objects: 
 @example
 @verbatim
-% ncks --jsn_att_fmt=0 -v att_var ~/nco/data/in_grp.nc
+% ncks --jsn_fmt=0 -v att_var ~/nco/data/in_grp.nc
 ...
 "att_var": {
   "dims": ["time"],
@@ -18754,13 +19363,12 @@ variable's @code{NC_TYPE} to choose the most efficient storage type.
 @item @math{@var{lvl} = 1} is a medium-pedantic level that prints all
 attributes as objects (with explicit types) @emph{except} those
 attributes whose types match the simplest default @acronym{JSON} value
-types (@code{NC_FLOAT}, 
-@code{NC_CHAR}/@code{NC_STRING}, @code{NC_INT}).  
+types (@code{NC_FLOAT}, @code{NC_CHAR}/@code{NC_STRING}, @code{NC_INT}).   
 double, string, and int attributes are printed as @acronym{JSON} arrays, 
 as in the @math{@var{lvl} = 0} above:
 @example
 @verbatim
-% ncks --jsn_att_fmt=1 -v att_var ~/nco/data/in.nc
+% ncks --jsn_fmt=1 -v att_var ~/nco/data/in.nc
 ...
 "att_var": {
   "dims": ["time"],
@@ -18799,7 +19407,7 @@ value so that any downstream parser can (though it need not) guarantee
 exact reproduction of the original dataset:
 @example
 @verbatim
-% ncks --jsn_att_fmt=2 -v att_var ~/nco/data/in.nc
+% ncks --jsn_fmt=2 -v att_var ~/nco/data/in.nc
 ...
 "att_var": {
   "dims": ["time"],
@@ -19287,6 +19895,16 @@ Shell commands may be re-used when they are defined in shell
 configuration files.
 These files are usually named @file{.bashrc}, @file{.cshrc}, and
 @file{.profile} for the Bash, Csh, and Sh shells, respectively.
+@cindex minimum
+@cindex maximum
+@cindex median
+@cindex mode
+@cindex range
+@html
+<a name="median"></a> <!-- http://nco.sf.net/nco.html#median -->
+<a name="mode"></a> <!-- http://nco.sf.net/nco.html#mode -->
+<a name="range"></a> <!-- http://nco.sf.net/nco.html#range -->
+@end html
 @example
 @verbatim
 # NB: Untested on Csh, Ksh, Sh, Zsh! Send us feedback!
@@ -19625,7 +20243,8 @@ ncpdq [-3] [-4] [-6] [-7] [-A] [-a [-]@var{dim}[,@dots{}]] [-C] [-c]
 [--cnk_min @var{sz_byt}] [--cnk_plc @var{plc}] [--cnk_scl @var{sz_lmn}]
 [-D @var{dbg}] [-d @var{dim},[@var{min}][,[@var{max}][,[@var{stride}]]]
 [-F] [-G @var{gpe_dsc}] [-g @var{grp}[,@dots{}]] [--glb ...] [-h] [--hdf] [--hdr_pad @var{nbr}]
-[-L @var{dfl_lvl}] [-l @var{path}] [-M @var{pck_map}] [--mrd] [--no_tmp_fl] 
+[-L @var{dfl_lvl}] [-l @var{path}] [-M @var{pck_map}] [--mrd]
+[--no_cll_msr] [--no_frm_trm] [--no_tmp_fl] 
 [-O] [-o @var{output-file}] [-P @var{pck_plc}] [-p @var{path}] [--ppc ...]
 [-R] [-r] [--ram_all] [-t @var{thr_nbr}] [-U] [--unn] [-v @var{var}[,@dots{}]] [-X ...] [-x]
 @var{input-file} [@var{output-file}]
@@ -20223,7 +20842,8 @@ ncra [-3] [-4] [-6] [-7] [-A] [-C] [-c] [--cb]
 [--cnk_min @var{sz_byt}] [--cnk_plc @var{plc}] [--cnk_scl @var{sz_lmn}]
 [-D @var{dbg}] [-d @var{dim},[@var{min}][,[@var{max}][,[@var{stride}][,[@var{subcycle}]]]] [-F]
 [-G @var{gpe_dsc}] [-g @var{grp}[,@dots{}]] [--glb ...] [-h] [--hdf] [--hdr_pad @var{nbr}] 
-[-L @var{dfl_lvl}] [-l @var{path}] [--mro] [-N] [-n @var{loop}] [--no_tmp_fl]
+[-L @var{dfl_lvl}] [-l @var{path}] [--mro] [-N] [-n @var{loop}] 
+[--no_cll_msr] [--no_cll_mth] [--no_frm_trm] [--no_tmp_fl] 
 [-O] [-o @var{output-file}] [-p @var{path}] [--ppc ...] [-R] [-r] [--ram_all] [--rec_apn] [--rth_dbl|flt]
 [-t @var{thr_nbr}] [--unn] [-v @var{var}[,@dots{}]] [-w wgt] [-X ...] [-x] [-y @var{op_typ}]
 [@var{input-files}] [@var{output-file}]
@@ -20471,7 +21091,8 @@ ncrcat [-3] [-4] [-6] [-7] [-A] [-C] [-c]
 [--cnk_min @var{sz_byt}] [--cnk_plc @var{plc}] [--cnk_scl @var{sz_lmn}]
 [-D @var{dbg}] [-d @var{dim},[@var{min}][,[@var{max}][,[@var{stride}][,[@var{subcycle}]]]] [-F]
 [-G @var{gpe_dsc}] [-g @var{grp}[,@dots{}]] [--glb ...] [-h] [--hdr_pad @var{nbr}]
-[-L @var{dfl_lvl}] [-l @var{path}] [--md5_digest] [-n @var{loop}] [--no_tmp_fl]
+[-L @var{dfl_lvl}] [-l @var{path}] [--md5_digest] [-n @var{loop}]
+[--no_tmp_fl] [--no_cll_msr] [--no_frm_trm] [--no_tmp_fl] 
 [-O] [-o @var{output-file}] [-p @var{path}] [--ppc ...] [-R] [-r] [--ram_all] [--rec_apn]
 [-t @var{thr_nbr}] [--unn] [-v @var{var}[,@dots{}]] [-X ...] [-x] 
 [@var{input-files}] [@var{output-file}]
@@ -20708,7 +21329,10 @@ Features common to many operators are described in
 @end html
 @cindex @code{-a @var{alg_typ}}
 @cindex @var{alg_typ}
-@item -a @var{alg_typ}
+@cindex @code{--alg_typ}
+@cindex @code{--algorithm}
+@cindex @code{--regrid_algorithm}
+@item -a @var{alg_typ} (@code{--alg_typ}, @code{--algorithm}, @code{--regrid_algorithm})
 Specifies the interpolation algorithm for weight-generation for use by
 @command{ESMF_RegridWeightGen} (@acronym{ERWG}).
 @command{ncremap} unbundles this algorithm choice from the rest of
@@ -20732,7 +21356,11 @@ This option currently has no effect on TempestRemap weight-generation.
 @end html
 @cindex @code{-D @var{dbg_lvl}}
 @cindex @var{dbg_lvl}
-@item -D @var{dbg_lvl}
+@cindex @code{--dbg_lvl}
+@cindex @code{--dbg}
+@cindex @code{--debug}
+@cindex @code{--debug_level}
+@item -D @var{dbg_lvl} (@code{--dbg_lvl}, @code{--dbg}, @code{--debug}, @code{--debug_level})
 Specifies a debugging level similar to the rest of @acronym{NCO}.
 If @math{@var{dbg_lvl} = 1}, @command{ncremap} prints more extensive
 diagnostics of its behavior.
@@ -20748,7 +21376,11 @@ level to the regridder (@command{ncks}) for additional diagnostics.
 @end html
 @cindex @code{-d @var{dst_fl}}
 @cindex @var{dst_fl}
-@item -d @var{dst_fl}
+@cindex @code{--dst_fl}
+@cindex @code{--destination_file}
+@cindex @code{--template_file}
+@cindex @code{--template}
+@item -d @var{dst_fl} (@code{--dst_fl}, @code{--destination_file}, @code{--template_file}, @code{--template})
 Specifies a data file on the destination grid.
 Currently @var{dst_fl} must be a data file (not a gridfile,
 @acronym{SCRIP} or otherwise) from which @acronym{NCO} can
@@ -20770,7 +21402,10 @@ be interpolated or guessed-at.
 @end html
 @cindex @code{-E @var{esmf_opt}}
 @cindex @var{esmf_opt}
-@item -E @var{esmf_opt}
+@cindex @code{--esmf_opt}
+@cindex @code{--esmf}
+@cindex @code{--esmf_options}
+@item -E @var{esmf_opt} (@code{--esmf_opt}, @code{--esmf}, @code{--esmf_options})
 @command{ncremap} passes @var{esmf_opt} directly through to
 @acronym{ERWG}. 
 The user-specified contents of @var{esmf_opt} supercede its default
@@ -20783,7 +21418,11 @@ in which case @var{esmf_opt} could be @samp{-r --ignore_upmapped}.
 @end html
 @cindex @code{-g @var{grd_dst}}
 @cindex @var{grd_dst}
-@item -g @var{grd_dst}
+@cindex @code{--grd_dst}
+@cindex @code{--grid_dest}
+@cindex @code{--dest_grid}
+@cindex @code{--destination_grid}
+@item -g @var{grd_dst} (@code{--grd_dst}, @code{--grid_dest}, @code{--dest_grid}, @code{--destination_grid})
 Specifies the destination gridfile in @acronym{SCRIP} format. 
 @acronym{NCO} will use @acronym{ERWG} to combine @var{grd_dst} with a
 source gridfile (either inferred from @var{input-file}, supplied with
@@ -20795,7 +21434,12 @@ produce the remapping weights.
 <a name="grd_sng"></a> <!-- http://nco.sf.net/nco.html#grd_sng -->
 @end html
 @cindex @code{-G @var{grd_sng}}
-@item -G @var{grd_sng}
+@cindex @var{--grd_sng}
+@cindex @code{--grd_sng}
+@cindex @code{--grid_generation}
+@cindex @code{--grid_gen}
+@cindex @code{--grid_string}
+@item -G @var{grd_sng} (@code{--grd_sng}, @code{--grid_generation}, @code{--grid_gen}, @code{--grid_string})
 Specifies, with @acronym{NCO} options (@pxref{Grid Generation}), 
 a source gridfile to create.
 (Warning: @acronym{NCO}'s syntax for gridfile generations is ugly
@@ -20818,7 +21462,12 @@ and inspecting the results.
 @cindex @code{-I @var{in_drc}}
 @cindex @var{in_drc}
 @cindex @code{stdin}
-@item -I @var{in_drc}
+@cindex @code{--in_drc}
+@cindex @code{--drc_in}
+@cindex @code{--dir_in}
+@cindex @code{--in_dir}
+@cindex @code{--input}
+@item -I @var{in_drc} (@code{--in_drc}, @code{--drc_in}, @code{--dir_in}, @code{--in_dir}, @code{input})
 Specifies the input directory, i.e., the directory which contains
 the input file(s).
 If @var{in_fl} is also specified, then the input filepath is
@@ -20840,7 +21489,10 @@ through standard input, e.g., @samp{ls *.nc | ncremap ...}.
 @end html
 @cindex @code{-i @var{in_fl}}
 @cindex @var{in_fl}
-@item -i @var{in_fl}
+@cindex @code{--in_fl}
+@cindex @code{--in_file}
+@cindex @code{--input_file}
+@item -i @var{in_fl} (@code{--in_fl}, @code{--in_file}, @code{--input_file})
 Specifies the file containing data on the source grid to be remapped
 to the destination grid.
 When provided with the optional @var{map_fl}, @command{ncremap} 
@@ -20865,11 +21517,15 @@ through standard input, e.g., @samp{ls *.nc | ncremap ...}.
 @end html
 @cindex @code{-j @var{job_nbr}}
 @cindex @var{job_nbr}
-@item -j @var{job_nbr}
+@cindex @code{--job_nbr}
+@cindex @code{--job_number}
+@cindex @code{--job_number}
+@cindex @code{--jobs}
+@item -j @var{job_nbr} (@code{--job_nbr}, @code{--job_number}, @code{--jobs})
 Specifies the number of simultaneous regridding processes to spawn  
 during parallel execution for both Background and @acronym{MPI} modes. 
-In both parallel modes @command{ncremap} spawns proceses in batches 
-of @var{job_nbr} jobs, thens waits for those processes to complete.
+In both parallel modes @command{ncremap} spawns processes in batches 
+of @var{job_nbr} jobs, then waits for those processes to complete.
 Once a batch finishes, @command{ncremap} spawns the next batch.
 In Background mode, all jobs are spawned to the local node.
 In @acronym{MPI} mode, all jobs are spawned in round-robin fashion
@@ -20894,12 +21550,12 @@ until, ideally, each core on the node is used.
 Remember that processes and threading are multiplicative in core use.
 Four jobs each with four threads consumes sixteen cores.
 
-As an example, consider regridding 100 files with a single map.
+As an example, consider regridding @w{100 files} with a single map.
 Say you have a five-node cluster, and each node has @w{16 cores}
 and can simultaneously regrid two files using eight threads each.
-(One usually needs to test a bit to determine these parameters.)
-Then an optimal (in terms of wallclock time) way to regrid would
-be requesting five nodes with 10 simultaneous jobs of eight threads.
+(One needs to test a bit to determine these parameters.)
+Then an optimal (in terms of wallclock time) invocation would
+request five nodes with @w{10 simultaneous} jobs of eight threads.
 On many batch systems this would involve a scheduler command like 
 this @samp{qsub -l nodes=5 ...} followed by 
 @samp{ncremap -p mpi -j 10 -t 8 ...}.
@@ -20917,7 +21573,12 @@ by utilizing more threads per process.
 @end html
 @cindex @code{-m @var{map_fl}}
 @cindex @var{map_fl}
-@item -m @var{map_fl}
+@cindex @code{--map_fl}
+@cindex @code{--map}
+@cindex @code{--map_file}
+@cindex @code{--rgr_map}
+@cindex @code{--regrid_map}
+@item -m @var{map_fl} (@code{--map_fl}, @code{--map}, @code{--map_file}, @code{--rgr_map}, @code{--regrid_map})
 Specifies a mapfile (i.e., weight-file) to remap the source to
 destination grid. 
 If @var{map_fl} is specified in conjunction with any of the @samp{-d},
@@ -20945,7 +21606,11 @@ invoked by @command{ncremap}.
 <a name="map_mlt"></a> <!-- http://nco.sf.net/nco.html#map_mlt -->
 @end html
 @cindex @code{-M}
-@item -M
+@cindex @code{--mlt_map}
+@cindex @code{--multimap}
+@cindex @code{--no_multimap}
+@cindex @code{--nomultimap}
+@item -M (@code{--mlt_map}, @code{--multimap}, @code{--no_multimap}, @code{--nomultimap})
 @command{ncremap} assumes that every input file is on a unique grid
 unless a source gridfile is specified (with @samp{-s @var{grd_src}})
 or multiple-mapfile generation is explicitly turned-off (with
@@ -20966,7 +21631,10 @@ tedious, and unnecessary when batch processing data on the same grids.
 @end html
 @cindex @code{-n @var{nco_opt}}
 @cindex @var{nco_opt}
-@item -n @var{nco_opt}
+@cindex @code{--nco_opt}
+@cindex @code{--nco_options}
+@cindex @code{--nco}
+@item -n @var{nco_opt} (@code{--nco_opt}, @code{--nco_options}, @code{--nco})
 Specifies a string of options to pass-through unaltered to
 @command{ncks}. 
 @var{nco_opt} defaults to @samp{-O --no_tmp_fl}.
@@ -20976,7 +21644,12 @@ Specifies a string of options to pass-through unaltered to
 @end html
 @cindex @code{-O @var{out_drc}}
 @cindex @var{out_drc}
-@item -O @var{out_drc}
+@cindex @code{--out_drc}
+@cindex @code{--drc_out}
+@cindex @code{--dir_out}
+@cindex @code{--out_dir}
+@cindex @code{--output}
+@item -O @var{out_drc} (@code{--out_drc}, @code{--drc_out}, @code{--dir_out}, @code{--out_dir}, @code{--output})
 Specifies the output directory, i.e., the directory name to contain 
 the output file(s).
 If @var{out_fl} is also specified, then the output filepath is
@@ -20991,7 +21664,11 @@ be in separate directories.
 <a name="out_fl"></a> <!-- http://nco.sf.net/nco.html#out_fl -->
 @end html
 @cindex @code{-o @var{out_fl}}
-@item -o @var{out_fl}
+@cindex @var{--out_fl}
+@cindex @code{--out_fl}
+@cindex @code{--output_file}
+@cindex @code{--out_file}
+@item -o @var{out_fl} (@code{--out_fl}, @code{--output_file}, @code{--out_file})
 Specifies the output filename, i.e., the name of the file to contain
 the data from @var{in_fl} remapped to the destination grid.
 If @var{out_fl} already exists it will be overwritten.
@@ -21004,7 +21681,11 @@ using @samp{-I @var{in_drc}} or standard input) generates an error
 @end html
 @cindex @code{-P @var{pdq_typ}}
 @cindex @var{pdq_typ}
-@item -P @var{pdq_typ}
+@cindex @code{--pdq_typ}
+@cindex @code{--prm_typ}
+@cindex @code{--permutation}
+@cindex @code{--permute}
+@item -P @var{pdq_typ} (@code{--pdq_typ}, @code{--prm_typ}, @code{--permutation}, @code{--permute})
 Specifies the permutation mode desired.
 As of January~15, 2016, one can tell @command{ncremap} to automatically
 tagpermute the dimensions in the data file prior to regridding for a
@@ -21025,7 +21706,12 @@ In @acronym{MPAS}-mode the order is
 @end html
 @cindex @code{-p @var{par_typ}}
 @cindex @var{par_typ}
-@item -p @var{par_typ}
+@cindex @code{--par_typ}
+@cindex @code{--par_md}
+@cindex @code{--parallel_type}
+@cindex @code{--parallel_mode}
+@cindex @code{--parallel}
+@item -p @var{par_typ} (@code{--}, @code{--}, @code{--}, @code{--})
 Specifies the parallelism mode desired.
 Parallelism accelerates throughput when regridding multiple files in one  
 @command{ncremap} invocation.
@@ -21052,7 +21738,9 @@ when all source files share the same grid.
 @end html
 @cindex @code{-R @var{rgr_opt}}
 @cindex @var{rgr_opt}
-@item -R @var{rgr_opt}
+@cindex @code{--rgr_opt}
+@cindex @code{--regrid_options}
+@item -R @var{rgr_opt} (@code{--rgr_opt}, @code{--regrid_options})
 @command{ncremap} passes @var{rgr_opt} directly through to the
 regridder.  
 This is useful to customize output grids and metadata.
@@ -21065,7 +21753,11 @@ i.e., by default @command{ncremap} always names latitude and longitude
 @end html
 @cindex @code{-s @var{grd_src}}
 @cindex @var{grd_src}
-@item -s @var{grd_src}
+@cindex @code{--grd_src}
+@cindex @code{--grid_source}
+@cindex @code{--source_grid}
+@cindex @code{--src_grd}
+@item -s @var{grd_src} (@code{--grd_src}, @code{--grid_source}, @code{--source_grid}, @code{--src_grd})
 Specifies the source gridfile in @acronym{SCRIP} format. 
 @acronym{NCO} will use @acronym{ERWG} to combine this with a destination
 gridfile (either inferred from @var{dst_fl}, or generated by supplying a  
@@ -21087,7 +21779,11 @@ Thus @acronym{NCO} will call @acronym{ERWG} only once, and will use that
 @end html
 @cindex @code{-T @var{tempest_opt}}
 @cindex @var{tempest_opt}
-@item -T @var{tempest_opt}
+@cindex @code{--tempest_opt}
+@cindex @code{--tps_opt}
+@cindex @code{--tempest}
+@cindex @code{--tempest_options}
+@item -T @var{tempest_opt} (@code{--tps_opt}, @code{--tempest_opt}, @code{--tempest}, @code{--tempest_options})
 @command{ncremap} passes @var{tempest_opt} directly through to
 @command{GenerateOfflineMap} (not to @command{GenerateOverlapMesh}).
 The user-specified contents of @var{tempest_opt} supercede its default
@@ -21108,7 +21804,10 @@ to @acronym{FV} maps, pass @samp{-T "--mono"}.
 @end html
 @cindex @code{-t @var{thr_nbr}}
 @cindex @var{thr_nbr}
-@item -t @var{thr_nbr}
+@cindex @code{--thr_nbr}
+@cindex @code{--thread_number}
+@cindex @code{--threads}
+@item -t @var{thr_nbr} (@code{--thr_nbr}, @code{--thread_number}, @code{--threads})
 Specifies the number of threads used per regridding process
 (@pxref{OpenMP Threading}).
 The @acronym{NCO} regridder scales well up to 8--16 threads.
@@ -21118,7 +21817,12 @@ The @acronym{NCO} regridder scales well up to 8--16 threads.
 @end html
 @cindex @code{-U @var{tmp_drc}}
 @cindex @var{tmp_drc}
-@item -U @var{tmp_drc}
+@cindex @code{--tmp_drc}
+@cindex @code{--drc_tmp}
+@cindex @code{--tmp_dir}
+@cindex @code{--dir_tmp}
+@cindex @code{--tmp}
+@item -U @var{tmp_drc} (@code{--tmp_drc}, @code{--drc_tmp}, @code{--tmp_dir}, @code{--dir_tmp}, @code{--tmp_drc})
 Specifies the directory in which to place intermediate output files.
 Depending on how it is invoked, @command{ncremap} may generate
 a few or many intermediate files (grids and maps) that it will, by
@@ -21135,7 +21839,10 @@ or else it uses the current working director (@code{$PWD}).
 @cindex @code{-u @var{unq_sfx}}
 @cindex @var{unq_sfx}
 @cindex noclean
-@item -u @var{unq_sfx}
+@cindex @code{--unq_sfx}
+@cindex @code{--unique_suffix}
+@cindex @code{--suffix}
+@item -u @var{unq_sfx} (@code{--unq_sfx}, @code{--unique_suffix}, @code{--suffix})
 Specifies the suffix used to label intermediate (internal) files
 generated by the regridding workflow.
 Unique names are required to avoid interference among parallel
@@ -21157,7 +21864,12 @@ If @var{unq_sfx} is @samp{noclean} then @command{ncremap} retains
 @end html
 @cindex @code{-v @var{var_lst}}
 @cindex @var{var_lst}
-@item -v @var{var_lst}
+@cindex @code{--var_lst}
+@cindex @code{--var}
+@cindex @code{--vars}
+@cindex @code{--variables}
+@cindex @code{--variable_list}
+@item -v @var{var_lst} (@code{--var_lst}, @code{--var}, @code{--vars}, @code{--variables}, @code{--variable_list})
 The @samp{-v} option causes @command{ncremap} to regrid only the
 variables in @var{var_lst}. 
 It behaves like subsetting (@pxref{Subsetting Files}) in the rest of
@@ -21168,10 +21880,15 @@ It behaves like subsetting (@pxref{Subsetting Files}) in the rest of
 @end html
 @cindex @code{-V @var{rgr_var}}
 @cindex @var{rgr_var}
-@item -V @var{rgr_var}
+@cindex @code{--rgr_var}
+@cindex @code{--var_rgr}
+@cindex @code{--var_cf}
+@cindex @code{--cf_var}
+@cindex @code{--cf_variable}
+@item -V @var{var_rgr} (@code{--var_rgr}, @code{--rgr_var}, @code{--var_cf}, @code{--cf_var}, @code{cf_variable})
 The @samp{-V} option tells @command{ncremap} to use the same grid as 
-@var{rgr_var} in the input file.
-If @var{rgr_var} adheres to the @acronym{CF} @code{coordinates}
+@var{var_rgr} in the input file.
+If @var{var_rgr} adheres to the @acronym{CF} @code{coordinates}
 convention described 
 @uref{http://cfconventions.org/1.6.html#coordinate-system, here},
 then @command{ncclimo} will infer the grid as represented by those
@@ -21184,16 +21901,16 @@ Until @acronym{NCO} version 4.6.0 (May, 2016), @command{ncremap} would
 not follow @acronym{CF} conventions to identify coordinate variables.
 Instead, @command{ncremap} used an internal database of ``usual
 suspects'' to identify latitude and longitude coordinate variables.
-Now, if @var{rgr_var} is @acronym{CF}-compliant, then @command{ncremap}
+Now, if @var{var_rgr} is @acronym{CF}-compliant, then @command{ncremap}
 will automatically identify the horizontal spatial dimensions. 
-If @var{rgr_var} is supplied but is not @acronym{CF}-compliant, then
+If @var{var_rgr} is supplied but is not @acronym{CF}-compliant, then
 @command{ncremap} will use its internal database to identify 
 horizontal spatial dimensions.
 If both these automated methods fail, manually supply @command{ncremap}
 with the names of the horizontal spatial dimensions 
 @example
 # Method used to obtain horizontal spatial coordinates:
-ncremap -V rgr_var -i in.nc -d dst.nc -O ~/rgr # CF coordinates convention
+ncremap -V var_rgr -i in.nc -d dst.nc -O ~/rgr # CF coordinates convention
 ncremap -i in.nc -d dst.nc -O ~/rgr # Internal database
 ncremap -R "--rgr lat_nm=xq --rgr lon_nm=zj" -i in.nc -d dst.nc -O ~/rgr # Manual
 @end example
@@ -21204,7 +21921,9 @@ ncremap -R "--rgr lat_nm=xq --rgr lon_nm=zj" -i in.nc -d dst.nc -O ~/rgr # Manua
 @end html
 @cindex @code{-w @var{wgt_gnr}}
 @cindex @var{wgt_gnr}
-@item -w @var{wgt_gnr}
+@cindex @code{--wgt_gnr}
+@cindex @code{--weight_generator}
+@item -w @var{wgt_gnr} (@code{--wgt_gnr}, @code{--weight_generator}, @code{--generator})
 Specifies the weight-generator to use when a map-file is not provided. 
 The @var{wgt_gnr} argument must be @code{esmf} for @acronym{ESMF}'s
 @command{ESMF_RegridWeightGen} (@acronym{ERWG}), or 
@@ -21218,7 +21937,12 @@ is not permitted (since the weight-generator would not be used).
 @end html
 @cindex @code{-v @var{xtn_lst}}
 @cindex @var{xtn_lst}
-@item -x @var{xtn_lst}
+@cindex @code{--xtn_lst}
+@cindex @code{--xtn_var}
+@cindex @code{--var_xtn}
+@cindex @code{--extensive}
+@cindex @code{--extensive_variables}
+@item -x @var{xtn_lst} (@code{--xtn_lst}, @code{--xtn_var}, @code{--var_xtn}, @code{--extensive}, @code{--extensive_variables})
 The @samp{-x} option causes @command{ncremap} to treat the variables in
 @var{xtn_lst} as @dfn{extensive}, meaning that their value depends on
 the gridcell boundaries. 
@@ -21850,7 +22574,8 @@ ncwa [-3] [-4] [-6] [-7] [-A] [-a @var{dim}[,@dots{}]] [-B @var{mask_cond}] [-b]
 [--cnk_min @var{sz_byt}] [--cnk_plc @var{plc}] [--cnk_scl @var{sz_lmn}]
 [-D @var{dbg}] [-d @var{dim},[@var{min}][,[@var{max}][,[@var{stride}]]] [-F]
 [-G @var{gpe_dsc}] [-g @var{grp}[,@dots{}]] [--glb ...] [-h] [--hdr_pad @var{nbr}] [-I]
-[-L @var{dfl_lvl}] [-l @var{path}] [-M @var{mask_val}] [-m @var{mask_var}] [-N] [--no_tmp_fl]
+[-L @var{dfl_lvl}] [-l @var{path}] [-M @var{mask_val}] [-m @var{mask_var}] [-N] 
+[--no_cll_msr] [--no_cll_mth] [--no_frm_trm] [--no_tmp_fl] 
 [-O] [-o @var{output-file}] [-p @var{path}] [--ppc ...] [-R] [-r] [--ram_all] [--rth_dbl|flt]
 [-T @var{mask_comp}] [-t @var{thr_nbr}] [--unn] [-v @var{var}[,@dots{}]] [-w @var{weight}]
 [-X ...] [-x] [-y @var{op_typ}]
@@ -22530,7 +23255,8 @@ Debian packaging
 RedHat packaging
 @cindex George Shapavalov
 @cindex Patrick Kursawe
-@item George Shapavalov, Patrick Kursawe
+@cindex Manfred Schwarb
+@item George Shapavalov, Patrick Kursawe, Manfred Schwarb
 Gentoo packaging
 @cindex Filipe Fernandes
 @item Filipe Fernandes

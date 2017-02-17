@@ -4,7 +4,7 @@
 
 /* Purpose: Compute user-defined derived fields using forward algebraic notation applied to netCDF files */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2017 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3.
@@ -165,6 +165,7 @@ main(int argc,char **argv)
   int opt;
   int out_id;  
   int rcd=NC_NOERR; /* [rcd] Return code */
+  int antlr_ret=EXIT_SUCCESS; /* exit return code from script */
   int var_id;
   int thr_nbr=int_CEWI; /* [nbr] Thread number Option t */
   
@@ -211,6 +212,7 @@ main(int argc,char **argv)
   nm_id_sct *xtr_lst_a=NULL_CEWI; /* Initialize to ALL variables in OUTPUT file */
   
   size_t bfr_sz_hnt=NC_SIZEHINT_DEFAULT; /* [B] Buffer size hint */
+  size_t cnk_csh_byt=NCO_CNK_CSH_BYT_DFL; /* [B] Chunk cache size */
   size_t cnk_min_byt=NCO_CNK_SZ_MIN_BYT_DFL; /* [B] Minimize size of variable to chunk */
   size_t cnk_sz_byt=0UL; /* [B] Chunk size in bytes */
   size_t cnk_sz_scl=0UL; /* [nbr] Chunk size scalar */
@@ -575,6 +577,13 @@ main(int argc,char **argv)
   (void)pop_fmc_vtr(fmc_vtr,&vlist_obj);
   (void)pop_fmc_vtr(fmc_vtr,&print_obj);
   (void)pop_fmc_vtr(fmc_vtr,&bnds_obj);
+  
+#ifdef ENABLE_UDUNITS
+# ifdef HAVE_UDUNITS2_H
+  udunits_cls udunits_obj(true);
+  (void)pop_fmc_vtr(fmc_vtr,&udunits_obj);
+#endif
+#endif
 
 #ifdef ENABLE_GSL
 # ifdef ENABLE_NCO_GSL
@@ -676,7 +685,7 @@ main(int argc,char **argv)
   } /* Existing file */
   
   /* Initialize chunking from user-specified inputs */
-  if(fl_out_fmt == NC_FORMAT_NETCDF4 || fl_out_fmt == NC_FORMAT_NETCDF4_CLASSIC) rcd+=nco_cnk_ini(in_id,fl_out,cnk_arg,cnk_nbr,cnk_map,cnk_plc,cnk_min_byt,cnk_sz_byt,cnk_sz_scl,&cnk);
+  if(fl_out_fmt == NC_FORMAT_NETCDF4 || fl_out_fmt == NC_FORMAT_NETCDF4_CLASSIC) rcd+=nco_cnk_ini(in_id,fl_out,cnk_arg,cnk_nbr,cnk_map,cnk_plc,cnk_csh_byt,cnk_min_byt,cnk_sz_byt,cnk_sz_scl,&cnk);
 
   /* Copy global attributes */
   (void)nco_att_cpy(in_id,out_id,NC_GLOBAL,NC_GLOBAL,(nco_bool)True);
@@ -714,7 +723,7 @@ main(int argc,char **argv)
   prs_arg.NCAP_MPI_SORT=(thr_nbr > 1 ? true:false);
   
   prs_arg.dfl_lvl=dfl_lvl;  /* [enm] Deflate level */
-  prs_arg.cnk_sz=(size_t*)NULL; /* Chunk sizes NULL for now */ 
+  prs_arg.cnk_sz=(size_t *)NULL; /* Chunk sizes NULL for now */ 
   
 #ifdef NCO_NETCDF4_AND_FILLVALUE
   prs_arg.NCAP4_FILL=(fl_out_fmt == NC_FORMAT_NETCDF4 || fl_out_fmt == NC_FORMAT_NETCDF4_CLASSIC);
@@ -800,7 +809,7 @@ main(int argc,char **argv)
         (void)fprintf(stderr,"spt_arg[%d] = %s\n",idx,spt_arg[idx]);
     } /* endif debug */
      /* Invoke ANTLR parser */
-    rcd=parse_antlr(prs_vtr,fl_cmd_usr,spt_arg_cat);
+    antlr_ret=parse_antlr(prs_vtr,fl_cmd_usr,spt_arg_cat);
   }
   
   // execute in ANTLR user specified script 
@@ -809,7 +818,7 @@ main(int argc,char **argv)
       err_prn(fnc_nm,"Unable to open script file "+std::string(fl_spt_usr));
     fclose(yyin); 
     /* Invoke ANTLR parser */
-    rcd=parse_antlr(prs_vtr,fl_spt_usr,(char *)NULL);
+    antlr_ret=parse_antlr(prs_vtr,fl_spt_usr,(char *)NULL);
   }
 
 
@@ -1097,8 +1106,13 @@ main(int argc,char **argv)
     var_fix_out=(var_sct **)nco_free(var_fix_out);
   } /* !flg_cln */
   
-  nco_exit_gracefully();
-  return EXIT_SUCCESS;
+  // nco_exit_gracefully();
+  (void)fclose(stderr);
+  (void)fclose(stdin);
+  (void)fclose(stdout);
+  (void)nco_free(nco_prg_nm_get());
+
+  nco_exit(antlr_ret);
 } /* end main() */
 
 // Copy vector elements
@@ -1117,6 +1131,9 @@ void
 ram_vars_add
 (prs_cls *prs_arg)
 {
+  char buff[20]={0};
+  double dnan;
+
   var_sct *var1;
   
   var1=ncap_sclr_var_mk(std::string("NC_BYTE"),nco_int(NC_NAT));
@@ -1176,8 +1193,6 @@ ram_vars_add
   prs_arg->ncap_var_write(var1,true);
 #endif // !HUGE_VAL
 
-  char buff[20];
-  double dnan;
 #ifndef _MSC_VER
   if((dnan=nan(buff))){
     var1=ncap_sclr_var_mk(std::string("nan"),dnan); // double

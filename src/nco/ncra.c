@@ -9,7 +9,7 @@
    specfied variables of multiple input netCDF files and output them 
    to a single file. */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2017 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3.
@@ -241,6 +241,8 @@ main(int argc,char **argv)
   nco_bool EXCLUDE_INPUT_LIST=False; /* Option c */
   nco_bool EXTRACT_ALL_COORDINATES=False; /* Option c */
   nco_bool EXTRACT_ASSOCIATED_COORDINATES=True; /* Option C */
+  nco_bool EXTRACT_CLL_MSR=True; /* [flg] Extract cell_measures variables */
+  nco_bool EXTRACT_FRM_TRM=True; /* [flg] Extract formula_terms variables */
   nco_bool FLG_BFR_NRM=False; /* [flg] Current output buffers need normalization */
   nco_bool FLG_MRO=False; /* [flg] Multi-Record Output */
   nco_bool FL_LST_IN_APPEND=True; /* Option H */
@@ -279,6 +281,7 @@ main(int argc,char **argv)
   scv_sct wgt_avg_scv;
   
   size_t bfr_sz_hnt=NC_SIZEHINT_DEFAULT; /* [B] Buffer size hint */
+  size_t cnk_csh_byt=NCO_CNK_CSH_BYT_DFL; /* [B] Chunk cache size */
   size_t cnk_min_byt=NCO_CNK_SZ_MIN_BYT_DFL; /* [B] Minimize size of variable to chunk */
   size_t cnk_sz_byt=0UL; /* [B] Chunk size in bytes */
   size_t cnk_sz_scl=0UL; /* [nbr] Chunk size scalar */
@@ -312,9 +315,18 @@ main(int argc,char **argv)
   
   static struct option opt_lng[]={ /* Structure ordered by short option key if possible */
     /* Long options with no argument, no short option counterpart */
+    {"cll_msr",no_argument,0,0}, /* [flg] Extract cell_measures variables */
+    {"cell_measures",no_argument,0,0}, /* [flg] Extract cell_measures variables */
+    {"no_cll_msr",no_argument,0,0}, /* [flg] Do not extract cell_measures variables */
+    {"no_cell_measures",no_argument,0,0}, /* [flg] Do not extract cell_measures variables */
+    {"frm_trm",no_argument,0,0}, /* [flg] Extract formula_terms variables */
+    {"formula_terms",no_argument,0,0}, /* [flg] Extract formula_terms variables */
+    {"no_frm_trm",no_argument,0,0}, /* [flg] Do not extract formula_terms variables */
+    {"no_formula_terms",no_argument,0,0}, /* [flg] Do not extract formula_terms variables */
     {"cll_mth",no_argument,0,0}, /* [flg] Add/modify cell_methods attributes */
     {"cell_methods",no_argument,0,0}, /* [flg] Add/modify cell_methods attributes */
     {"no_cll_mth",no_argument,0,0}, /* [flg] Do not add/modify cell_methods attributes */
+    {"no_cell_methods",no_argument,0,0}, /* [flg] Do not add/modify cell_methods attributes */
     {"clm_bnd",no_argument,0,0}, /* [sct] Climatology bounds */
     {"cb",no_argument,0,0}, /* [sct] Climatology bounds */
     {"clm2bnd",no_argument,0,0}, /* [sct] Climatology bounds-to-time bounds */
@@ -503,6 +515,10 @@ main(int argc,char **argv)
         cnk_plc_sng=(char *)strdup(optarg);
         cnk_plc=nco_cnk_plc_get(cnk_plc_sng);
       } /* endif cnk */
+      if(!strcmp(opt_crr,"cll_msr") || !strcmp(opt_crr,"cell_measures")) EXTRACT_CLL_MSR=True; /* [flg] Extract cell_measures variables */
+      if(!strcmp(opt_crr,"no_cll_msr") || !strcmp(opt_crr,"no_cell_measures")) EXTRACT_CLL_MSR=False; /* [flg] Do not extract cell_measures variables */
+      if(!strcmp(opt_crr,"frm_trm") || !strcmp(opt_crr,"formula_terms")) EXTRACT_FRM_TRM=True; /* [flg] Extract formula_terms variables */
+      if(!strcmp(opt_crr,"no_frm_trm") || !strcmp(opt_crr,"no_formula_terms")) EXTRACT_FRM_TRM=False; /* [flg] Do not extract formula_terms variables */
       if(!strcmp(opt_crr,"cll_mth") || !strcmp(opt_crr,"cell_methods")) flg_cll_mth=True; /* [flg] Add/modify cell_methods attributes */
       if(!strcmp(opt_crr,"no_cll_mth") || !strcmp(opt_crr,"no_cell_methods")) flg_cll_mth=False; /* [flg] Add/modify cell_methods attributes */
       if(!strcmp(opt_crr,"cln") || !strcmp(opt_crr,"mmr_cln") || !strcmp(opt_crr,"clean")) flg_cln=True; /* [flg] Clean memory prior to exit */
@@ -738,8 +754,8 @@ main(int argc,char **argv)
   trv_tbl_init(&trv_tbl); 
 
   /* Construct GTT, Group Traversal Table (groups,variables,dimensions, limits) */
-  (void)nco_bld_trv_tbl(in_id,trv_pth,lmt_nbr,lmt_arg,aux_nbr,aux_arg,MSA_USR_RDR,FORTRAN_IDX_CNV,grp_lst_in,grp_lst_in_nbr,var_lst_in,var_lst_in_nbr,EXTRACT_ALL_COORDINATES,GRP_VAR_UNN,False,EXCLUDE_INPUT_LIST,EXTRACT_ASSOCIATED_COORDINATES,nco_pck_plc_nil,&flg_dne,trv_tbl);
-
+  (void)nco_bld_trv_tbl(in_id,trv_pth,lmt_nbr,lmt_arg,aux_nbr,aux_arg,MSA_USR_RDR,FORTRAN_IDX_CNV,grp_lst_in,grp_lst_in_nbr,var_lst_in,var_lst_in_nbr,EXTRACT_ALL_COORDINATES,GRP_VAR_UNN,False,EXCLUDE_INPUT_LIST,EXTRACT_ASSOCIATED_COORDINATES,EXTRACT_CLL_MSR,EXTRACT_FRM_TRM,nco_pck_plc_nil,&flg_dne,trv_tbl);
+  
   /* Were all user-specified dimensions found? */ 
   (void)nco_chk_dmn(lmt_nbr,flg_dne);     
 
@@ -814,7 +830,7 @@ main(int argc,char **argv)
   fl_out_tmp=nco_fl_out_open(fl_out,&FORCE_APPEND,FORCE_OVERWRITE,fl_out_fmt,&bfr_sz_hnt,RAM_CREATE,RAM_OPEN,WRT_TMP_FL,&out_id);
 
   /* Initialize chunking from user-specified inputs */
-  if(fl_out_fmt == NC_FORMAT_NETCDF4 || fl_out_fmt == NC_FORMAT_NETCDF4_CLASSIC) rcd+=nco_cnk_ini(in_id,fl_out,cnk_arg,cnk_nbr,cnk_map,cnk_plc,cnk_min_byt,cnk_sz_byt,cnk_sz_scl,&cnk);
+  if(fl_out_fmt == NC_FORMAT_NETCDF4 || fl_out_fmt == NC_FORMAT_NETCDF4_CLASSIC) rcd+=nco_cnk_ini(in_id,fl_out,cnk_arg,cnk_nbr,cnk_map,cnk_plc,cnk_csh_byt,cnk_min_byt,cnk_sz_byt,cnk_sz_scl,&cnk);
 
   /* Define dimensions, extracted groups, variables, and attributes in output file */
   (void)nco_xtr_dfn(in_id,out_id,&cnk,dfl_lvl,gpe,md5,!FORCE_APPEND,True,False,nco_pck_plc_nil,(char *)NULL,trv_tbl);
@@ -907,6 +923,7 @@ main(int argc,char **argv)
     }else{ /* !tm_crd_id_in */
       if(nco_dbg_lvl >= nco_dbg_std) (void)fprintf(stderr,"%s: WARNING Climatology bounds invoked on dataset with unknown time coordinate. Turning-off climatology bounds mode.\n",nco_prg_nm_get());
       flg_cb=False;
+      rcd=NC_NOERR;
       goto skp_cb; 
     } /* !tm_crd_in */
 
@@ -1270,18 +1287,18 @@ main(int argc,char **argv)
             if(nco_prg_id == ncra) FLG_BFR_NRM=True; /* [flg] Current output buffers need normalization */
 
             /* Re-base record coordinate and bounds if necessary (e.g., time, time_bnds) */
-            if(lmt_rec[idx_rec]->origin != 0.0 && (var_prc[idx]->is_crd_var || nco_is_spc_in_cf_att(grp_id,"bounds",var_prc[idx]->id) || nco_is_spc_in_cf_att(grp_id,"climatology",var_prc[idx]->id))){
-              var_sct *var_crd;
-              scv_sct scv;
-              /* De-reference */
-              var_crd=var_prc[idx];
-              scv.val.d=lmt_rec[idx_rec]->origin;              
-              scv.type=NC_DOUBLE;  
-              /* Convert scalar to variable type */
-              nco_scv_cnf_typ(var_crd->type,&scv);
-              (void)nco_var_scv_add(var_crd->type,var_crd->sz,var_crd->has_mss_val,var_crd->mss_val,var_crd->val,&scv);
-            } /* end re-basing */
+            if(var_prc[idx]->is_crd_var || nco_is_spc_in_cf_att(grp_id,"bounds",var_prc[idx]->id) || nco_is_spc_in_cf_att(grp_id,"climatology",var_prc[idx]->id))
+            {
+              char *fl_udu_sng=nco_lmt_get_udu_att(grp_id,var_prc[idx]->id,"units"); /* Units attribute of coordinate variable */ 
+              if(fl_udu_sng && lmt_rec[idx_rec]->rbs_sng)
+	      { 
+                if( nco_cln_clc_dbl_var_dff(fl_udu_sng,lmt_rec[idx_rec]->rbs_sng, lmt_rec[idx_rec]->lmt_cln, (double*)NULL, var_prc[idx]) !=NCO_NOERR)
+                    nco_exit(EXIT_FAILURE);     
 
+                nco_free(fl_udu_sng); 
+	      } /* end re-basing */
+            } 
+              
             if(nco_prg_id == ncra){
               nco_bool flg_rth_ntl;
               if(!rec_usd_cml[idx_rec] || (FLG_MRO && REC_FRS_GRP)) flg_rth_ntl=True; else flg_rth_ntl=False;
@@ -1556,7 +1573,7 @@ main(int argc,char **argv)
       trv_tbl_init(&trv_tbl1); 
 
       /* Construct GTT using current file ID */
-      (void)nco_bld_trv_tbl(in_id,trv_pth,lmt_nbr,lmt_arg,aux_nbr,aux_arg,MSA_USR_RDR,FORTRAN_IDX_CNV,grp_lst_in,grp_lst_in_nbr,var_lst_in,var_lst_in_nbr,EXTRACT_ALL_COORDINATES,GRP_VAR_UNN,False,EXCLUDE_INPUT_LIST,EXTRACT_ASSOCIATED_COORDINATES,nco_pck_plc_nil,&flg_dne,trv_tbl1);
+      (void)nco_bld_trv_tbl(in_id,trv_pth,lmt_nbr,lmt_arg,aux_nbr,aux_arg,MSA_USR_RDR,FORTRAN_IDX_CNV,grp_lst_in,grp_lst_in_nbr,var_lst_in,var_lst_in_nbr,EXTRACT_ALL_COORDINATES,GRP_VAR_UNN,False,EXCLUDE_INPUT_LIST,EXTRACT_ASSOCIATED_COORDINATES,EXTRACT_CLL_MSR,EXTRACT_FRM_TRM,nco_pck_plc_nil,&flg_dne,trv_tbl1);
 
       /* Were all user-specified dimensions found? */ 
       (void)nco_chk_dmn(lmt_nbr,flg_dne);  

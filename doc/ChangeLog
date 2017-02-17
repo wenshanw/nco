@@ -1,3 +1,349 @@
+2017-02-15  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.5-alpha02 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.5-alpha02 final changes';git push
+	git tag -a 4.6.5-alpha02 -m 'Version 4.6.5-alpha02 new features: where() fix for vpointers';git push --tags
+
+2017-02-13 Henry Butowsky  <henryb@hush.com>
+
+	* Modify where_assign() method in grammar so that it can handle vpointers in where() body
+
+2017-02-10  Charlie Zender  <zender@uci.edu>
+
+	* Restore correct values for three_dmn_rec_var in in.cdl that were inadvertently changed in 4.6.4
+
+2017-02-09  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.5-alpha01 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.5-alpha01 final changes';git push
+	git tag -a 4.6.5-alpha01 -m 'Version 4.6.5-alpha01 new features: re-introduce fixed USE_NC4_SRD_WORKAROUND';git push --tags
+
+2017-02-08  Charlie Zender  <zender@uci.edu>
+
+	* Re-instate USE_NC4_SRD_WORKAROUND only when strided dimension is first dimension
+
+2017-02-07  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.4 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.4 final changes';git push
+	git tag -a 4.6.4 -m 'Version 4.6.4 new features: splitter, stdin, clm_md=dly, cll_msr, frm_trm, cln=365 and srd fixes';git push --tags
+
+	* NCO 4.6.4-beta02 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.4-beta02 final changes';git push
+	git tag -a 4.6.4-beta02 -m 'Version 4.6.4-beta02 new features: deprecate USE_NC4_SRD_WORKAROUND';git push --tags
+
+2017-02-06 Henry Butowsky  <henryb@hush.com>
+
+	* Switched-off USE_NC4_SRD_WORKAROUND in nco_msa_rcr_clc() in nco_msa.c as algorithm was incorrect
+
+2017-02-01  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.4-beta01 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.4-beta01 final changes';git push
+	git tag -a 4.6.4-beta01 -m 'Version 4.6.4-beta01 new features: ncclimo stdin option, redirection, blues batch, calendar bugfix';git push --tags
+
+	* Calendar code is MUCH slower on MacOS than Linux, unclear why
+
+	* Henry made sscanf() in custom calendar routines be more fault-tolerant, fixes MacOS aborts
+
+2017-01-27  Charlie Zender  <zender@uci.edu>
+
+	* ncclimo improve shell pattern match for $HOSTNAME for blues and cooley
+
+	* ncclimo detect input redirection in interactive mode, and add	--stdin for batch mode
+
+2017-01-26  Charlie Zender  <zender@uci.edu>
+
+	* Learned that MacOS aborts due to custom calendar (e.g., 365_day) handling
+
+2017-01-25  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.4-alpha06 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.4-alpha06 final changes';git push
+	git tag -a 4.6.4-alpha06 -m 'Version 4.6.4-alpha06 new features: cell_measures, clm_md=dly, stdin PBS/SLURM';git push --tags
+
+	* Unable to reproduce MacOS behavior that leads to unexpected aborts with some time hyperslabs
+
+	* Update bld/Makefile for new ncap2_att.cc
+
+	* Conclusively demonstrated that testing [ -p /dev/stdin ] leads to unexpected results on PBS not SLURM
+
+2017-01-23  Charlie Zender  <zender@uci.edu>
+
+	* Henry eliminated an invalid read in nco_cln_prs_tm() that contributed to ncclimo hyperslab failures on MacOS
+
+2017-01-22  Charlie Zender  <zender@uci.edu>
+
+	* ncclimo omit gaa_sng from regrid commands, since gaa_sng is in files to regrid
+
+	* ncclimo daily mode fix parallelization
+
+	* ncclimo implement daily climatology. commands look good. date hyperslab fails on MacOS.
+
+	* ncclimo allow clm_md='dly' to read input from stdin, positional, or directory glob
+
+	* ncsplit fix directory glob for split-mode
+
+2017-01-20  Charlie Zender  <zender@uci.edu>
+
+	* Implement stubs for clm_md='dly'
+
+	* Document cell_measures and formula_terms
+
+	* Add --cll_msr/--no_cll_msr and --frm_trm/--no_frm_trm to subsetting operators
+
+	* ncks adds/suppresses cell_measures in regridded output with --rgr cll_msr/no_cll_msr
+
+2017-01-19  Charlie Zender  <zender@uci.edu>
+
+	* ncremap change standard_name of area_nm_out from cell_area to area
+
+	* Extract variables in CF "cell_measures" attributes
+
+	* Add areacella to in.cdl in preparation for adding CF cell_measures variables to extraction list
+
+	* NCO 4.6.4-alpha05 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.4-alpha05 final changes';git push
+	git tag -a 4.6.4-alpha05 -m 'Version 4.6.4-alpha05 new features: fix stdin detection, var_xtr_xtn';git push --tags
+
+	* Rewrite stdin pipe data detection in ncclimo, ncremap
+	Fixes bug running in batch mode where disconnected terminal caused scripts to expect input from stdin pipe
+
+	* ncsplit remove lat/lon from automatic extraction for CAM (only present in regridded files)
+
+	* ncsplit change old gnr_flg to new clm_flg so climatology-generation mode is consistent
+
+2017-01-18  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.4-alpha04 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.4-alpha04 final changes';git push
+	git tag -a 4.6.4-alpha04 -m 'Version 4.6.4-alpha04 new features: tidy warnings, UDUnits fix, w_stag, split doc, formula_terms';git push --tags
+
+	* Verify formula_terms-based extractions work
+
+2017-01-17  Charlie Zender  <zender@uci.edu>
+
+	* Extract variables in CF "formula_terms" attributes
+
+	* Fix attributes in hdn.cdl
+
+2017-01-16  Charlie Zender  <zender@uci.edu>
+
+	* Squelch warning about deflation with netCDF3 output when dfl_lvl == 0
+
+2017-01-13  Charlie Zender  <zender@uci.edu>
+
+	* Verified ncremap produces identical w_stag weights to those in
+	b.e11.BRCP26C5CNBDRD.f09_g16.1pt5degC.001.cam.h0.AODVIS.200601-210012.nc
+
+	* Add staggered latitude weight w_stag to FV output grids (since NCAR CCSM4 AMIP does)
+
+	* Print offending multi-argument when input error found
+
+	* ZKB in UDUnits code after fixing skyglow UDUnits installation
+
+2017-01-12  Charlie Zender  <zender@uci.edu>
+
+	* Fix all compiler warnings in nco_cln_utl.[ch]
+
+	* Fix bug introduced in 4.6.3 where hyperslabs involving UDUnits dates failed
+
+	* Document ncsplit
+
+2016-01-12  Henry Butowsky  <henryb@hush.com>
+
+	* Add exit(value) function to ncap2 scripting. 'value' propagates from script to code using custom Exception.
+	Value is then returned by ncap2 main().
+
+2017-01-11  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.4-alpha03 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.4-alpha03 final changes';git push
+	git tag -a 4.6.4-alpha03 -m 'Version 4.6.4-alpha03 new features: ncsplit segments work';git push --tags
+
+	* ncsplit: Verified working on 250-year ACME beta simulation
+
+	* ncsplit: Comment-out old Git hash code which fails with split files anyway
+
+	* ncsplit: Sanity check that number of files on command line matches number predicted by date switches
+
+	* ncsplit: Add outer loop over time segments
+
+	* ncsplit: Fix parallel partial batch PID wait loop to enumerate over variables not files
+
+2016-01-10  Henry Butowsky  <henryb@hush.com>
+
+	* modify min_coord() to take and return an array of values (var or att)
+
+2017-01-08  Charlie Zender  <zender@uci.edu>
+
+	* ncsplit: Customize stdout messages
+
+2017-01-07  Charlie Zender  <zender@uci.edu>
+
+	* ncsplit: Split whenever input files are positional or from stdin or --ypf given
+
+	* ncsplit: Add regridding
+
+	* ncsplit: Add batch parallelism and --job_nbr
+
+	* NCO 4.6.4-alpha02 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.4-alpha02 final changes';git push
+	git tag -a 4.6.4-alpha02 -m 'Version 4.6.4-alpha02 new features: ncsplit, cnk_csh';git push --tags
+
+	* Set/report chunk cache size in ncks (only) main(), not cnk_ini() when input file is netCDF4
+
+	* ncsplit: Add error-checking on input file number
+
+2017-01-03  Charlie Zender  <zender@uci.edu>
+
+	* Crude ncsplit-functionality works in ncclimo
+
+	* Fix cmd_mpi index error in ncremap
+
+2017-01-02  Charlie Zender  <zender@uci.edu>
+
+	* Implement ncsplit stubs in ncclimo
+
+	* Enumerate MPI commands by fl_idx not clm_idx in ncremap
+
+2016-12-23  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.4-alpha01 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.4-alpha01 final changes';git push
+	git tag -a 4.6.4-alpha01 -m 'Version 4.6.4-alpha01 new features: 2017 dates. Otherwise same as 4.6.3';git push --tags
+
+	* NCO 4.6.3 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.3 final changes';git push
+	git tag -a 4.6.3 -m 'Version 4.6.3 new features: rebasing, long options, JSON brackets, udunits(), binary/annual climos';git push --tags
+
+2016-12-22  Charlie Zender  <zender@uci.edu>
+
+	* Add NC_EACCESS error hints
+
+2016-12-21  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.3-beta01 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.3-beta01 final changes';git push
+	git tag -a 4.6.3-beta01 -m 'Version 4.6.3-beta01 new features: tweak JSON';git push --tags
+
+2016-12-20  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.3-alpha05 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.3-alpha05 final changes';git push
+	git tag -a 4.6.3-alpha05 -m 'Version 4.6.3-alpha05 new features: long options to ncremap, JSON brackets';git push --tags
+
+2016-12-20  Henry Butowsky  <henryb@hush.com>
+
+	* Add --jsn_data_brk to print JSON data array brackets
+
+2016-12-19  Charlie Zender  <zender@uci.edu>
+
+	* Name and document long synonyms for ncremap
+
+2016-12-14  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.3-alpha04 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.3-alpha04 final changes';git push
+	git tag -a 4.6.3-alpha04 -m 'Version 4.6.3-alpha04 new features: long options to ncclimo';git push --tags
+
+2016-12-13  Charlie Zender  <zender@uci.edu>
+
+	* Finish long argument documentation for ncclimo
+
+2016-12-10  Charlie Zender  <zender@uci.edu>
+
+	* Add long options to ncclimo. Use Adam Katz's method from StackOverflow.
+
+	* Quote $OPTARG on RHS to handle whitespace correctly
+
+2016-12-9  Henry Butowsky  <henryb@hush.com>
+
+	* Re-base when increment (not just basetime) changes between files for calendar=360_day, 365_day
+
+2016-12-06  Charlie Zender  <zender@uci.edu>
+
+	* Implement climo_ann.sh functionality in ncclimo and deprecate climo_ann.sh
+
+	* Rename clm_md to dec_md for December mode, and use clm_md for	Climatology Mode = ann, mth, dly
+
+2016-12-05  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.3-alpha03 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.3-alpha03 final changes';git push
+	git tag -a 4.6.3-alpha03 -m 'Version 4.6.3-alpha03 new features: mpaso, mpascice, CMake, rebasing';git push --tags
+
+	* Cleared up most bugs from new rebasing code
+
+	* Pedro has begun adding CMake support
+
+	* ncra: reset error code in --cb block to prevent exiting with apparent error
+
+	* Update ncclimo for new mpaso, mpascice conventions
+
+	* Pad metadata headers to 10kB with --hdr_pad in ncremap, nccclimo
+
+	* Preserve full command-line (with --gaa ${cmd_ln}) in ncremap,	ncclimo
+
+	* Deprecate (temporarily, I hope) _GNU_SOURCE so ncap_yacc builds without stpcpy() problems
+
+	* Patches necessary when UDUNITS not installed
+
+2016-12-04  Charlie Zender  <zender@uci.edu>
+
+	* Always return value to non-void functions: good practice and required by rpmlint
+	Define _GNU_SOURCE macro when to obtain prototype for GNU extension sngcasestr() from string.h
+	Patches supplied by Manfred Schwarb in nco bugs #94
+
+2016-11-30  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.3-alpha02 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.3-alpha02 final changes';git push
+	git tag -a 4.6.3-alpha02 -m 'Version 4.6.3-alpha02 new features: ncclimo binary climatologies';git push --tags
+
+	* Henry implemented ncra re-base when increment, not just basetime, changes between files
+
+	* Make defaults for drc_prv sensible for bnr_flg and ncr_flg in ncclimo
+
+2016-11-29  Charlie Zender  <zender@uci.edu>
+
+	* Tested and working on FC25, no mods necessary, yay!
+
+	* Print attribute CDL type as comment when dbg_lvl >= 1
+
+2016-11-25  Charlie Zender  <zender@uci.edu>
+
+	* Modify ncclimo to distinguish two types Extended climos: Meta	and Incremental
+
+2016-11-22  Charlie Zender  <zender@uci.edu>
+
+	* Change NCO_CNK_CSH_BYT_DFL to 0 since it is unsigned
+
+2016-11-21  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.3-alpha01 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.3-alpha01 final changes';git push
+	git tag -a 4.6.3-alpha01 -m 'Version 4.6.3-alpha01 new features: bld/Makefile updates for ar, GSL;ncap2 chunking;';git push --tags
+
+	* Add --cnk_csh_byt option and cache diagnostics
+
+	* ncap2 no longer chunks all variables with asking, and follows command-line inputs
+
+2016-11-18  Charlie Zender  <zender@uci.edu>
+
+	* Revise and clarify ncwa memory usage in nco.texi
+
+	* [NCO]_GSL_MINOR_VERSION rx fails in fmt_gsl_cls.cc due to new GSL 2.x numbering, breaks bld/Makefile
+
+	* Compiling on grele shows netCDF 4.3.3.1 chokes on CDL naked constant ll, LL, ull, ULL syntax
+	Remove such syntax from in_4.cdl to prevent breakage with bld/Makefile
+
+2016-11-17  Charlie Zender  <zender@uci.edu>
+
+	* Excise U from ARFLAGS on rhea/titan/yellowstone (RHEL6) since -U implemented in ar after ~2009
+
+	* Clarify that rebasing feature only works on basetime in response to Dave Allured's question/comment
+
 2016-11-16  Charlie Zender  <zender@uci.edu>
 
 	* Merge spelling fixes from Sebastian Couwenberg

@@ -2,7 +2,7 @@
 
 /* Purpose: NCO utilities for Swath-Like Data (SLD) */
 
-/* Copyright (C) 2015--2016 Charlie Zender
+/* Copyright (C) 2015--2017 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -94,6 +94,7 @@ nco_trr_ini /* [fnc] Initialize Terraref structure */
   if(trr_wxy){
     cnv_nbr=sscanf(trr_wxy,"%ld,%ld,%ld",&trr->wvl_nbr,&trr->xdm_nbr,&trr->ydm_nbr);
     assert(cnv_nbr == 3);
+    if(cnv_nbr == 3) cnv_nbr=3; /* CEWI */
   } /* !trr_wxy */
 
   /* Parse key-value properties */

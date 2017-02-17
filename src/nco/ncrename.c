@@ -4,7 +4,7 @@
 
 /* Purpose: Rename dimensions, variables, and attributes of a netCDF file */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2017 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3.
@@ -383,7 +383,7 @@ main(int argc,char **argv)
   trv_tbl_init(&trv_tbl); 
 
   /* Construct GTT (Group Traversal Table), check -v and -g input names and create extraction list */
-  (void)nco_bld_trv_tbl(nc_id,trv_pth,(int)0,NULL,(int)0,NULL,False,False,NULL,(int)0,NULL,(int)0,False,False,False,False,True,nco_pck_plc_nil,NULL,trv_tbl);
+  (void)nco_bld_trv_tbl(nc_id,trv_pth,(int)0,NULL,(int)0,NULL,False,False,NULL,(int)0,NULL,(int)0,False,False,False,False,True,False,False,nco_pck_plc_nil,NULL,trv_tbl);
 
   /* Rename variables */
   for(int idx_var=0;idx_var<nbr_var_rnm;idx_var++){

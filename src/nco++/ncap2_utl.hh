@@ -57,7 +57,7 @@
 #include "sdo_utl.hh"
 #include "VarOpNew.hh" 
 #include "prs_cls.hh"
-
+#include "ncap2_att.hh"
 
 /* Don't know what Charlies done to the bools */
 /* Temporary fix for now !!*/
@@ -74,79 +74,66 @@
   std::vector<exp_sct_tag**> srp_vtr; //self reverential pointer
 } exp_sct ;	
 
-/* Begin funtions in ncap2_utl.cc */
 
-std::string ncap_att2var
-( prs_cls *prs_arg,   
-  std::string att_nm);
-
-
-var_sct*               /* O [sct] variable containing attribute */
-ncap_att_get	       /*   [fnc] Grab an attribute from input file */	
-(int var_id,           /*   I  var id        */ 
- const char *var_nm,   /*   I [sng] var name */
- const char *att_nm,   /*   I [sng] att name */
- int location,         /*   I [flg] 1 - att from INPUT file  2 - att from OUTPUT file */
- prs_cls *prs_arg);    /* I/O vectors of atts & vars & file names  */
-
-
-var_sct *                /* O [sct] variable containing attribute */
-ncap_att_init(           /*   [fnc] Grab an attribute from input file */
-std::string va_nm,       /* I [sng] att name of form var_nm&att_nm */ 
-prs_cls *prs_arg);       /* I/O vectors of atts & vars & file names  */
-
+/***************  misc functions ********************************************************/
 
 std::vector<std::string> /* [O] [vector] list of files paths to be used to locate include files */
 ncap_make_include_paths  
 (const char *sin);       /* list of file path(s) delimited by ':' */
 
-int
-ncap_att_gnrl
-(const std::string s_dst,
- const std::string s_src,
- int location,         /*   I [flg] 1 - att from INPUT file  2 - att from OUTPUT file */
- prs_cls  *prs_arg);
 
+nco_bool
+ncap_def_dim(
+std::string dmn_nm,
+long sz,
+bool ltype,
+prs_cls *prs_arg);
 
+void
+nco_get_var_mem(
+var_sct *var_rhs,
+NcapVector<dmn_sct*> &dmn_vtr);
 
-nco_bool                /* O [flg] true if var has been stretched */
-ncap_att_stretch    /* stretch a single valued attribute from 1 to sz */
-(var_sct* var,      /* I/O [sct] variable */       
- long nw_sz);       /* I [nbr] new var size */
+void
+nco_put_var_mem(
+var_sct *var_in,
+var_sct *var_nw,
+NcapVector<lmt_sct*> &lmt_vtr);
+
+nco_bool         /* Returns True if shape of vars match (using cnt vectors */
+nco_shp_chk(
+var_sct* var1, 
+var_sct* var2); 
 
 var_sct *      /* initialize var to defaults & undefined to true */
 ncap_var_udf
 (const char *var_nm);
  
 
-int 
-ncap_att_cpy_sct
-(var_sct *var1,
- var_sct *var2,
- prs_cls  *prs_arg);
 
-int             
-ncap_att_cpy
-(const std::string s_dst,
- const std::string s_src,
- prs_cls  *prs_arg);
+nco_bool 
+ncap_var_is_op_doable( 
+var_sct *var1, 
+var_sct *var2); 
 
-void 
-ncap_att_prn   
-(var_sct *var, 
- char *const att_in_sng);
 
-char *            /* [0] sng - malloced inside function */
-ncap_att_sprn     /* [fnc] Print a single attribute*/
-(var_sct *var,   /* I Variable containing att */
- char *const att_in_sng); /* user defined format string */
+nco_bool       /* returns true if order and size of dims match exactly */
+ncap_top_shp_chk(
+var_sct* var1, 
+var_sct* var2); 
+
+nco_bool       /* true if oder & size of dims match (after removing (degenerate) size 1 dims */
+ncap_norm_shp_chk(
+var_sct* var1, 
+var_sct* var2); 
 
 
 
-int                 /* number appended */ 
-ncap_att_str        /* extract string(s) from a NC_CHAR or NC_STRING type attribute */
-(var_sct *var_att,  /* I [sct] input attribute */
- std::vector<std::string> &str_vtr);
+/***************************************************************************************/
+
+
+/*************** custom math functions *********************************************************/
+
 
 var_sct *   /* O [sct] Remainder of modulo operation of input variables (var_1%var_2) */
 ncap_var_var_mod /* [fnc] Remainder (modulo) operation of two variables */
@@ -179,6 +166,17 @@ var_sct *         /* O [sct] Resultant variable (actually is var) */
 ncap_var_abs(     /* Purpose: Find absolute value of each element of var */
 var_sct *var);    /* I/O [sct] input variable */
 
+bool            /* O [flg] true if all var elemenst are true */
+ncap_var_lgcl   /* [fnc] calculate a aggregate bool value from a variable */
+(var_sct* var);  /* I [sct] input variable */
+
+
+
+/******************************************************************************************/
+
+
+/******************  list functions **********************************************************/
+
 nm_id_sct *            /* O [sct] new copy of xtr_lst */
 nco_var_lst_copy(      /*   [fnc] Purpose: Copy xtr_lst and return new list */
 nm_id_sct *xtr_lst,    /* I  [sct] input list */ 
@@ -210,12 +208,55 @@ nco_att_lst_mk
  NcapVarVector &var_vtr,  /* I [vec] vector of vars & att */
  int *nbr_lst);            /* O [ptr] size of output list */
 
-nco_bool
-ncap_def_dim(
-std::string dmn_nm,
-long sz,
-bool ltype,
+/******************************************************************************************/
+
+
+/************************ casting functions ***********************************************/
+
+var_sct*                           /* O [sct] casting variable has its own private dims */ 
+ncap_cst_mk(                       /* [fnc] create casting var from a list of dims */
+std::vector<std::string> &str_vtr,  /* I [sng] list of dimension subscripts */
 prs_cls *prs_arg);
+
+var_sct*
+ncap_cst_do(
+var_sct* var,
+var_sct* var_cst,
+bool bntlscn);
+
+NcapVector<dmn_sct*>                /* O [sct] list of new dims to limit over */ 
+ncap_dmn_mtd(
+var_sct *var,                       /*  [sct] create casting var from a list of dims */
+std::vector<std::string> &str_vtr);  /* I [sng] list of dimension names */
+
+
+/******************************************************************************************/
+
+/************************************AST (tree) functions ************************************/
+
+bool           /* Returns true if expression contains a utility fuction */ 
+ncap_fnc_srh(
+RefAST ntr
+);
+
+void ncap_mpi_get_id  /* Extract all VAR_ID & ATT_ID from an Expression */
+(
+RefAST ntr,
+std::vector<std::string> &str_vtr);
+
+
+int            /* Sort expressions for MPI Optimization */  
+ncap_mpi_srt(
+RefAST ntr,
+int icnt,
+std::vector< std::vector<RefAST> > &all_ast_vtr, // Return a Vector of Vectors
+prs_cls *prs_arg);
+
+
+/******************************************************************************************/
+
+/********************** var/var conformance  *********************************************/
+
 
 nco_bool /* O [flg] Variables now conform */
 ncap_var_stretch /* [fnc] Stretch variables */
@@ -274,149 +315,8 @@ ncap_var_var_inc    /* [fnc] Add two variables */
  prs_cls *prs_arg);
 
 
-bool            /* O [flg] true if all var elemenst are true */
-ncap_var_lgcl   /* [fnc] calculate a aggregate bool value from a variable */
-(var_sct* var);  /* I [sct] input variable */
+/******************************************************************************************/
 
-
-var_sct*                           /* O [sct] casting variable has its own private dims */ 
-ncap_cst_mk(                       /* [fnc] create casting var from a list of dims */
-std::vector<std::string> &str_vtr,  /* I [sng] list of dimension subscripts */
-prs_cls *prs_arg);
-
-var_sct*
-ncap_cst_do(
-var_sct* var,
-var_sct* var_cst,
-bool bntlscn);
-
-/* End funtions in ncap_utl.c */
-
-/* Let function live here for now */
-
-nco_bool         /* Returns True if shape of vars match (using cnt vectors */
-nco_shp_chk(
-var_sct* var1, 
-var_sct* var2); 
-
-nco_bool        /* Reurns True if var has attribute style name */
-ncap_var_is_att( 
-var_sct *var);
-
-nco_bool 
-ncap_var_is_op_doable( 
-var_sct *var1, 
-var_sct *var2); 
-
-
-bool           /* Returns true if expression contains a utility fuction */ 
-ncap_fnc_srh(
-RefAST ntr
-);
-
-void ncap_mpi_get_id  /* Extract all VAR_ID & ATT_ID from an Expression */
-(
-RefAST ntr,
-std::vector<std::string> &str_vtr);
-
-
-int            /* Sort expressions for MPI Optimization */  
-ncap_mpi_srt(
-RefAST ntr,
-int icnt,
-std::vector< std::vector<RefAST> > &all_ast_vtr, // Return a Vector of Vectors
-prs_cls *prs_arg);
-
-
-NcapVector<dmn_sct*>                /* O [sct] list of new dims to limit over */ 
-ncap_dmn_mtd(
-var_sct *var,                       /*  [sct] create casting var from a list of dims */
-std::vector<std::string> &str_vtr);  /* I [sng] list of dimension names */
-
-// ncap_sclr_var_mk() overloads
-/* Create a scalar variable of type, if bfill then malloc ptr_unn */
-var_sct*
-ncap_sclr_var_mk(
-const std::string var_nm,
-nc_type type,
-//bool bfll=false); fxm csz
-bool bfll);
-
-var_sct *
-ncap_sclr_var_mk(
-const std::string var_nm,
-float val_float);
-
-var_sct *
-ncap_sclr_var_mk(
-const std::string var_nm,
-double val_double);
-
-var_sct *
-ncap_sclr_var_mk(
-const std::string var_nm,
-nco_int val_int);
-
-var_sct *
-ncap_sclr_var_mk(
-const std::string var_nm,
-nco_short val_short);
-
-var_sct *
-ncap_sclr_var_mk(
-const std::string var_nm,
-nco_char val_char);
-
-var_sct *
-ncap_sclr_var_mk(
-const std::string var_nm,
-nco_byte val_byte);
-
-var_sct *
-ncap_sclr_var_mk(
-const std::string var_nm,
-nco_ubyte val_ubyte);
-
-var_sct *
-ncap_sclr_var_mk(
-const std::string var_nm,
-nco_ushort val_ushort);
-
-var_sct *
-ncap_sclr_var_mk(
-const std::string var_nm,
-nco_uint val_uint);
-
-var_sct *
-ncap_sclr_var_mk(
-const std::string var_nm,
-nco_int64 val_int64);
-
-var_sct *
-ncap_sclr_var_mk(
-const std::string var_nm,
-nco_uint64 val_uint64);
-
-
-
-var_sct *
-ncap_sclr_var_mk(
-const std::string var_nm,
-nco_string val_string);
-
-
-// end ncap_sclr_var_mk() overloads
-
-void
-nco_get_var_mem(
-var_sct *var_rhs,
-NcapVector<dmn_sct*> &dmn_vtr);
-
-void
-nco_put_var_mem(
-var_sct *var_in,
-var_sct *var_nw,
-NcapVector<lmt_sct*> &lmt_vtr);
 
 #endif  /* NCAP2_UTL_HH */
 

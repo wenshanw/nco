@@ -5,7 +5,7 @@
 /* Purpose: Compute averages of specified hyperslabs of specfied variables
    in a single input netCDF file and output them to a single file. */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2017 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3.
@@ -198,6 +198,7 @@ main(int argc,char **argv)
   prs_sct prs_arg;  /* I/O [sct] Global information required in ncwa parser */
   
   size_t bfr_sz_hnt=NC_SIZEHINT_DEFAULT; /* [B] Buffer size hint */
+    size_t cnk_csh_byt=NCO_CNK_CSH_BYT_DFL; /* [B] Chunk cache size */
   size_t cnk_min_byt=NCO_CNK_SZ_MIN_BYT_DFL; /* [B] Minimize size of variable to chunk */
   size_t cnk_sz_byt=0UL; /* [B] Chunk size in bytes */
   size_t cnk_sz_scl=0UL; /* [nbr] Chunk size scalar */
@@ -1064,7 +1065,7 @@ main(int argc,char **argv)
 	    /* Reduce variable over specified dimensions (tally array is set here)
 	       NB: var_prc_out[idx] is new, so corresponding var_out[idx] is dangling */
 	    var_prc_out[idx]=nco_var_avg(var_prc_out[idx],dmn_avg,dmn_avg_nbr,nco_op_typ,flg_rdd,&ddra_info);
-	    /* var_prc_out[idx]->val now holds numerator of averaging expression documented in NCO User's Guide
+	    /* var_prc_out[idx]->val now holds numerator of averaging expression documented in NCO Users Guide
 	       Denominator is also tricky due to sundry normalization options
 	       These logical switches are VERY tricky---be careful modifying them */
 	    if(NRM_BY_DNM && DO_CONFORM_WGT && (!var_prc[idx]->is_crd_var || WGT_MSK_CRD_VAR)){

@@ -2,7 +2,7 @@
 
 /* Purpose: NCO utilities for packing and unpacking variables */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2017 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -16,7 +16,7 @@
    nco_var_pck(): called just before writing output file, e.g., in main()
    Bookkeeping hassle is keeping flags in var_prc synchronized with flags in var_prc_out
 
-   From netCDF User's Guide:
+   From netCDF Users Guide:
    scale_factor: If present for a variable, the data are to be multiplied by this factor after the data are read by the application that accesses the data
    add_offset: If present for a variable, this number is added to the data after the data are read by the application. If both scale_factor and add_offset attributes are present, the data are first scaled before the offset is added. 
    When scale_factor and add_offset are used for packing, the associated variable (containing the packed data) is typically of type byte or short, whereas the unpacked values are intended to be of type float or double. Attribute's scale_factor and add_offset should both be of type intended for the unpacked data, e.g., float or double.

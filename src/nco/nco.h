@@ -2,7 +2,7 @@
 
 /* Purpose: netCDF Operator (NCO) definitions */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2017 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -169,6 +169,13 @@ extern "C" {
   /* Argument to strtol() and strtoul() indicating base-10 conversions */
 #define NCO_SNG_CNV_BASE10 10
 
+  /* 20161121 Chunk cache size default
+     http://www.unidata.ucar.edu/software/netcdf/docs/netcdf_perf_chunking.html
+     netCDF cache size default settable at netCDF build time with --with-chunk-cache-size option
+     If NCO default == 0, then NCO will use whatever default built-into netCDF library
+     If NCO default  > 0, then NCO will override netCDF default */
+#define NCO_CNK_CSH_BYT_DFL 0
+
   /* netCDF 4.3.2 (201404) implements a configure-time constant called DEFAULT_CHUNK_SIZE = 4194304 = 4 MB
      This is a good size for HPC systems with MB-scale blocksizes
      Token is not in netcdf.h, and NCO's equivalent need not match netCDF's
@@ -329,17 +336,17 @@ extern "C" {
 # define NCO_VERSION_MINOR 6
 #endif /* !NCO_VERSION_MINOR */
 #ifndef NCO_VERSION_PATCH
-# define NCO_VERSION_PATCH 2
+# define NCO_VERSION_PATCH 5
 #endif /* !NCO_VERSION_PATCH */
 #ifndef NCO_VERSION_NOTE
-# define NCO_VERSION_NOTE "" /* Blank for final versions, non-blank (e.g., "beta37") for pre-release versions */
+# define NCO_VERSION_NOTE "alpha02" /* Blank for final versions, non-blank (e.g., "beta37") for pre-release versions */
 #endif /* !NCO_VERSION_NOTE */
 #ifndef NCO_LIB_VERSION
   /* Define NC_LIB_VERSION as three-digit number for arithmetic comparisons by CPP */
 # define NCO_LIB_VERSION ( NCO_VERSION_MAJOR * 100 + NCO_VERSION_MINOR * 10 + NCO_VERSION_PATCH )
 #endif /* !NCO_LIB_VERSION */
 #ifndef NCO_VERSION
-# define NCO_VERSION "4.6.2"
+# define NCO_VERSION "4.6.5-alpha02"
 #endif /* !NCO_VERSION */
 
 /* Compatibility tokens new to netCDF4 netcdf.h: */
@@ -788,7 +795,7 @@ extern "C" {
 
     double max_val; /* Double precision representation of maximum value of coordinate requested or implied */
     double min_val; /* Double precision representation of minimum value of coordinate requested or implied */
-    double origin;   /* Used by ncra, ncrcat to re-base record coordinate */
+    double origin; /* Used by ncra, ncrcat to re-base record coordinate */
 
     int id; /* Dimension ID */
     int lmt_typ; /* crd_val or dmn_idx */
@@ -948,6 +955,7 @@ extern "C" {
     nco_bool nwl_pst_val; /* [flg] Print newline after variable values */
     int fll_pth; /* [nbr] Print full paths */
     int jsn_att_fmt; /* [enm] JSON format for netCDF attributes: 0 (no object, only data), 1 (data only for string, char, int, and floating-point types, otherwise object), 2 (always object) */ 
+    int jsn_data_brk; /* [flg] JSON format for netCDF variables: 0 (no bracketing of var data ), 1 ( bracketing of var data )*/
     int nbr_zro; /* [nbr] Trailing zeros allowed after decimal point */
     int ndn; /* [nbr] Indentation */
     int spc_per_lvl; /* [nbr] Indentation spaces per group level */
@@ -1131,14 +1139,15 @@ extern "C" {
     int xtn_nbr; /* [nbr] Number of extensive variables */
     long idx_dbg; /* [idx] Index of gridcell for debugging */
     long tst; /* [enm] Generic key for testing (undocumented) */
-    nco_bool flg_usr_rqs; /* [flg] User requested regridding */
-    nco_bool flg_grd_src; /* [flg] User-specified input grid */
-    nco_bool flg_grd_dst; /* [flg] User-specified destination grid */
+    nco_bool flg_cll_msr; /* [flg] Add cell_measures attribute */
     nco_bool flg_crv; /* [flg] Use curvilinear coordinates */
     nco_bool flg_grd; /* [flg] Create SCRIP-format grid file */
-    nco_bool flg_nfr; /* [flg] Infer SCRIP-format grid file */
+    nco_bool flg_grd_dst; /* [flg] User-specified destination grid */
+    nco_bool flg_grd_src; /* [flg] User-specified input grid */
     nco_bool flg_map; /* [flg] User-specified mapping weights */
+    nco_bool flg_nfr; /* [flg] Infer SCRIP-format grid file */
     nco_bool flg_rnr; /* [flg] Renormalize destination values by valid area */
+    nco_bool flg_usr_rqs; /* [flg] User requested regridding */
   } rgr_sct; /* end Regrid structure */
 
   /* Key-value structure */
@@ -1171,6 +1180,7 @@ extern "C" {
     cnk_dmn_sct **cnk_dmn; /* [sct] User-specified per-dimension chunking information */
     int cnk_map; /* [enm] Chunking map */
     int cnk_plc; /* [enm] Chunking policy */
+    size_t cnk_csh_byt; /* [B] Chunk cache size */
     size_t cnk_min_byt; /* [B] Minimize size of variable to chunk */
     size_t cnk_sz_byt; /* [B] Chunk size in Bytes */
     size_t cnk_sz_scl; /* [nbr] Chunk size scalar */

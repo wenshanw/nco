@@ -3,7 +3,7 @@
 # Purpose: GNU Makefile for NCO module nco
 # Requires GNU Make---AT&T Make chokes on GNU syntax
 
-# Copyright (C) 1994--2016 Charlie Zender
+# Copyright (C) 1994--2017 Charlie Zender
 # License: GNU General Public License (GPL) Version 3
 # See http://www.gnu.org/copyleft/gpl.html for full license text
 
@@ -922,7 +922,20 @@ endif
 ifneq (${null},$(findstring ${PVM_ARCH},LINUXALPHALINUXAMD64LINUXARMFREEBSDMACOSX))
 # 20161001 Linux ar with Ubuntu Xenial began using deterministic mode. -U undoes that.
 # 20161001 GNU ar -s is equivalent to ranlib
+# ar -D: Operate in deterministic mode (breaks NCO build on Ubuntu)
+# ar -r: replace existing or insert new file(s) into the archive
+# ar -s: equivalent to ranlib
+# ar -U: Do not operate in deterministic mode.  This is the inverse of the D modifier, above: added files and the archive index will get their actual UID, GID, timestamp, and file mode values.
+# ar -U: Unavailable option in RHEL 6 (2010) used on Rhea and Titan
+# ar -v: be verbose
 ARFLAGS := rsUv
+ifneq (${null},$(findstring rhea,${HOSTNAME}))
+ ARFLAGS := rsv
+else ifneq (${null},$(findstring titan,${HOSTNAME}))
+ ARFLAGS := rsv
+else ifneq (${null},$(findstring ys,${HOSTNAME}))
+ ARFLAGS := rsv
+endif # !rhea,titan,yellowston
 CXX := ${LINUX_CXX}
 CC := ${LINUX_CC}
 CPP := ${CC}
@@ -1997,6 +2010,7 @@ debug: dbg
 dbg:
 	@printf "ABI = ${ABI}\n"
 	@printf "AR = ${AR}\n"
+	@printf "ARFLAGS = ${ARFLAGS}\n"
 	@printf "BNR_SFX = ${BNR_SFX}\n"
 	@printf "CC = ${CC}\n"
 	@printf "CCACHE = ${CCACHE}\n"

@@ -2,7 +2,7 @@
 
 /* Purpose: Group utilities */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2017 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -1041,7 +1041,7 @@ nco_xtr_crd_add                       /* [fnc] Add all coordinates to extraction
 void
 nco_xtr_cf_add /* [fnc] Add to extraction list variables associated with CF convention */
 (const int nc_id, /* I [ID] netCDF file ID */
- const char * const cf_nm, /* I [sng] CF convention ("ancillary_variables", "bounds", "climatology", or "coordinates") */
+ const char * const cf_nm, /* I [sng] CF convention ("ancillary_variables", "bounds", "climatology", "coordinates", or "grid_mapping") */
  trv_tbl_sct * const trv_tbl) /* I/O [sct] GTT (Group Traversal Table) */
 {
   /* Add to extraction list all variables associated with specified CF convention
@@ -1066,15 +1066,15 @@ void
 nco_xtr_cf_var_add /* [fnc] Add variables associated (via CF) with specified variable to extraction list */
 (const int nc_id, /* I [ID] netCDF file ID */
  const trv_sct * const var_trv, /* I [sct] Variable (object) */
- const char * const cf_nm, /* I [sng] CF convention ("ancillary_variables", "bounds", "climatology", "coordinates", and "grid_mapping") */
+ const char * const cf_nm, /* I [sng] CF convention ("ancillary_variables", "bounds", "climatology", "coordinates", or "grid_mapping") */
  trv_tbl_sct * const trv_tbl) /* I/O [sct] GTT (Group Traversal Table) */
 {
-  /* Detect associated variables specified by CF "ancillary_variables", "bounds", "climatology", "coordinates", and "grid_mapping" convention
+  /* Detect associated variables specified by CF "ancillary_variables", "bounds", "climatology", "coordinates", and "grid_mapping" conventions
      Private routine called by nco_xtr_cf_add()
      http://cfconventions.org/1.6.html#ancillary-data
      http://cf-pcmdi.llnl.gov/documents/cf-conventions/1.1/cf-conventions.html#coordinate-system */ 
 
-  char **cf_lst; /* [sng] 1D array of list elements */
+  char **cf_lst=NULL_CEWI; /* [sng] 1D array of list elements */
   char att_nm[NC_MAX_NAME+1L]; /* [sng] Attribute name */
 
   const char dlm_sng[]=" "; /* [sng] Delimiter string */
@@ -1115,7 +1115,34 @@ nco_xtr_cf_var_add /* [fnc] Add variables associated (via CF) with specified var
 
       /* Split list into separate coordinate names
 	 Use nco_lst_prs_sgl_2D() not nco_lst_prs_2D() to avert TODO nco944 */
-      cf_lst=nco_lst_prs_sgl_2D(att_val,dlm_sng,&nbr_cf);
+      if(!strcmp("cell_measures",cf_nm) || !strcmp("formula_terms",cf_nm)){
+	/* cell_measures and formula_terms use this syntax to list variables required to know grid or evaluate formula:
+	   orog:cell_measures = "area: areacella"
+	   lev:standard_name = "atmosphere_hybrid_sigma_pressure_coordinate"
+	   lev:formula_terms = "a: hyam b: hybm p0: P0 ps: PS" */
+	/* static short FIRST_WARNING=True;
+        if(FIRST_WARNING) (void)fprintf(stderr,"%s: WARNING %s reports that variables necessary to evaluate \"%s\" formula for variable %s are not yet extracted. This WARNING is printed only once per invocation.\n",nco_prg_nm_get(),fnc_nm,att_nm,var_trv->nm_fll);
+	FIRST_WARNING=False; */
+	nbr_cf=0;
+	char *cln_ptr=att_val;
+	char *spc_ptr=NULL;
+	long var_lng;
+	while((cln_ptr=strstr(cln_ptr,": "))){
+	  spc_ptr=strchr(cln_ptr+2L,' ');
+	  if(spc_ptr) var_lng=spc_ptr-cln_ptr-2L; else var_lng=strlen(cln_ptr+2L);
+	  cf_lst=(char **)nco_realloc(cf_lst,(nbr_cf+1)*sizeof(char *));
+	  cf_lst[nbr_cf]=(char *)nco_malloc(var_lng*sizeof(char)+1L);
+          *(cf_lst[nbr_cf]+var_lng)='\0';
+          strncpy(cf_lst[nbr_cf],cln_ptr+2L,var_lng);
+	  cln_ptr+=var_lng;
+	  if(nco_dbg_lvl_get() >= nco_dbg_var) (void)fprintf(stderr,"%s: DEBUG %s reports variable %s %s variable #%d is %s\n",nco_prg_nm_get(),fnc_nm,var_trv->nm_fll,att_nm,nbr_cf,cf_lst[nbr_cf]);
+	  nbr_cf++;
+	} /* !att_val */
+      }else{
+	/* All CF attributes that NCO handles besides "cell_measures" and "formula_terms" are space-separated lists */
+	cf_lst=nco_lst_prs_sgl_2D(att_val,dlm_sng,&nbr_cf);
+      } /* !formula_terms */
+      
       /* ...for each variable in CF convention attribute, i.e., for each variable listed in "ancillary_variables", or in "bounds", or in "coordinates", or in "grid_mapping", ... */
       for(int idx_cf=0;idx_cf<nbr_cf;idx_cf++){
         char *cf_lst_var=cf_lst[idx_cf];
@@ -1363,7 +1390,7 @@ nco_xtr_crd_ass_add                   /* [fnc] Add to extraction list all coordi
   } /* Loop table */
 
   return;
-} /* end nco_xtr_crd_ass_cdf_add */
+} /* end nco_xtr_crd_ass_add() */
 
 void 
 nco_xtr_lst_prn /* [fnc] Print name-ID structure list */
@@ -6411,6 +6438,8 @@ nco_bld_trv_tbl                       /* [fnc] Construct GTT, Group Traversal Ta
  const nco_bool GRP_XTR_VAR_XCL,      /* I [flg] Extract matching groups, exclude matching variables */
  const nco_bool EXCLUDE_INPUT_LIST,   /* I [flg] Exclude rather than extract groups and variables specified with -v */ 
  const nco_bool EXTRACT_ASSOCIATED_COORDINATES, /* I [flg] Extract all coordinates associated with extracted variables? */
+ const nco_bool EXTRACT_CLL_MSR, /* I [flg] Extract cell_measures variables */
+ const nco_bool EXTRACT_FRM_TRM, /* I [flg] Extract formula_terms variables */
  const int nco_pck_plc,               /* I [enm] Packing policy */
  nco_dmn_dne_t **flg_dne,             /* I/O [lst] Flag to check if input dimension -d "does not exist" */
  trv_tbl_sct * const trv_tbl)         /* I/O [sct] Traversal table */
@@ -6497,12 +6526,16 @@ nco_bld_trv_tbl                       /* [fnc] Construct GTT, Group Traversal Ta
   } /* endif */
   if(CNV_CCM_CCSM_CF && EXTRACT_ASSOCIATED_COORDINATES){
     /* Implement CF "ancillary_variables", "bounds", "climatology", "coordinates", and "grid_mapping" */
+    if(EXTRACT_CLL_MSR) (void)nco_xtr_cf_add(nc_id,"cell_measures",trv_tbl);
+    if(EXTRACT_FRM_TRM) (void)nco_xtr_cf_add(nc_id,"formula_terms",trv_tbl);
     (void)nco_xtr_cf_add(nc_id,"ancillary_variables",trv_tbl);
     (void)nco_xtr_cf_add(nc_id,"bounds",trv_tbl);
     (void)nco_xtr_cf_add(nc_id,"climatology",trv_tbl);
     (void)nco_xtr_cf_add(nc_id,"coordinates",trv_tbl);
     (void)nco_xtr_cf_add(nc_id,"grid_mapping",trv_tbl);
     /* Do all twice, so that, e.g., auxiliary coordinates retrieved because of "coordinates" come with their "bounds" variables */
+    if(EXTRACT_CLL_MSR) (void)nco_xtr_cf_add(nc_id,"cell_measures",trv_tbl);
+    if(EXTRACT_FRM_TRM) (void)nco_xtr_cf_add(nc_id,"formula_terms",trv_tbl);
     (void)nco_xtr_cf_add(nc_id,"ancillary_variables",trv_tbl);
     (void)nco_xtr_cf_add(nc_id,"climatology",trv_tbl);
     (void)nco_xtr_cf_add(nc_id,"coordinates",trv_tbl);
@@ -6590,30 +6623,28 @@ nco_bld_lmt                           /* [fnc] Assign user specified dimension l
  trv_tbl_sct * const trv_tbl)         /* I/O [sct] Traversal table */
 {
   /* Purpose: Assign user-specified dimension limits to traversal table  
-  At this point "lmt" was parsed from nco_lmt_prs(); only the relative names and  min, max, stride are known 
-  Steps:
+     At this point "lmt" was parsed from nco_lmt_prs(); only the relative names and  min, max, stride are known 
+     Steps:
 
-  Find the total numbers of matches for a dimension
-  ncks -d lon,0,0,1  ~/nco/data/in_grp.nc
-  Here "lmt_nbr" is 1 and there is 1 match at most
-  ncks -d lon,0,0,1 -d lon,0,0,1 -d lat,0,0,1  ~/nco/data/in_grp.nc
-  Here "lmt_nbr" is 3 and there are 2 matches at most for "lon" and 1 match at most for "lat"
-  The limits have to be separated to 
-  a) case of coordinate variables
-  b) case of dimension only (there is no coordinate variable for that dimension)
+     Find total numbers of matches for a dimension
+     ncks -d lon,0,0,1 ~/nco/data/in_grp.nc
+     Here "lmt_nbr" is 1 and there is 1 match at most
+     ncks -d lon,0,0,1 -d lon,0,0,1 -d lat,0,0,1  ~/nco/data/in_grp.nc
+     Here "lmt_nbr" is 3 and there are 2 matches at most for "lon" and 1 match at most for "lat"
+     The limits have to be separated to 
+     a) case of coordinate variables
+     b) case of dimension only (there is no coordinate variable for that dimension)
+     
+     Deep copy matches to table, match at the current index, increment current index
+     
+     Apply MSA for each Dimension in a new cycle (that now has all its limits in place :-) ) 
+     At this point lmt_sct is no longer needed;  
+     
+     Tests:
+     ncks -D 11 -d lon,0,0,1 -d lon,1,1,1 -d lat,0,0,1 -d time,1,2,1 -d time,6,7,1 -v lon,lat,time -H ~/nco/data/in_grp.nc
+     ncks -D 11 -d time,8,9 -d time,0,2  -v time -H ~/nco/data/in_grp.nc
+     ncks -D 11 -d time,8,2 -v time -H ~/nco/data/in_grp.nc # wrapped limit */
 
-  Deep copy matches to table, match at the current index, increment current index
-
-  Apply MSA for each Dimension in a new cycle (that now has all its limits in place :-) ) 
-  At this point lmt_sct is no longer needed;  
-
-  Tests:
-  ncks -D 11 -d lon,0,0,1 -d lon,1,1,1 -d lat,0,0,1 -d time,1,2,1 -d time,6,7,1 -v lon,lat,time -H ~/nco/data/in_grp.nc
-  ncks -D 11 -d time,8,9 -d time,0,2  -v time -H ~/nco/data/in_grp.nc
-  ncks -D 11 -d time,8,2 -v time -H ~/nco/data/in_grp.nc # wrapped limit
-  */
-
-  /* Loop table */
   for(unsigned int idx_tbl=0;idx_tbl<trv_tbl->nbr;idx_tbl++){
 
     trv_sct var_trv=trv_tbl->lst[idx_tbl];
@@ -6639,8 +6670,7 @@ nco_bld_lmt                           /* [fnc] Assign user specified dimension l
               trv_tbl->lst[idx_tbl].var_dmn[idx_var_dmn].crd->lmt_msa.lmt_dmn_nbr++;
 
               int nbr_lmt=trv_tbl->lst[idx_tbl].var_dmn[idx_var_dmn].crd->lmt_msa.lmt_dmn_nbr;
-              trv_tbl->lst[idx_tbl].var_dmn[idx_var_dmn].crd->lmt_msa.lmt_dmn=(lmt_sct **)nco_realloc(
-                trv_tbl->lst[idx_tbl].var_dmn[idx_var_dmn].crd->lmt_msa.lmt_dmn,nbr_lmt*sizeof(lmt_sct *));
+              trv_tbl->lst[idx_tbl].var_dmn[idx_var_dmn].crd->lmt_msa.lmt_dmn=(lmt_sct **)nco_realloc(trv_tbl->lst[idx_tbl].var_dmn[idx_var_dmn].crd->lmt_msa.lmt_dmn,nbr_lmt*sizeof(lmt_sct *));
 
               /* b) case of dimension only (there is no coordinate variable for this dimension */
             }else{
@@ -6649,8 +6679,7 @@ nco_bld_lmt                           /* [fnc] Assign user specified dimension l
               trv_tbl->lst[idx_tbl].var_dmn[idx_var_dmn].ncd->lmt_msa.lmt_dmn_nbr++;
 
               int nbr_lmt=trv_tbl->lst[idx_tbl].var_dmn[idx_var_dmn].ncd->lmt_msa.lmt_dmn_nbr;
-              trv_tbl->lst[idx_tbl].var_dmn[idx_var_dmn].ncd->lmt_msa.lmt_dmn=(lmt_sct **)nco_realloc(
-                trv_tbl->lst[idx_tbl].var_dmn[idx_var_dmn].ncd->lmt_msa.lmt_dmn,nbr_lmt*sizeof(lmt_sct *));
+              trv_tbl->lst[idx_tbl].var_dmn[idx_var_dmn].ncd->lmt_msa.lmt_dmn=(lmt_sct **)nco_realloc(trv_tbl->lst[idx_tbl].var_dmn[idx_var_dmn].ncd->lmt_msa.lmt_dmn,nbr_lmt*sizeof(lmt_sct *));
 
             } /* b) case of dimension only (there is no coordinate variable for this dimension */
 
@@ -6698,7 +6727,7 @@ nco_bld_lmt                           /* [fnc] Assign user specified dimension l
               /* Increment current index being initialized  */
               trv_tbl->lst[idx_tbl].var_dmn[idx_var_dmn].crd->lmt_msa.lmt_crr++;
 
-              /* Alloc this limit */
+              /* Allocate this limit */
               trv_tbl->lst[idx_tbl].var_dmn[idx_var_dmn].crd->lmt_msa.lmt_dmn[lmt_crr]=(lmt_sct *)nco_malloc(sizeof(lmt_sct));
 
               /* Initialize this entry */

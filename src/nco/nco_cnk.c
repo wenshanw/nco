@@ -2,7 +2,7 @@
 
 /* Purpose: NCO utilities for chunking */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2017 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -138,12 +138,16 @@ nco_cnk_ini /* [fnc] Initialize chunking from user-specified inputs */
  const int cnk_nbr, /* I [nbr] Number of chunksizes specified */
  const int cnk_map, /* I [enm] Chunking map */
  const int cnk_plc, /* I [enm] Chunking policy */
+ const size_t cnk_csh_byt, /* I [B] Chunk cache size */
  const size_t cnk_min_byt, /* I [B] Minimize size of variable to chunk */
  const size_t cnk_sz_byt, /* I [B] Chunk size in bytes */
  const size_t cnk_sz_scl, /* I [nbr] Chunk size scalar */
  cnk_sct * const cnk) /* O [sct] Chunking structure */
 {
   /* Purpose: Initialize chunking from user-specified inputs */
+
+  const char fnc_nm[]="nco_cnk_ini()"; /* [sng] Function name */
+
   int rcd=0; /* [enm] Return code  */
 
   size_t fl_sys_blk_sz=0UL; /* [nbr] File system blocksize for I/O */
@@ -154,6 +158,7 @@ nco_cnk_ini /* [fnc] Initialize chunking from user-specified inputs */
   cnk->cnk_nbr=cnk_nbr;
   cnk->cnk_map=cnk_map;
   cnk->cnk_plc=cnk_plc;
+  cnk->cnk_csh_byt=cnk_csh_byt;
   cnk->cnk_min_byt=cnk_min_byt;
   cnk->cnk_sz_byt=cnk_sz_byt;
   cnk->cnk_sz_scl=cnk_sz_scl;
@@ -213,7 +218,7 @@ nco_cnk_ini /* [fnc] Initialize chunking from user-specified inputs */
       cnk->cnk_plc=nco_cnk_plc_xst;
     }else{
       /* Input is netCDF3 so choose chunking judiciously unless otherwise specified */
-      if(nco_dbg_lvl_get() > nco_dbg_scl) (void)fprintf(stderr,"%s: INFO Input file format %s does not support chunking and no chunking policy or map specified so output chunking format will use NCO (not netCDF) defaults\n",nco_prg_nm_get(),nco_fmt_sng(fl_in_fmt));
+      if(nco_dbg_lvl_get() > nco_dbg_scl) (void)fprintf(stderr,"%s: INFO %s reports input file format %s does not support chunking and no chunking policy or map specified so output chunking format will use NCO (not netCDF) defaults\n",nco_prg_nm_get(),fnc_nm,nco_fmt_sng(fl_in_fmt));
       cnk->cnk_map=nco_cnk_map_nco;
       cnk->cnk_plc=nco_cnk_plc_nco;
     } /* endif dbg */

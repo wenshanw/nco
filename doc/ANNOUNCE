@@ -1,111 +1,94 @@
 $Header$ -*-text-*-
 
-The netCDF Operators NCO version 4.6.2 are ready. 
+The netCDF Operators NCO version 4.6.5 are ready. 
 
 http://nco.sf.net (Homepage, Mailing lists)
 http://github.com/nco (Source Code, Releases, Developers)
 
 What's new?
 
-4.6.2 is mainly a stability release to polish existing features and to
-add minor new ones. The exception is the new JSON backend. 
-NCO now prints CDL, "Traditional NCO", XML, and JSON. Babel-icious eh?
+The main new features in 4.6.5 are the "splitter" and daily
+climatology capabilities for ncclimo. ncclimo now generates,
+combines existing, and splits climatologies. Thus it is a
+fairly general purpose climatology operator. NCO now supports
+two more CF conventions (formula_terms and cell_measures),
+and has a few bugfixes.
 
-We built the JSON backend to help a project (DOE Terraref). 
-Our first choice was to adopt an off-the-shelf netCDF->JSON tool.
-However, no existing solution worked for us.
-JSON is a loose syntax, and we made necessary design choices that
-suited our application, and left some choices for later.
-Are there syntactical variants you want us to add?
-
-Some users of netCDF version 4.4.1 cannot build NCO from scratch
-because a bug in the nc-config command kills NCO's 'configure;make'.
-Unidata will ship a corrected nc-config in netCDF 4.4.2.
-The 4.4.2-development branch already contains the necessary fix.
-See (C) in KNOWN PROBLEMS DUE TO BASE LIBRARIES/PROTOCOLS below. 
-
-Work on NCO 4.6.3 has commenced. Planned improvements include more
-flexibility in handling extensive variables during regridding, CMake
-support, and brackets for multi-dimensional array values in JSON.
+Work on NCO 4.6.5 has commenced. Planned improvements include 
+support for conda installs on MS Windows, and more ncclimo
+and ncremap features.
 
 Enjoy,
 Charlie
 
 NEW FEATURES (full details always in ChangeLog):
 
-A. JSON backend
-   Similar the CDL and XML backends, ncks now supports JSON.
-   To obtain JSON, use --jsn or --json instead of --cdl/--xml.
-   ncks --json -v one ~/nco/data/in.nc
-   {
-     "variables": {
-       "one": {
-         "type": "float",
-         "attributes": {
-           "long_name": "one"
-         },
-         "data": 1.0
-       }
-     }
-   }
-   More sample output at:
-   http://dust.ess.uci.edu/tmp/in.json and other *.json files.
-   Other related options (-v, -g, -m, -M) have their usual meanings.     
-   The --jsn_att_fmt switch accesses formats of selectable verbosity.  
-   Thanks to Henry Butowsky for implementing the JSON backend,
-   and to Pedro Vicente and Chris Barker for helpful discussions. 
-   http://nco.sf.net/nco.html#json
+A. ncclimo will reshape timeseries, i.e., split input datasets into
+   per-variable files that span the entire timeseries.
+   Input files are specified via stdin, via positional arguments
+   (after all options) on the command-line, or as the set of .nc files
+   in drc_in 
+   ls $drc_in/*.nc | ncclimo -v T,Q --output=drc_out --map=rgr_map
+   ncclimo -v T,Q --output=drc_out --map=rgr_map < list
+   ncclimo -v T,Q --output=drc_out --map=rgr_map $drc_in/*.nc
+   ncclimo -v T,Q --input=$drc_in --output=drc_out --map=rgr_map
+   http://nco.sf.net/nco.html#ncclimo
 
-B. Multi-arguments refer to the format of command-line key-value pairs
-   that NCO uses to support four different features that can have too
-   many parameters to set via traditional command line arguments.
-   The four features are regridding (rgr), global-attribute-adding
-   (gaa), precision-preserving compression (ppc), and ENVI image
-   processing for the DOE Terraref project (trr). Formerly, users were
-   required to supply one value per command line option for these
-   features, e.g., 
-   "--rgr lat_nbr=64 --rgr lon_nbr=128 --rgr lat_grd=cap ..."
-   The new multi-argument feature allows users to aggregate multiple
-   key-value pairs per command line argument, e.g., 
-   "--rgr lat_nbr=64#lon_nbr=128#lat_grd=cap# ..."
-   Now all key-value pairs related to a single feature (like
-   regridding, compression) can be provided as one arument!
+B. ncks allows setting per-variable chunk cache-size with --cnk_csh. 
+   The effects of varying chunk cache-size are not well understood,
+   at least by we who work on NCO. Users asked for a knob to tune
+   it, and now that exists. Experiment with this and if you find
+   reasons for NCO to set this to non-default values, let us know.
+   If you want more knobs, let us know.
+   This setting only works on netCDF4 files.
+   ncks -D 3 --cnk_csh 1000000 in.nc4 out.nc
+   http://nco.sf.net/nco.html#cnk_csh
 
-   The string that delimits each pair is user-configurable and
-   defaults to a single hash "#". Change it with, e.g., --dlm=":".
-   Ensure your delimiters are not special shell characters, and are
-   escaped (with backslashes) if present in key or value strings. 
-   Thanks to Jerome Mao for implementing multi-arguments.
-   http://nco.sf.net/nco.html#mta
+C. ncremap now includes staggered grid weights with FV grid output. 
+   The weights are named w_stag, following the CESM CAM convention. 
+   http://nco.sf.net/nco.html#ncremap
 
-C. ncap2 now searches all paths in the NCO_PATH environment variable
-   for any #include'd files that it cannot find in ${CWD}.
+D. Variables listed in a formula_terms attribute are now extracted
+   by default. Turn-off this behavior with --no_frm_trm.
+   The CF formula_terms convention is used to associate variables
+   with terms in defined formulas, such as vertical coordinates:
+   lev:standard_name = "atmosphere_hybrid_sigma_pressure_coordinate"
+   lev:formula_terms = "a: hyam b: hybm p0: P0 ps: PS"
+   Unless the default behavior is overridden, NCO attaches any 
+   formula variables to the extraction list along with the primary
+   variable and other associated variables. By definition, formula
+   variables are a subset of the rank of the variable they define.
+   http://nco.sf.net/nco.html#frm_trm
 
-D. All builds tested on LLVM 8.0.0 and GCC 6.2.1 toolchains.
+E. Variables listed in a cell_measures attribute are now extracted
+   by default. Turn-off this behavior with --no_cll_msr.
+   This convention allows variables to indicate which other variables 
+   contains area or volume information about a gridcell.
+   These measures variables are pointed to by the cell_measures
+   attribute. Unless the default behavior is overridden, NCO attaches
+   all measures variables to the extraction list along with the
+   primary variable.
+   http://nco.sf.net/nco.html#cll_msr
 
 BUG FIXES:
 
-A. ncclimo and ncremap could fail if ${BASH_SOURCE[0]} is unavailable.
-   This could occur, e.g., with the dash shell and/or due to software
-   modules that modify users' environments. 
-   This portability issue has been resolved.
+A. Fix bug introduced in 4.6.3 where hyperslabs involving UDUnits
+   dates could fail, depending on exactly how NCO was compiled.
+   Failures most likely on MacOS because clang, unlike gcc, does not
+   initialize pointers to NULL by default. Solution is to upgrade.
 
-B. ncatted failed to implement NaN on some MinGW systems with, e.g.,
-   ncatted -O -a _FillValue,fll_val,m,f,nan ~/nco/data/in.nc ~/foo.nc
-   We think this has been fixed. The workaround is to upgrade or use
-   ncatted on *NIX or MacOS. Thanks to James Adams for reporting this.
-
-C. ncks CDL now prints correct tokens for uint, int64, uint64 types.
-   These are "ul", "ll", "ull", respectively. Previously NCO used
-   different tokens because ncgen <= 4.3.0 choked on "ll" formats.
-   So this was an intentional NCO "feature", not a bug.
-   Use ncgen >= 4.3.1 to parse these CDL files.
+A. Fix bug introduced in ~4.4.6 where some hyperslabs of non-unity 
+   stride in netCDF4 files could return incorrect values.
+   If you use the hyperslab stride argument on netCDF4 files, we
+   suggest you upgrade immediately. The workaround is to convert
+   to netCDF3 before using a strided hyperslab. 
+   Thanks to Martin Dix for reporting this bug.
 
 KNOWN PROBLEMS DUE TO NCO:
 
    This section of ANNOUNCE reports and reminds users of the
    existence and severity of known, not yet fixed, problems. 
-   These problems occur with NCO 4.6.2 built/tested under
+   These problems occur with NCO 4.6.5 built/tested under
    MacOS 10.12.1 with netCDF 4.4.1 on HDF5 1.8.16 and with
    Linux with netCDF 4.4.2-development (20161116) on HDF5 1.8.16.
 
@@ -165,12 +148,11 @@ B. NOT YET FIXED (netCDF4 library bug)
    Bug tracking: https://www.unidata.ucar.edu/jira/browse/fxm
    More details: http://nco.sf.net/nco.html#ncrename_crd
 
-C. NOT YET FIXED (netCDF4 library bug) in main netCDF release
-   FIXED in netCDF Development branch as of 20161116
+C. FIXED in netCDF Development branch as of 20161116 and in maintenance release 4.4.1.1
    nc-config/nf-config produce erroneous switches that cause NCO builds to fail
    This problem affects netCDF 4.4.1 on all operating systems.
    Some pre-compiled netCDF packages may have patched the problem.
-   Hence it does affect my MacPorts install of netCDF 4.4.1.
+   Hence it does not affect my MacPorts install of netCDF 4.4.1.
 
    Demonstration:
    % nc-config --cflags # Produces extraneous text that confuses make
@@ -183,6 +165,7 @@ C. NOT YET FIXED (netCDF4 library bug) in main netCDF release
    20161029: Reported problem to Unidata
    20161101: Unidata confirmed reproducibility, attributed to netCDF 4.4.1 changes
    20161116: Unidata patch is in tree for netCDF 4.4.2 release
+   20161123: Fixed in maintenance release netCDF 4.4.1.1
 
 D. NOT YET FIXED (would require DAP protocol change?)
    Unable to retrieve contents of variables including period '.' in name

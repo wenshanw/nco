@@ -1,6 +1,6 @@
 /* Purpose: netCDF arithmetic processor class methods */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2017 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -288,6 +288,17 @@ private:
   bool _flg_dbg;
 public:
   print_cls(bool flg_dbg);
+  var_sct *fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker);
+};
+
+
+// udunits  Functions       /***************************************/
+class udunits_cls: public vtl_cls {
+private:
+  enum{ PUNITS1};
+  bool _flg_dbg;
+public:
+  udunits_cls(bool flg_dbg);
   var_sct *fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker);
 };
 

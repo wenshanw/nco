@@ -2,7 +2,7 @@
 
 /* Purpose: String utilities */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2017 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -68,14 +68,21 @@ extern "C" {
    const size_t chr_nbr); /* I [nbr] Compare at most chr_nbr characters */
 #endif /* !NEED_STRCASECMP */
   
+  /* 20161205 GNU since gcc 4.7.3 provides strcasestr() as non-standard extension iff _GNU_SOURCE is defined */
+#if 0
+#ifdef __GNUC__  
+# define _GNU_SOURCE
+#endif /* __GNUC__ */
+#endif
+  
   /* 20130827 GNU g++ always provides strcasestr(), MSVC never does */
 #ifndef __GNUG__
-# ifdef NEED_STRCASESTR
+  //# ifdef NEED_STRCASESTR
   char * /* O [sng] Pointer to sng_2 in sng_1 */
   strcasestr /* [fnc] Lexicographical case-insensitive string search */
   (const char * const sng_1, /* I [sng] First string */
    const char * const sng_2); /* I [sng] Second string */
-# endif /* !NEED_STRCASESTR */
+  //# endif /* !NEED_STRCASESTR */
 #endif /* __GNUG__ */
   
 #ifdef NEED_STRDUP

@@ -2,7 +2,7 @@
 
 /* Purpose: Multi-slabbing algorithm */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2017 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -171,13 +171,15 @@ read_lbl:
 
 	  (void)nco_inq_format(vara->nc_id,&fl_in_fmt);
 
-	  if((fl_in_fmt == NC_FORMAT_NETCDF4 || fl_in_fmt == NC_FORMAT_NETCDF4_CLASSIC) && (dmn_srd_nbr == 1))
-	    USE_NC4_SRD_WORKAROUND=True;
+	  /* 20170207: Turn-off USE_NC4_SRD_WORKAROUND unless non-unity stride is only in first dimension */
+	  if((fl_in_fmt == NC_FORMAT_NETCDF4 || fl_in_fmt == NC_FORMAT_NETCDF4_CLASSIC) && (dmn_srd_nbr == 1) && (dmn_srd[0] != 1L)) USE_NC4_SRD_WORKAROUND=True;
 
 	  if(!USE_NC4_SRD_WORKAROUND){
 	    if(nco_dbg_lvl_get() >= nco_dbg_var && srd_prd > 1L) (void)fprintf(stderr,"%s: INFO %s reports calling nco_get_vars() for strided hyperslab access. In case of slow response, please ask NCO developers to extend USE_NC4_SRD_WORKAROUND to handle your use-case.\n",nco_prg_nm_get(),fnc_nm);
 	    (void)nco_get_vars(vara->nc_id,vara->id,dmn_srt,dmn_cnt,dmn_srd,vp,vara->type);
 	  }else{
+	    /* 20170207: Original USE_NC4_SRD_WORKAROUND code was broken because it was applied to interior dimensions but did not account for interleaving
+	       20170208: New USE_NC4_SRD_WORKAROUND code only applies to non-unity stride in first dimension */
 	    int srd_nbr; /* [nbr] Number of strides requested in the single strided dimension (not number of strided dimensions) */
 	    int srd_idx; /* [idx] Counter for how many times to call nco_get_var() */
 	    int idx_srd; /* [idx] Index of strided dimension */
@@ -187,12 +189,8 @@ read_lbl:
 
 	    if(nco_dbg_lvl_get() >= nco_dbg_std) (void)fprintf(stderr,"%s: INFO %s using USE_NC4_SRD_WORKAROUND for faster access to strided hyperslabs in netCDF4 datasets\n",nco_prg_nm_get(),fnc_nm);
 
-	    /* Find strided dimension */
-	    for(dmn_idx=0;dmn_idx<dpt_crr_max;dmn_idx++)
-	      if(dmn_srd[dmn_idx] != 1L) break;
-
-	    assert(dmn_idx != dpt_crr_max);
-	    idx_srd=dmn_idx;
+	    /* Strided dimension must be first dimension */
+	    idx_srd=0;
 
 	    /* Find size of hyperslab of each stride */
 	    for(dmn_idx=0;dmn_idx<dpt_crr_max;dmn_idx++)

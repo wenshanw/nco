@@ -442,6 +442,17 @@ if($USER eq 'zender'){
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
 
+   $dsc_sng="Run script to test udunits code";
+    $tst_cmd[0]="ncap2 -h -O $fl_fmt $nco_D_flg -v -S '../data/tst-udunits.nco' $in_pth_arg in.nc %tmp_fl_00%";
+    $tst_cmd[1]="ncks -C -H -v nbr_err -s '%d' %tmp_fl_00%";
+    $tst_cmd[2]="0";
+    $tst_cmd[3]="SS_OK";
+    NCO_bm::tst_run(\@tst_cmd);
+    $#tst_cmd=0; # Reset array
+
+
+
+
 
     
     if($dodap eq "FALSE"){
@@ -747,8 +758,10 @@ if($USER eq 'zender'){
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
 	
-
 # ncbo #14
+# ncks -O -v three_dmn_rec_var ~/nco/data/in.nc ~/foo.nc
+# ncbo -O -v three_dmn_rec_var ~/foo.nc ~/foo.nc ~/foo2.nc
+# ncks -C -H -v three_dmn_rec_var -d time,9,9,1 -d lat,1,1,1 -d lon,3,3,1 ~/foo2.nc
     $dsc_sng="Copy associated coordinates -v three_dmn_rec_var";
     $tst_cmd[0]="ncks -O $fl_fmt $nco_D_flg -v three_dmn_rec_var $in_pth_arg in.nc %tmp_fl_00%";
     $tst_cmd[1]="ncbo $omp_flg -O $fl_fmt $nco_D_flg -v three_dmn_rec_var %tmp_fl_00% %tmp_fl_00% %tmp_fl_01%";
@@ -757,7 +770,6 @@ if($USER eq 'zender'){
     $tst_cmd[4]="SS_OK";
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array     
-    
 
 #ncbo #15
 #Operate on files containing same variable in different orders
@@ -2093,6 +2105,8 @@ if($USER eq 'zender'){
     $#tst_cmd=0; # Reset array 			
     
 #ncks #49
+# ncks -O --mk_rec_dmn lat -v three_dmn_var ~/nco/data/in.nc ~/foo.nc
+# ncks -C -m -v lat ~/foo.nc | egrep -o -w 'Record coordinate is lat'
     $dsc_sng="Check --mk_rec_dmn (netCDF3 file)";
     $tst_cmd[0]="ncks -O $fl_fmt $nco_D_flg --mk_rec_dmn lat -v three_dmn_var $in_pth_arg in.nc %tmp_fl_00%";
     $tst_cmd[1]="ncks -C -m -v lat %tmp_fl_00% | egrep -o -w 'Record coordinate is lat'";
@@ -2856,7 +2870,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
 	
 #ncks #113 wrapped limit with an additional limit (with --msa) pvn20160211 -- bug found that happens in nco 4.2.0 also
 # ncks -O -C --msa -g g19 -v time -d time,9,0 -d time,1,2 ~/nco/data/in_grp_3.nc ~/foo.nc
-    $dsc_sng="(Groups) Test wrapped limit with additonal limit and msa user order (expect failure TODO)";
+    $dsc_sng="(Groups) Test wrapped limit with additonal limit and msa user order (expect failure TODO nco1134)";
     $tst_cmd[0]="ncks -O $nco_D_flg -C --msa -g g19 -v time -d time,9,0 -d time,1,2 $in_pth_arg in_grp_3.nc %tmp_fl_00";
     $tst_cmd[1]="ncks -H %tmp_fl_00 | grep '=3'";
     $tst_cmd[2]="time[3]=3"; 
@@ -2930,6 +2944,26 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
 	
+# ncks #120 
+    $dsc_sng="Test UDUNITS with dates as limits - fails without UDUNITS";
+    $tst_cmd[0]="ncks -O $nco_D_flg -d time,'1979-01-01 0:0:0','1981-01-01 0:0:0' -v time,time_bnds $in_pth_arg split.nc %tmp_fl_00%";
+    $tst_cmd[1]="ncap2 -O -v -C -s 'time_ttl=time.total();print(time_ttl);' %tmp_fl_00% %tmp_fl_01%";
+    $tst_cmd[2]="time_ttl = 9106";
+    $tst_cmd[3]="SS_OK";   
+    NCO_bm::tst_run(\@tst_cmd);
+    $#tst_cmd=0; # Reset array
+
+# ncks #121 
+# ncks -O -v zg -d lon,,,2 ~/nco/data/in_4c.nc ~/foo.nc
+# ncap2 -O -v -C -s 'zgs=zg.sort();zg_ttl_dff=(zg(0,:,::)-zgs(0,:,:)).total();print(zg_ttl_dff);' ~/foo.nc ~/foo1.nc
+    $dsc_sng="Test behavior when NC4_SRD_WORKAROUND would be used";
+    $tst_cmd[0]="ncks -O $nco_D_flg -v zg -d lon,,,2 $in_pth_arg in_4c.nc %tmp_fl_00%";
+    $tst_cmd[1]="ncap2 -O -v -C -s 'zgs=zg.sort();zg_ttl_dff=(zg(0,:,::)-zgs(0,:,:)).total();print(zg_ttl_dff);' %tmp_fl_00% %tmp_fl_01%";
+    $tst_cmd[2]="zg_ttl_dff = 0";
+    $tst_cmd[3]="SS_OK";   
+    NCO_bm::tst_run(\@tst_cmd);
+    $#tst_cmd=0; # Reset array
+
 #####################
 #### ncpdq tests #### -OK !
 #####################
@@ -3466,7 +3500,8 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
 
 #ncpdq #41
 #ncpdq -O -a -lat -g g23,g24 ~/nco/data/in_grp_3.nc ~/foo.nc
-   $dsc_sng="(Groups) Reverse -a lat -g g24 several groups";
+#ncks -v lat -g g24 ~/foo.nc
+   $dsc_sng="(Groups) Reverse (-a -lat) several groups (-g g23,g24)";
    $tst_cmd[0]="ncpdq $omp_flg $fl_fmt $nco_D_flg -O -a -lat -g g23,g24 $in_pth_arg in_grp_3.nc %tmp_fl_00%";
    $tst_cmd[1]="ncks -v lat -g g24 %tmp_fl_00%";
    $tst_cmd[2]="lat[1]=-60 degrees_north";
@@ -3475,9 +3510,9 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
    $#tst_cmd=0; # Reset array    
 
 #ncpdq #42
-#ncpdq -O -v lat,lon -a -lat,-lon -g g1,g2 ~/nco/data/in_grp_8.nc out1.nc
-#ncks -H out1.nc
-   $dsc_sng="(Groups) Reverse -a -lat,-lon several groups";
+#ncpdq -O -v lat,lon -a -lat,-lon -g g1,g2 ~/nco/data/in_grp_8.nc ~/foo.nc
+#ncks -H -v lon -g g2 ~/foo.nc
+   $dsc_sng="(Groups) Reverse (-a -lat,-lon) several groups (-g g1,g2)";
    $tst_cmd[0]="ncpdq $omp_flg $fl_fmt $nco_D_flg -O -a -lat,-lon -g g1,g2 $in_pth_arg in_grp_8.nc %tmp_fl_00%";
    $tst_cmd[1]="ncks -H -v lon -g g2 %tmp_fl_00%";
    $tst_cmd[2]="lon[2]=0";
@@ -3486,9 +3521,9 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
    $#tst_cmd=0; # Reset array    
 
 #ncpdq #43
-#ncpdq -O -v lat,lon -a lat,-lon -g g1,g2 ~/nco/data/in_grp_8.nc out1.nc
-#ncks -H out1.nc
-   $dsc_sng="(Groups) Reverse -a lat,-lon several groups";
+#ncpdq -O -v lat,lon -a lat,-lon -g g1,g2 ~/nco/data/in_grp_8.nc ~/foo.nc
+#ncks -H -v lon -g g2 ~/foo.nc
+   $dsc_sng="(Groups) Reverse (-a lat,-lon) several groups (-g g1,g2)";
    $tst_cmd[0]="ncpdq $omp_flg $fl_fmt $nco_D_flg -O -a lat,-lon -g g1,g2 $in_pth_arg in_grp_8.nc %tmp_fl_00%";
    $tst_cmd[1]="ncks -H -v lon -g g2 %tmp_fl_00%";
    $tst_cmd[2]="lon[2]=0";
@@ -3497,7 +3532,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
    $#tst_cmd=0; # Reset array  
 
 #ncpdq #44
-#ncpdq -O -v lat,lon -a -lat,lon -g g1,g2 ~/nco/data/in_grp_8.nc out1.nc
+#ncpdq -O -v lat,lon -a -lat,lon -g g1,g2 ~/nco/data/in_grp_8.nc ~/foo.nc
 #ncks -H out1.nc
    $dsc_sng="(Groups) Reverse -a -lat,lon several groups";
    $tst_cmd[0]="ncpdq $omp_flg $fl_fmt $nco_D_flg -O -a -lat,lon -g g1,g2 $in_pth_arg in_grp_8.nc %tmp_fl_00%";
@@ -3858,6 +3893,45 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
     $tst_cmd[4]="SS_OK";
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
+
+
+#ncrcat #22	
+
+    $tst_cmd[0]="ncap2 -h -O $fl_fmt $nco_D_flg -v -s 'time\@units=\"hours since 1970-01-01\"' $in_pth_arg in.nc %tmp_fl_00%";
+    $tst_cmd[1]="ncap2 -h -O $fl_fmt $nco_D_flg -v -s 'time\@units=\"days since 1970-01-01 10:00:00\"' $in_pth_arg in.nc %tmp_fl_01%";
+    $tst_cmd[2]="ncra -Y ncrcat -O $fl_fmt $nco_D_flg -C -v time  %tmp_fl_00% %tmp_fl_01% %tmp_fl_02% 2> %tmp_fl_05%";
+    $tst_cmd[3]="ncap2 -O -v -C -s 'time_ttl=time.total();print(time_ttl)' %tmp_fl_02% %tmp_fl_03%";
+    $tst_cmd[4]="time_ttl = 1475";
+    $dsc_sng="Concatenate 1D variable across two files. [hours file1 - days file2] .Requires UDUnits.";
+    $tst_cmd[5]="SS_OK";
+    NCO_bm::tst_run(\@tst_cmd);
+    $#tst_cmd=0; # Reset array
+
+#ncrcat #23	
+
+    $tst_cmd[0]="ncks -O $fl_fmt $nco_D_flg -v time  $in_pth_arg in.nc %tmp_fl_00%";
+    $tst_cmd[1]="ncatted  -h -O $fl_fmt $nco_D_flg -a units,time,\"kelvin\" %tmp_fl_00%";
+    $tst_cmd[2]="ncra -Y ncrcat -O $fl_fmt $nco_D_flg -C -v time -d time,'-272 Celsius','-270 Celsius' %tmp_fl_00% %tmp_fl_01% 2> %tmp_fl_05%";
+    $tst_cmd[3]="ncap2 -O -v -C -s 'time_ttl=time.total();print(time_ttl)' %tmp_fl_01% %tmp_fl_02%";
+    $tst_cmd[4]="time_ttl = 5";
+    $dsc_sng="Concatenate 1D variable across 1 file with temperature (Celsius) limits";
+    $tst_cmd[5]="SS_OK";
+    NCO_bm::tst_run(\@tst_cmd);
+    $#tst_cmd=0; # Reset array
+
+#ncrcat #24	
+
+    $tst_cmd[0]="ncap2 -h -O $fl_fmt $nco_D_flg -v -s 'time\@units=\"days since 2012-01-28\"' $in_pth_arg in.nc %tmp_fl_00%";
+    $tst_cmd[1]="ncap2  $fl_fmt $nco_D_flg -A -v -s 'time\@calendar=\"360_day\"' $in_pth_arg in.nc %tmp_fl_00%";
+    $tst_cmd[2]="ncra -Y ncrcat -O $fl_fmt $nco_D_flg -C -v time -d time,'2012-01-29','2012-02-02'  %tmp_fl_00% %tmp_fl_01%  2> %tmp_fl_05%";
+    $tst_cmd[3]="ncap2 -O -v -C -s 'time_ttl=time.total();print(time_ttl)' %tmp_fl_01% %tmp_fl_02%";
+    $tst_cmd[4]="time_ttl = 10";
+    $dsc_sng="Concatenate 1D variable across 1 file. [limits - timstamp day_360 calendar] .Requires UDUnits.";
+    $tst_cmd[5]="SS_OK";
+    NCO_bm::tst_run(\@tst_cmd);
+    $#tst_cmd=0; # Reset array
+
+
 	
     #######################################
     #### Group tests (requires netCDF4) ###
@@ -3865,7 +3939,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
 
     if($RUN_NETCDF4_TESTS){
 	
-#ncrcat #22	
+#ncrcat #25	
 # same as ncrcat #02 with group
 
     $tst_cmd[0]="ncra -Y ncrcat $omp_flg -h -O $fl_fmt $nco_D_flg -g g4 -v one_dmn_rec_var $in_pth_arg in_grp.nc in_grp.nc -d time,2.,3. %tmp_fl_00% 2> %tmp_fl_02%";
@@ -3876,7 +3950,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array	
 	
-#ncrcat #23	
+#ncrcat #26	
 # 2 groups each one with a record (part 1)
 # ncra -Y ncrcat -h -O -g g25g1,g25g2 -v one_dmn_rec_var -p ~/nco/data in_grp_3.nc in_grp_3.nc -d time,2.,3. ~/foo.nc
 
@@ -3888,7 +3962,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
 
-#ncrcat #24
+#ncrcat #27
 # 2 groups each one with a record (part 2)
 # ncra -Y ncrcat -h -O -g g25g1,g25g2 -v one_dmn_rec_var -p ~/nco/data in_grp_3.nc in_grp_3.nc -d time,2.,3. ~/foo.nc
 
@@ -3900,7 +3974,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array		
 	
-#ncrcat #25
+#ncrcat #28
 #same as #03 
 
     $tst_cmd[0]="ncra -Y ncrcat $omp_flg -h -O $fl_fmt $nco_D_flg -v three_dmn_var_dbl $in_pth_arg -d time,,2 -d lat,0,0 -d lon,0,0 -d lon,3,3 in_grp_3.nc in_grp_3.nc %tmp_fl_00% 2> %tmp_fl_02%";
@@ -3914,7 +3988,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
 	
 	} #### Group tests	
 	
-# ncrcat #26
+# ncrcat #29
 # Detect input_complete when stride skips user-specified idx_end_max
 # ncrcat -O -C -v time -d time,0,10,9,1 -p ~/nco/data in.nc in.nc ~/foo.nc
 # ncks -C -H -s '%g, ' -v time ~/foo.nc
@@ -3926,7 +4000,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array 		
 
-# ncrcat #27
+# ncrcat #30
 # Another detect input_complete when stride skips user-specified idx_end_max
 # ncks -O -C -v time -d time,0,2 ~/nco/data/in.nc ~/foo1.nc
 # ncks -O -C -v time -d time,3,5 ~/nco/data/in.nc ~/foo2.nc
@@ -3948,7 +4022,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
 
     if($RUN_NETCDF4_TESTS){
 
-#ncrcat #28
+#ncrcat #31
 #ncks -h -O -g g4 -v one_dmn_rec_var ~/nco/data/in_grp.nc in_grp1.nc
 #ncrcat -h --no_tmp_fl --rec_apn -v one_dmn_rec_var ~/nco/data/in_grp.nc in_grp1.nc
 
@@ -3961,7 +4035,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
 	
-#ncrcat #29
+#ncrcat #32
 #ncks -h -O -g g5 -v one_dmn_rec_var,time51,time52 ~/nco/data/in_grp.nc in_grp1.nc
 #ncrcat -h --no_tmp_fl --rec_apn -g g5 -v one_dmn_rec_var ~/nco/data/in_grp.nc in_grp1.nc
 
@@ -3974,7 +4048,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array	
 	
-#ncrcat #30
+#ncrcat #33
 #ncks -h -O -g g5 -v one_dmn_rec_var,time51,time52 ~/nco/data/in_grp.nc in_grp1.nc 
 #ncks -h -O -g g5 -v one_dmn_rec_var,time51,time52 ~/nco/data/in_grp.nc in_grp2.nc 
 #ncrcat -O -h -g g5 -v one_dmn_rec_var -p ~/nco/data in_grp1.nc in_grp2.nc ~/foo.nc

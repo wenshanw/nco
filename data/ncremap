@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Purpose: Regrid (subsets of) netCDF files between different grids, generate rectangular grids (in SCRIP format), generate mapfiles
+# Purpose: Regrid (subsets of) netCDF files between different Swath, Curvilinear, Rectangular, or Unstructured data (SCRUD) grids, generate required/requested rectangular grids and/or mapfiles in SCRIP format
 
-# Copyright (C) 2015-2016 Charlie Zender
+# Copyright (C) 2015--2017 Charlie Zender
 # This file is part of NCO, the netCDF Operators. NCO is free software.
 # You may redistribute and/or modify NCO under the terms of the 
 # GNU General Public License (GPL) Version 3.
@@ -42,6 +42,17 @@
 # Use Free-Will, Old-Grid, or New-Grid mode to process Swath-Like-Data (SLD) where each input may be a granule on a new grid, yet all inputs are to be regridded to the same output grid
 # Use Pre-Destination mode to post-process models or analyses where all files are converted from the same source grid to the same destination grid so the map-file can be pre-generated and never change
 
+# Insta-install:
+# scp ~/nco/data/ncremap aims4.llnl.gov:bin
+# scp ~/nco/data/ncremap blues.lcrc.anl.gov:bin
+# scp ~/nco/data/ncremap cooley.alcf.anl.gov:bin
+# scp ~/nco/data/ncremap cori.nersc.gov:bin_cori
+# scp ~/nco/data/ncremap edison.nersc.gov:bin_edison
+# scp ~/nco/data/ncremap rhea.ccs.ornl.gov:bin_rhea
+# scp ~/nco/data/ncremap skyglow.ess.uci.edu:bin
+# scp ~/nco/data/ncremap yellowstone.ucar.edu:bin
+# scp dust.ess.uci.edu:nco/data/ncremap ~/bin
+
 # Set script name, directory, PID, run directory
 drc_pwd=${PWD}
 # Set these before 'module' command which can overwrite ${BASH_SOURCE[0]}
@@ -54,6 +65,7 @@ while [ -h "${spt_src}" ]; do # Recursively resolve ${spt_src} until file is no 
   spt_src="$(readlink "${spt_src}")"
   [[ ${spt_src} != /* ]] && spt_src="${drc_spt}/${spt_src}" # If ${spt_src} was relative symlink, resolve it relative to path where symlink file was located
 done
+cmd_ln="${spt_src} ${@}"
 drc_spt="$( cd -P "$( dirname "${spt_src}" )" && pwd )"
 spt_nm=$(basename ${spt_src}) # [sng] Script name (Unlike $0, ${BASH_SOURCE[0]} works well with 'source <script>')
 spt_pid=$$ # [nbr] Script PID (process ID)
@@ -150,10 +162,6 @@ case "${HOSTNAME}" in
         export LD_LIBRARY_PATH='/glade/apps/opt/netcdf/4.3.0/intel/12.1.5/lib:/glade/u/home/zender/lib'\:${LD_LIBRARY_PATH}
 esac # !HOSTNAME
 
-# Insta-install
-# scp ~/nco/data/ncremap cori.nersc.gov:bin_cori
-# scp ~/nco/data/ncremap edison.nersc.gov:bin_edison
-
 # Test cases (for Charlie's machines)
 # Map-only:
 # ncremap -s ${DATA}/grids/oEC60to30.SCRIP.150729.nc -g ${DATA}/grids/t62_SCRIP.20150901.nc -m ~/map.nc -w esmf -a bilinear
@@ -181,14 +189,20 @@ esac # !HOSTNAME
 # ncremap -i ${DATA}/ne120/raw/b1850c5_m2a.cice.h.0060-01.nc -g ${DATA}/grids/180x360_SCRIP.20150901.nc -O ~/rgr
 # ncremap -i ${DATA}/ne120/raw/b1850c5_m2a.pop.h.0060-01.nc -g ${DATA}/grids/180x360_SCRIP.20150901.nc -O ~/rgr
 # ncremap -i ${DATA}/ne120/raw/b1850c5_m2a.rtm.h0.0060-01.nc -g ${DATA}/grids/180x360_SCRIP.20150901.nc -O ~/rgr
-# MPAS:
-# ncremap -P mpas -i ${DATA}/mpas/raw/hist.ocn.0001-01-01_00.00.00.nc -m ${DATA}/maps/map_oEC60to30_to_t62_bilin.20160301.nc -O ~/rgr
-# ncremap -P mpas -i ${DATA}/mpas/raw/hist.ice.0003-12-01_00.00.00.nc -m ${DATA}/maps/map_mpas120_TO_T62_aave.121116.nc -O ~/rgr
+# Old MPAS filename conventions (until ~201609)::
+# ncremap -P mpas -i ${DATA}/hdf/hist.ocn.0003-12-01_00.00.00.nc -m ${DATA}/maps/map_oEC60to30_to_t62_bilin.20160301.nc -O ~/rgr
+# ncremap -P mpas -i ${DATA}/hdf/hist.ice.0003-12-01_00.00.00.nc -m ${DATA}/maps/map_mpas120_TO_T62_aave.121116.nc -O ~/rgr
+# New MPAS filename conventions (as of ~201612):
+# ncremap -P mpas -i ${DATA}/hdf/mpaso.hist.am.timeSeriesStatsMonthly.0001-01-01.nc -m ${DATA}/maps/map_oEC60to30_to_t62_bilin.20160301.nc -O ~/rgr
+# ncremap -P mpas --rgr_opt="--rgr cll_msr=Y" -i ${DATA}/hdf/mpascice.hist.am.timeSeriesStatsMonthly.0251-01-01.nc -m ${DATA}/maps/map_oEC60to30_to_t62_bilin.20160301.nc -O ~/rgr
 # ACME benchmarks:
 # ncremap -v FSNT,AODVIS -i ${DATA}/ne30/raw/famipc5_ne30_v0.3_00003.cam.h0.1979-01.nc -m ${DATA}/maps/map_ne30np4_to_fv129x256_aave.20150901.nc -O ~/rgr
 # ncremap -v FSNT,AODVIS -w esmf    -i ${DATA}/ne30/raw/famipc5_ne30_v0.3_00003.cam.h0.1979-01.nc -s ${DATA}/grids/ne30np4_pentagons.091226.nc -g ${DATA}/grids/129x256_SCRIP.20150901.nc -O ~/rgr
 # ncremap -v FSNT,AODVIS -w tempest -i ${DATA}/ne30/raw/famipc5_ne30_v0.3_00003.cam.h0.1979-01.nc -s ${DATA}/grids/ne30np4_pentagons.091226.nc -g ${DATA}/grids/129x256_SCRIP.20150901.nc -O ~/rgr
-
+# Positional arguments:
+# ncremap --var=FSNT,AODVIS --map=${DATA}/maps/map_ne30np4_to_fv129x256_aave.20150901.nc --drc_out=~/rgr ${DATA}/ne30/raw/famipc5_ne30_v0.3_00003.cam.h0.1979-??.nc
+# cell_measures:
+# ncremap --nco_opt="--rgr cll_msr=Y" -v FSNT,AODVIS -i ${DATA}/ne30/raw/famipc5_ne30_v0.3_00003.cam.h0.1979-01.nc -m ${DATA}/maps/map_ne30np4_to_fv129x256_aave.20150901.nc -O ~/rgr
 # Debugging and Benchmarking:
 # ncremap -D 1 -i ${DATA}/sld/raw/AIRS.2014.10.01.202.L2.TSurfStd.Regrid010.1DLatLon.hole.nc -d ${DATA}/dstmch90/dstmch90_clm.nc -O ~/rgr > ~/ncremap.out 2>&1 &
 
@@ -215,16 +229,24 @@ nco_vrs=$(ncks --version 2>&1 >/dev/null | grep NCO | awk '{print $5}')
 # When running in a terminal window (not in an non-interactive batch queue)...
 if [ -n "${TERM}" ]; then
     # Set fonts for legibility
-    fnt_nrm=`tput sgr0` # Normal
-    fnt_bld=`tput bold` # Bold
-    fnt_rvr=`tput smso` # Reverse
+    if [ -x /usr/bin/tput ] && tput setaf 1 &> /dev/null; then
+	fnt_bld=`tput bold` # Bold
+	fnt_nrm=`tput sgr0` # Normal
+	fnt_rvr=`tput smso` # Reverse
+	fnt_tlc=`tput sitm` # Italic
+    else
+	fnt_bld="\e[1m" # Bold
+	fnt_nrm="\e[0m" # Normal
+	fnt_rvr="\e[07m" # Reverse
+	fnt_tlc="\e[3m" # Italic
+    fi # !tput
 fi # !TERM
 
 # Defaults for command-line options and some derived variables
 # Modify these defaults to save typing later
 alg_typ='bilinear' # [nbr] Algorithm for ESMF interpolation (bilinear|patch|neareststod|nearestdtos|conserve)
 cln_flg='Yes' # [flg] Clean-up (remove) intermediate files before exiting
-clm_flg='No' # [flg] Invoked by climo_nco.sh script
+clm_flg='No' # [flg] Invoked by ncclimo script
 dbg_lvl=0 # [nbr] Debugging level
 #drc_in="${drc_pwd}" # [sng] Input file directory
 drc_in='' # [sng] Input file directory
@@ -237,16 +259,15 @@ dst_xmp='dst.nc' # [sng] Destination file for examples
 #esmf_opt='--ignore_unmapped --netcdf4' # [sng] ESMF_RegridWeightGen options
 esmf_opt='--ignore_unmapped' # [sng] ESMF_RegridWeightGen options
 fl_nbr=0 # [nbr] Number of files to remap
-gaa_sng="--gaa remap_script=${spt_nm} --gaa remap_hostname=${HOSTNAME} --gaa remap_version=${nco_vrs}" # [sng] Global attributes to add
+gaa_sng="--gaa remap_script=${spt_nm} --gaa remap_command=\"'${cmd_ln}'\" --gaa remap_hostname=${HOSTNAME} --gaa remap_version=${nco_vrs}" # [sng] Global attributes to add
 grd_dst='' # [sng] Destination grid-file
 grd_dst_glb="${DATA}/grids/180x360_SCRIP.20150901.nc" # [sng] Grid-file (destination) global
 grd_dst_xmp='grd_dst.nc' # [sng] Destination grid-file for examples
 grd_sng='' # [sng] Grid string
 grd_src='' # [sng] Source grid-file
 grd_src_xmp='grd_src.nc' # [sng] Source grid-file for examples
-hdr_pad='1000' # [B] Pad at end of header section
+hdr_pad='10000' # [B] Pad at end of header section
 in_fl='' # [sng] Input file
-#in_fl='AIRS.2014.10.01.202.L2.TSurfStd.Regrid010.1DLatLon.hole.nc' # [sng] Input file
 in_xmp='in.nc' # [sng] Input file for examples
 job_nbr=2 # [nbr] Job simultaneity for parallelism
 map_fl='' # [sng] Map-file
@@ -263,12 +284,13 @@ par_typ='nil' # [sng] Parallelism type
 pdq_typ='' # [sng] Permutation type
 #rgr_opt='--rgr lat_nm_out=lat --rgr lon_nm_out=lon --rnr=0.0' # [sng] Regridding options
 rgr_opt='--rgr lat_nm_out=lat --rgr lon_nm_out=lon' # [sng] Regridding options
+std_flg='No' # [sng] Input available from pipe to stdin
 thr_nbr=2 # [nbr] Thread number for regridder
 tmp_out_fl='ncremap_grd_tmp.nc' # [sng] Temporary output file
 #tps_opt='--mono' # [sng] TempestRemap options
 tps_opt='' # [sng] TempestRemap options
-#var_lst='FSNT,AODVIS' # [sng] Variables to process (empty means all)
 unq_sfx=".pid${spt_pid}" # [sng] Unique suffix
+#var_lst='FSNT,AODVIS' # [sng] Variables to process (empty means all)
 var_lst='' # [sng] Variables to process (empty means all)
 var_rgr='' # [sng] CF template variable
 var_xmp='FSNT' # [sng] Variable list for examples
@@ -287,35 +309,35 @@ fi # !gpfs
 
 function fnc_usg_prn { # NB: dash supports fnc_nm (){} syntax, not function fnc_nm{} syntax
     # Print usage
-    printf "\nComplete documentation for ${fnt_bld}${spt_nm}${fnt_nrm} at http://nco.sf.net/nco.html#ncremap\n\n"
-    printf "${fnt_rvr}Basic usage:${fnt_nrm} ${fnt_bld}$spt_nm -i in_fl -d dst_fl -o out_fl${fnt_nrm}\n\n"
-    echo "Command-line options:"
-    echo "${fnt_rvr}-a${fnt_nrm} ${fnt_bld}alg_typ${fnt_nrm}  Algorithm for ESMF weight generation (default ${fnt_bld}${alg_typ}${fnt_nrm})"
-    echo "${fnt_rvr}-d${fnt_nrm} ${fnt_bld}dst_fl${fnt_nrm}   Data file to infer destination grid from (empty means none, i.e., use grd_fl, grd_sng or map_fl)) (default ${fnt_bld}${dst_fl}${fnt_nrm})"
-    echo "${fnt_rvr}-D${fnt_nrm} ${fnt_bld}dbg_lvl${fnt_nrm}  Debugging level (default ${fnt_bld}${dbg_lvl}${fnt_nrm})"
-    echo "${fnt_rvr}-E${fnt_nrm} ${fnt_bld}esmf_opt${fnt_nrm} ESMF ESMF_RegridWeightGen options (default ${fnt_bld}${esmf_opt}${fnt_nrm})"
-    echo "${fnt_rvr}-g${fnt_nrm} ${fnt_bld}grd_dst${fnt_nrm}  Grid-file (destination) (empty means none, i.e., infer from dst_fl or use grd_sng or map_fl) (default ${fnt_bld}${grd_dst}${fnt_nrm})"
-    echo "${fnt_rvr}-G${fnt_nrm} ${fnt_bld}grd_sng${fnt_nrm}  Grid generation argument string (empty means none) (default ${fnt_bld}${grd_sng}${fnt_nrm})"
-    echo "${fnt_rvr}-I${fnt_nrm} ${fnt_bld}drc_in${fnt_nrm}   Input directory (empty means none) (default ${fnt_bld}${drc_in}${fnt_nrm})"
-    echo "${fnt_rvr}-i${fnt_nrm} ${fnt_bld}in_fl${fnt_nrm}    Input file (empty means use stdin or drc_in) (default ${fnt_bld}${in_fl}${fnt_nrm})"
-    echo "${fnt_rvr}-j${fnt_nrm} ${fnt_bld}job_nbr${fnt_nrm}  Job simultaneity for parallelism (default ${fnt_bld}${job_nbr}${fnt_nrm})"
-    echo "${fnt_rvr}-M${fnt_nrm}          Multi-map-file toggle (unset means generate one map-file per input file)"
-    echo "${fnt_rvr}-m${fnt_nrm} ${fnt_bld}map_fl${fnt_nrm}   Map-file (empty means generate internally) (default ${fnt_bld}${map_fl}${fnt_nrm})"
-    echo "${fnt_rvr}-n${fnt_nrm} ${fnt_bld}nco_opt${fnt_nrm}  NCO options (empty means none) (default ${fnt_bld}${nco_opt}${fnt_nrm})"
-    echo "${fnt_rvr}-O${fnt_nrm} ${fnt_bld}drc_out${fnt_nrm}  Output directory (default ${fnt_bld}${drc_out}${fnt_nrm})"
-    echo "${fnt_rvr}-o${fnt_nrm} ${fnt_bld}out_fl${fnt_nrm}   Output-file (regridded file) (empty copies Input filename) (default ${fnt_bld}${out_fl}${fnt_nrm})"
-    echo "${fnt_rvr}-P${fnt_nrm} ${fnt_bld}pdq_typ${fnt_nrm}  Permutation type (empty means none) (default ${fnt_bld}${pdq_typ}${fnt_nrm})"
-    echo "${fnt_rvr}-p${fnt_nrm} ${fnt_bld}par_typ${fnt_nrm}  Parallelism type (default ${fnt_bld}${par_typ}${fnt_nrm})"
-    echo "${fnt_rvr}-R${fnt_nrm} ${fnt_bld}rgr_opt${fnt_nrm}  Regridding options (empty means none) (default ${fnt_bld}${rgr_opt}${fnt_nrm})"
-    echo "${fnt_rvr}-s${fnt_nrm} ${fnt_bld}grd_src${fnt_nrm}  Grid-file (source) (empty means infer or use map_fl) (default ${fnt_bld}${grd_src}${fnt_nrm})"
-    echo "${fnt_rvr}-T${fnt_nrm} ${fnt_bld}tps_opt${fnt_nrm}  TempestRemap GenerateOfflineMap options (default ${fnt_bld}${tps_opt}${fnt_nrm})"
-    echo "${fnt_rvr}-t${fnt_nrm} ${fnt_bld}thr_nbr${fnt_nrm}  Thread number for regridder (default ${fnt_bld}${thr_nbr}${fnt_nrm})"
-    echo "${fnt_rvr}-U${fnt_nrm} ${fnt_bld}drc_tmp${fnt_nrm}  Temporary directory (for intermediate files) (default ${fnt_bld}${drc_tmp}${fnt_nrm})"
-    echo "${fnt_rvr}-u${fnt_nrm} ${fnt_bld}unq_sfx${fnt_nrm}  Unique suffix (prevents intermediate files from sharing names) (default ${fnt_bld}${unq_sfx}${fnt_nrm})"
-    echo "${fnt_rvr}-V${fnt_nrm} ${fnt_bld}var_rgr${fnt_nrm}  CF template variable (empty means none) (default ${fnt_bld}${var_rgr}${fnt_nrm})"
-    echo "${fnt_rvr}-v${fnt_nrm} ${fnt_bld}var_lst${fnt_nrm}  Variable list (empty means all) (default ${fnt_bld}${var_lst}${fnt_nrm})"
-    echo "${fnt_rvr}-w${fnt_nrm} ${fnt_bld}wgt_gnr${fnt_nrm}  Weight-generator (default ${fnt_bld}${wgt_gnr}${fnt_nrm})"
-    echo "${fnt_rvr}-x${fnt_nrm} ${fnt_bld}xtn_var${fnt_nrm}  Extensive variables (empty means none) (default ${fnt_bld}${xtn_var}${fnt_nrm})"
+    printf "${fnt_rvr}Basic usage:\n${fnt_nrm} ${fnt_bld}$spt_nm -i in_fl -d dst_fl -o out_fl${fnt_nrm}\n"
+    printf "${fnt_nrm} ${fnt_bld}${spt_nm} --input_file=in_fl --destination=dst_fl --output_file=out_fl${fnt_nrm}\n\n"
+    echo "Command-line options [long-option synonyms in ${fnt_tlc}italics${fnt_nrm}]:"
+    echo "${fnt_rvr}-a${fnt_nrm} ${fnt_bld}alg_typ${fnt_nrm}  Algorithm for ESMF weight generation (default ${fnt_bld}${alg_typ}${fnt_nrm}) [${fnt_tlc}alg_typ, algorithm, regrid_algorithm${fnt_nrm}]"
+    echo "${fnt_rvr}-d${fnt_nrm} ${fnt_bld}dst_fl${fnt_nrm}   Data file to infer destination grid from (empty means none, i.e., use grd_fl, grd_sng or map_fl)) (default ${fnt_bld}${dst_fl}${fnt_nrm}) [${fnt_tlc}dst_fl, destination_file, template_file, template${fnt_nrm}]"
+    echo "${fnt_rvr}-D${fnt_nrm} ${fnt_bld}dbg_lvl${fnt_nrm}  Debug level (default ${fnt_bld}${dbg_lvl}${fnt_nrm}) [${fnt_tlc}dbg_lvl, dbg, debug, debug_level${fnt_nrm}]"
+    echo "${fnt_rvr}-E${fnt_nrm} ${fnt_bld}esmf_opt${fnt_nrm} ESMF ESMF_RegridWeightGen options (default ${fnt_bld}${esmf_opt}${fnt_nrm}) [${fnt_tlc}esmf_opt, esmf, esmf_options${fnt_nrm}]"
+    echo "${fnt_rvr}-G${fnt_nrm} ${fnt_bld}grd_sng${fnt_nrm}  Grid generation argument string (empty means none) (default ${fnt_bld}${grd_sng}${fnt_nrm}) [${fnt_tlc}grd_sng, grid_generation, grid_gen, grid_string${fnt_nrm}]"
+    echo "${fnt_rvr}-g${fnt_nrm} ${fnt_bld}grd_dst${fnt_nrm}  Grid-file (destination) (empty means none, i.e., infer from dst_fl or use grd_sng or map_fl) (default ${fnt_bld}${grd_dst}${fnt_nrm}) [${fnt_tlc}grd_dst, grid_dest, dest_grid, destination_grid${fnt_nrm}]"
+    echo "${fnt_rvr}-I${fnt_nrm} ${fnt_bld}drc_in${fnt_nrm}   Input directory (empty means none) (default ${fnt_bld}${drc_in}${fnt_nrm}) [${fnt_tlc}drc_in, in_drc, dir_in, in_dir, input${fnt_nrm}]"
+    echo "${fnt_rvr}-i${fnt_nrm} ${fnt_bld}in_fl${fnt_nrm}    Input file (empty means pipe to stdin or drc_in) (default ${fnt_bld}${in_fl}${fnt_nrm}) [${fnt_tlc}in_fl, in_file, input_file${fnt_nrm}]"
+    echo "${fnt_rvr}-j${fnt_nrm} ${fnt_bld}job_nbr${fnt_nrm}  Job simultaneity for parallelism (default ${fnt_bld}${job_nbr}${fnt_nrm}) [${fnt_tlc}job_nbr, job_number, jobs${fnt_nrm}]"
+    echo "${fnt_rvr}-M${fnt_nrm}          Multi-map-file toggle (unset means generate one map-file per input file) [${fnt_tlc}mlt_map, no_multimap${fnt_nrm}]"
+    echo "${fnt_rvr}-m${fnt_nrm} ${fnt_bld}map_fl${fnt_nrm}   Map-file (empty means generate internally) (default ${fnt_bld}${map_fl}${fnt_nrm}) [${fnt_tlc}map_fl, map, map_file, rgr_map, regrid_map${fnt_nrm}]"
+    echo "${fnt_rvr}-n${fnt_nrm} ${fnt_bld}nco_opt${fnt_nrm}  NCO options (empty means none) (default ${fnt_bld}${nco_opt}${fnt_nrm}) [${fnt_tlc}nco_opt, nco_options${fnt_nrm}]"
+    echo "${fnt_rvr}-O${fnt_nrm} ${fnt_bld}drc_out${fnt_nrm}  Output directory (default ${fnt_bld}${drc_out}${fnt_nrm}) [${fnt_tlc}drc_out, out_drc, dir_out, out_dir, output${fnt_nrm}]"
+    echo "${fnt_rvr}-o${fnt_nrm} ${fnt_bld}out_fl${fnt_nrm}   Output-file (regridded file) (empty copies Input filename) (default ${fnt_bld}${out_fl}${fnt_nrm}) [${fnt_tlc}out_fl, out_file, output_file${fnt_nrm}]"
+    echo "${fnt_rvr}-P${fnt_nrm} ${fnt_bld}pdq_typ${fnt_nrm}  Permutation type (empty means none) (default ${fnt_bld}${pdq_typ}${fnt_nrm}) [${fnt_tlc}pdq_typ, prm_typ, permutation, permute${fnt_nrm}]"
+    echo "${fnt_rvr}-p${fnt_nrm} ${fnt_bld}par_typ${fnt_nrm}  Parallelism type (default ${fnt_bld}${par_typ}${fnt_nrm}) [${fnt_tlc}par_typ, par_md, parallel_type, parallel_mode, parallel${fnt_nrm}]"
+    echo "${fnt_rvr}-R${fnt_nrm} ${fnt_bld}rgr_opt${fnt_nrm}  Regrid options (empty means none) (default ${fnt_bld}${rgr_opt}${fnt_nrm}) [${fnt_tlc}rgr_opt, regrid_options${fnt_nrm}]"
+    echo "${fnt_rvr}-s${fnt_nrm} ${fnt_bld}grd_src${fnt_nrm}  Grid-file (source) (empty means infer or use map_fl) (default ${fnt_bld}${grd_src}${fnt_nrm}) [${fnt_tlc}grd_src, grid_source, source_grid, src_grd${fnt_nrm}]"
+    echo "${fnt_rvr}-T${fnt_nrm} ${fnt_bld}tps_opt${fnt_nrm}  TempestRemap GenerateOfflineMap options (default ${fnt_bld}${tps_opt}${fnt_nrm}) [${fnt_tlc}tps_opt, tempest_opt, tempest, tempest_options${fnt_nrm}]"
+    echo "${fnt_rvr}-t${fnt_nrm} ${fnt_bld}thr_nbr${fnt_nrm}  Thread number for regridder (default ${fnt_bld}${thr_nbr}${fnt_nrm}) [${fnt_tlc}thr_nbr, thread_number, thread, threads${fnt_nrm}]"
+    echo "${fnt_rvr}-U${fnt_nrm} ${fnt_bld}drc_tmp${fnt_nrm}  Temporary directory (for intermediate files) (default ${fnt_bld}${drc_tmp}${fnt_nrm}) [${fnt_tlc}drc_tmp, tmp_drc, dir_tmp, tmp_dir, tmp${fnt_nrm}]"
+    echo "${fnt_rvr}-u${fnt_nrm} ${fnt_bld}unq_sfx${fnt_nrm}  Unique suffix (prevents intermediate files from sharing names) (default ${fnt_bld}${unq_sfx}${fnt_nrm}) [${fnt_tlc}unq_sfx, unique_suffix, suffix${fnt_nrm}]"
+    echo "${fnt_rvr}-V${fnt_nrm} ${fnt_bld}var_rgr${fnt_nrm}  CF template variable (empty means none) (default ${fnt_bld}${var_rgr}${fnt_nrm}) [${fnt_tlc}var_rgr, rgr_var, var_cf, cf_var, cf_variable${fnt_nrm}]"
+    echo "${fnt_rvr}-v${fnt_nrm} ${fnt_bld}var_lst${fnt_nrm}  Variable list (empty means all) (default ${fnt_bld}${var_lst}${fnt_nrm}) [${fnt_tlc}var_lst, variable_list, var, vars, variable, variables${fnt_nrm}]"
+    echo "${fnt_rvr}-w${fnt_nrm} ${fnt_bld}wgt_gnr${fnt_nrm}  Weight-generator (default ${fnt_bld}${wgt_gnr}${fnt_nrm}) [${fnt_tlc}wgt_gnr, weight_generator, generator${fnt_nrm}]"
+    echo "${fnt_rvr}-x${fnt_nrm} ${fnt_bld}xtn_var${fnt_nrm}  Extensive variables (empty means none) (default ${fnt_bld}${xtn_var}${fnt_nrm}) [${fnt_tlc}xtn_var, xtn_lst, extensive, var_xtn, extensive_variables${fnt_nrm}]"
     printf "\n"
     printf "Examples: ${fnt_bld}$spt_nm -i ${in_xmp} -m ${map_xmp} -o ${out_xmp} ${fnt_nrm}\n"
     printf "          ${fnt_bld}$spt_nm -i ${in_xmp} -d ${dst_xmp} -o ${out_xmp} ${fnt_nrm}\n"
@@ -334,6 +356,7 @@ function fnc_usg_prn { # NB: dash supports fnc_nm (){} syntax, not function fnc_
     printf "          ${fnt_bld}$spt_nm -I ${drc_in_xmp} -g ${grd_dst_xmp} -O ${drc_out_xmp} ${fnt_nrm}\n"
     printf "          ${fnt_bld}ls mdl*2005*nc | $spt_nm -m ${map_xmp} -O ${drc_out_xmp} ${fnt_nrm}\n"
     printf "          ${fnt_bld}ls mdl*2005*nc | $spt_nm -d ${dst_xmp} -O ${drc_out_xmp} ${fnt_nrm}\n"
+    printf "\nComplete documentation at http://nco.sf.net/nco.html#${spt_nm}\n\n"
     exit 1
 } # end fnc_usg_prn()
 
@@ -357,42 +380,88 @@ fi # !arg_nbr
 # Parse command-line options:
 # http://stackoverflow.com/questions/402377/using-getopts-in-bash-shell-script-to-get-long-and-short-command-line-options
 # http://tuxtweaks.com/2014/05/bash-getopts
-cmd_ln="${spt_nm} ${@}"
-while getopts :a:CD:d:E:f:g:G:h:I:i:j:Mm:n:O:o:P:p:R:s:T:t:U:u:V:v:w:x: OPT; do
+while getopts :a:CD:d:E:f:g:G:h:I:i:j:Mm:n:O:o:P:p:R:s:T:t:U:u:V:v:w:x:-: OPT; do
     case ${OPT} in
-	a) alg_typ=${OPTARG} ;; # Algorithm
+	a) alg_typ="${OPTARG}" ;; # Algorithm
 	C) clm_flg='Yes' ;; # Climo flag (undocumented)
-	D) dbg_lvl=${OPTARG} ;; # Debugging level
-	d) dst_fl=${OPTARG} ;; # Destination file
-	E) esmf_opt=${OPTARG} ;; # ESMF options
-	g) grd_dst=${OPTARG} ;; # Destination grid-file
-	G) grd_sng=${OPTARG} ;; # Grid generation string
-	I) drc_in=${OPTARG} ;; # Input directory
-	i) in_fl=${OPTARG} ;; # Input file
-	j) job_usr=${OPTARG} ;; # Job simultaneity
+	D) dbg_lvl="${OPTARG}" ;; # Debugging level
+	d) dst_fl="${OPTARG}" ;; # Destination file
+	E) esmf_opt="${OPTARG}" ;; # ESMF options
+	g) grd_dst="${OPTARG}" ;; # Destination grid-file
+	G) grd_sng="${OPTARG}" ;; # Grid generation string
+	I) drc_in="${OPTARG}" ;; # Input directory
+	i) in_fl="${OPTARG}" ;; # Input file
+	j) job_usr="${OPTARG}" ;; # Job simultaneity
 	M) mlt_map_flg='No' ;; # Multi-map flag
-	m) map_fl=${OPTARG} ;; # Map-file
-	n) nco_usr=${OPTARG} ;; # NCO options
-	O) drc_usr=${OPTARG} ;; # Output directory
-	o) out_fl=${OPTARG} ;; # Output file
-	P) pdq_typ=${OPTARG} ;; # Permutation type
-	p) par_typ=${OPTARG} ;; # Parallelism type
-	R) rgr_opt=${OPTARG} ;; # Regridding options
-	s) grd_src=${OPTARG} ;; # Source grid-file
-	T) tps_opt=${OPTARG} ;; # Tempest options
-	t) thr_usr=${OPTARG} ;; # Thread number
-	U) tmp_usr=${OPTARG} ;; # Temporary directory
-	u) unq_usr=${OPTARG} ;; # Unique suffix
-	V) var_rgr=${OPTARG} ;; # CF template variable 
-	v) var_lst=${OPTARG} ;; # Variables
-	w) wgt_usr=${OPTARG} ;; # Weight-generator
-	x) xtn_var=${OPTARG} ;; # Extensive variables
+	m) map_fl="${OPTARG}" ;; # Map-file
+	n) nco_usr="${OPTARG}" ;; # NCO options
+	O) drc_usr="${OPTARG}" ;; # Output directory
+	o) out_fl="${OPTARG}" ;; # Output file
+	P) pdq_typ="${OPTARG}" ;; # Permutation type
+	p) par_typ="${OPTARG}" ;; # Parallelism type
+	R) rgr_opt="${OPTARG}" ;; # Regridding options
+	s) grd_src="${OPTARG}" ;; # Source grid-file
+	T) tps_opt="${OPTARG}" ;; # Tempest options
+	t) thr_usr="${OPTARG}" ;; # Thread number
+	U) tmp_usr="${OPTARG}" ;; # Temporary directory
+	u) unq_usr="${OPTARG}" ;; # Unique suffix
+	V) var_rgr="${OPTARG}" ;; # CF template variable 
+	v) var_lst="${OPTARG}" ;; # Variables
+	w) wgt_usr="${OPTARG}" ;; # Weight-generator
+	x) xtn_var="${OPTARG}" ;; # Extensive variables
+	-) LONG_OPTARG="${OPTARG#*=}"
+	   case ${OPTARG} in
+	       # Hereafter ${OPTARG} is long argument key, and ${LONG_OPTARG}, if any, is long argument value
+	       # Long options with no argument, no short option counterpart
+	       # Long options with argument, no short option counterpart
+	       # Long options with short counterparts, ordered by short option key
+	       alg_typ=?* | algorithm=?* | regrid_algorithm=?* ) alg_typ="${LONG_OPTARG}" ;; # -a # Algorithm
+	       clm_flg=?* | climatology_flag=?* ) clm_flg='Yes' ;; # -C # Climo flag (undocumented)
+	       dbg_lvl=?* | dbg=?* | debug=?* | debug_level=?* ) dbg_lvl="${LONG_OPTARG}" ;; # -d # Debugging level
+	       dst_fl=?* | destination_file=?* | template_file=?* | template=?* ) dst_fl="${LONG_OPTARG}" ;; # -d # Destination file
+	       esmf_opt=?* | esmf=?* | esmf_options=?* ) esmf_opt="${LONG_OPTARG}" ;; # -E # ESMF options
+	       grd_dst=?* | grid_dest=?* | dest_grid=?* | destination_grid=?* ) grd_dst="${LONG_OPTARG}" ;; # -g # Destination grid-file
+	       grd_sng=?* | grid_generation=?* | grid_gen=?* | grid_string=?* ) grd_sng="${LONG_OPTARG}" ;; # -G # Grid generation string
+	       drc_in=?* | in_drc=?* | dir_in=?* | in_dir=?* | input=?* ) drc_in="${LONG_OPTARG}" ;; # -i # Input directory
+	       in_fl=?* | in_file=?* | input_file=?* ) in_fl="${LONG_OPTARG}" ;; # -i # Input file
+	       job_nbr=?* | job_number=?* | jobs=?* ) job_usr="${LONG_OPTARG}" ;; # -j # Job simultaneity
+	       mlt_map | multimap | no_multimap | nomultimap ) mlt_map_flg='No' ;; # -M # Multi-map flag
+	       mlt_map=?* | multimap=?* | no_multimap=?* | nomultimap=?* ) echo "No argument allowed for --${OPTARG switch}" >&2; exit 1 ;; # -M # Multi-map flag
+	       map_fl=?* | map=?* | map_file=?* | rgr_map=?* | regrid_map=?* ) map_fl="${LONG_OPTARG}" ;; # -m # Map-file
+	       nco_opt=?* | nco=?* | nco_options=?* ) nco_usr="${LONG_OPTARG}" ;; # -n # NCO options
+	       drc_out=?* | out_drc=?* | dir_out=?* | out_dir=?* | output=?* ) drc_usr="${LONG_OPTARG}" ;; # -O # Output directory
+	       out_fl=?* | output_file=?* | out_file=?* ) out_fl="${LONG_OPTARG}" ;; # -o # Output file
+	       pdq_typ=?* | prm_typ=?* | permutation=?* | permute=?* ) pdq_typ="${LONG_OPTARG}" ;; # -P # Permutation type
+	       par_typ=?* | par_md=?* | parallel_type=?* | parallel_mode=?* | parallel=?* ) par_typ="${LONG_OPTARG}" ;; # -p # Parallelism type
+	       rgr_opt=?* | regrid_options=?* ) rgr_opt="${LONG_OPTARG}" ;; # -R # Regridding options
+	       grd_src=?* | grid_source=?* | source_grid=?* | src_grd=?* ) grd_src="${LONG_OPTARG}" ;; # -s # Source grid-file
+	       tps_opt=?* | tempest_opt=?* | tempest=?* | tempest_options=?* ) tps_opt="${LONG_OPTARG}" ;; # -T # Tempest options
+	       thr_nbr=?* | thread_number=?* | thread=?* | threads=?* ) thr_usr="${LONG_OPTARG}" ;; # -t # Thread number
+	       drc_tmp=?* | tmp_drc=?* | dir_tmp=?* | tmp_dir=?* | tmp=?* ) tmp_usr="${LONG_OPTARG}" ;; # -U # Temporary directory
+	       unq_sfx=?* | unique_suffix=?* | suffix=?* ) unq_usr="${LONG_OPTARG}" ;; # -u # Unique suffix
+	       var_rgr=?* | rgr_var=?* | var_cf=?* | cf_var=?* | cf_variable=?* ) var_rgr="${LONG_OPTARG}" ;; # -V # CF template variable 
+	       var_lst=?* | variable_list=?* | var=?* | vars=?* | variable=?* | variables=?* ) var_lst="${LONG_OPTARG}" ;; # -v # Variables
+	       wgt_gnr=?* | weight_generator=?* | generator=?* ) wgt_usr="${LONG_OPTARG}" ;; # -w # Weight-generator
+	       xtn_var=?* | extensive=?* | var_xtn=?* | extensive_variables=?* ) xtn_var="${LONG_OPTARG}" ;; # -x # Extensive variables
+               '' ) break ;; # "--" terminates argument processing
+               * ) printf "\nERROR: Illegal option ${fnt_bld}--${OPTARG}${fnt_nrm}\n" >&2; fnc_usg_prn ;;
+	   esac ;; # !OPTARG
 	\?) # Unrecognized option
-	    printf "\nERROR: Option ${fnt_bld}-$OPTARG${fnt_nrm} not allowed"
+	    printf "\nERROR: Option ${fnt_bld}-${OPTARG}${fnt_nrm} not allowed\n" >&2
 	    fnc_usg_prn ;;
-    esac
-done
+    esac # !OPT
+done # !getopts
 shift $((OPTIND-1)) # Advance one argument
+
+# Detect input on pipe to stdin:
+# http://stackoverflow.com/questions/2456750/detect-presence-of-stdin-contents-in-shell-script
+# http://unix.stackexchange.com/questions/33049/check-if-pipe-is-empty-and-run-a-command-on-the-data-if-it-isnt
+# 20170119 "if [ ! -t 0 ]" tests whether stdin connected to terminal, not whether pipe has data
+# Non-interactive batch mode (e.g., qsub, sbatch) disconnects stdin from terminal and triggers false-positives
+# Switch test from "if [ ! -t 0 ]" to "if [ -p /dev/stdin ]"
+if [ -p /dev/stdin ]; then
+    std_flg='Yes'
+fi # !stdin
 
 # Derived variables
 if [ -n "${drc_usr}" ]; then
@@ -567,8 +636,8 @@ if [ -n "${map_fl}" ]; then
     if [ "${map_mk}" = 'Yes' ]; then
 	# Confirm before overwriting maps
         if [ -f "${map_fl}" ]; then
-	    # 20160803: fxm get to work on Interactive shells only (block hangs on read() in non-interactive shells)
-#	    if [[ -t 0 || -p /dev/stdin ]]; then
+	    # 20160803: fxm invoke iff in interactive shell (block hangs on read() in non-interactive shells)
+#	    if [ -t 0 ] || [ ! -p /dev/stdin ]; then
 #           if [ -n "${TERM}" ]; then
 #           if [ -n "${PS1}" ]; then
             if [ 1 -eq 0 ]; then
@@ -613,13 +682,10 @@ fi # !tempest
 # Parse grid/map arguments before in_fl arguments so we know whether this could be a map-only invocation
 if [ -n "${in_fl}" ]; then
     # Single file argument
-    fl_in[${fl_nbr}]=${in_fl}
-    let fl_nbr=${fl_nbr}+1
+    fl_in[0]=${in_fl}
+    fl_nbr=1
 else # !in_fl
-    # Detecting input on stdin:
-    # http://stackoverflow.com/questions/2456750/detect-presence-of-stdin-contents-in-shell-script
-    # ls ${DATA}/ne30/raw/famipc5*1979*.nc | ncremap -D 1 -m ${DATA}/maps/map_ne30np4_to_fv129x256_aave.20150901.nc -O ~/rgr
-    if [ -t 0 ]; then 
+    if [ ${std_flg} = 'No' ]; then 
 	if [ "${drc_in_usr_flg}" = 'Yes' ]; then
 	    for fl in "${drc_in}"/*.nc "${drc_in}"/*.nc3 "${drc_in}"/*.nc4 "${drc_in}"/*.cdf "${drc_in}"/*.hdf "${drc_in}"/*.he5 "${drc_in}"/*.h5 ; do
 		if [ -f "${fl}" ]; then
@@ -629,12 +695,34 @@ else # !in_fl
 	    done
 	else # !drc_in
 	    if [ "${map_mk}" != 'Yes' ]; then 
-		echo "ERROR: Must specify input file with -i or with stdin"
-		echo "HINT: Pipe file list to script via stdin with, e.g., 'ls *.nc | ${spt_nm}'"
-		exit 1
+		# Read any positional arguments
+		psn_nbr=$#
+		if [ ${psn_nbr} -eq 1 ]; then
+		    fl_in[0]=${1}
+		    fl_nbr=1
+		elif [ ${psn_nbr} -eq 2 ]; then
+		    if [ -z "${out_fl}" ]; then
+			out_fl=${2}
+			out_usr_flg='Yes'
+			fl_nbr=1
+		    else # !out_fl
+			echo "ERROR: Output file specified with -o (${out_fl}) conflicts with second positional argument ${2}"
+			echo "HINT: Use -o out_fl or positional argument, not both"
+			exit 1
+		    fi # !out_fl
+		elif [ ${psn_nbr} -ge 3 ]; then
+		    for ((psn_idx=1;psn_idx<=psn_nbr;psn_idx++)); do
+			fl_in[(${psn_idx}-1)]=${!psn_idx}
+			fl_nbr=${psn_nbr}
+		    done # !psn_idx
+		else
+		    echo "ERROR: Specify input file(s) with -i or with positional argument(s) or with pipe to stdin"
+		    echo "HINT: Pipe input file list to stdin with, e.g., 'ls *.nc | ${spt_nm}'"
+		    exit 1
+		fi # !psn_nbr
 	    fi # !map_mk
 	fi # !drc_in
-    else
+    else # !std_flg
 	# Input awaits on unit 0, i.e., on stdin
 	while read -r line; do # NeR05 p. 179
 	    fl_in[${fl_nbr}]=${line}
@@ -652,7 +740,7 @@ if [ "${mpi_flg}" = 'Yes' ]; then
 	# SLURM returns compressed lists (e.g., "nid00[076-078,559-567]")
 	# Convert this to file with uncompressed list (like Cobalt, PBS)
 	# http://www.ceci-hpc.be/slurm_faq.html#Q12
-	nd_fl='ncclimo.slurm_nodelist'
+	nd_fl='ncremap.slurm_nodelist'
 	nd_lst=`scontrol show hostname ${SLURM_NODELIST}`
 	echo ${nd_lst} > ${nd_fl}
     else
@@ -668,22 +756,22 @@ if [ "${mpi_flg}" = 'Yes' ]; then
 	    let nd_idx=${nd_idx}+1
 	done # !nd
 	nd_nbr=${#nd_nm[@]}
-	for ((clm_idx=1;clm_idx<=17;clm_idx++)); do
+	for ((fl_idx=0;fl_idx<fl_nbr;fl_idx++)); do
 	    case "${HOSTNAME}" in 
 		# 20160502: Remove limits on tasks per node so round-robin algorithm can schedule multiple jobs on same node
 		cori* | edison* | nid* )
 		    # 20160502: Non-interactive batch jobs at NERSC return HOSTNAME as nid*, not cori* or edison*
 		    # NB: NERSC staff says srun automatically assigns to unique nodes even without "-L $node" argument?
- 		    cmd_mpi[${clm_idx}]="srun --nodelist ${nd_nm[$(((${clm_idx}-1) % ${nd_nbr}))]} --nodes=1" ; ;; # NERSC
-# 		    cmd_mpi[${clm_idx}]="srun --nodelist ${nd_nm[$(((${clm_idx}-1) % ${nd_nbr}))]} --nodes=1 --ntasks=1" ; ;; # NERSC
+ 		    cmd_mpi[${fl_idx}]="srun --nodelist ${nd_nm[$((${fl_idx} % ${nd_nbr}))]} --nodes=1" ; ;; # NERSC
+# 		    cmd_mpi[${fl_idx}]="srun --nodelist ${nd_nm[$((${fl_idx} % ${nd_nbr}))]} --nodes=1 --ntasks=1" ; ;; # NERSC
 		hopper* )
 		    # NB: NERSC migrated from aprun to srun in 201601. Hopper commands will soon be deprecated.
-		    cmd_mpi[${clm_idx}]="aprun -L ${nd_nm[$(((${clm_idx}-1) % ${nd_nbr}))]} -n 1" ; ;; # NERSC
+		    cmd_mpi[${fl_idx}]="aprun -L ${nd_nm[$((${fl_idx} % ${nd_nbr}))]} -n 1" ; ;; # NERSC
 		* )
-		    cmd_mpi[${clm_idx}]="mpirun -H ${nd_nm[$(((${clm_idx}-1) % ${nd_nbr}))]} -n 1" ; ;; # Other (Cobalt)
-#		    cmd_mpi[${clm_idx}]="mpirun -H ${nd_nm[$(((${clm_idx}-1) % ${nd_nbr}))]} -npernode 1 -n 1" ; ;; # Other
+		    cmd_mpi[${fl_idx}]="mpirun -H ${nd_nm[$((${fl_idx} % ${nd_nbr}))]} -n 1" ; ;; # Other (Cobalt)
+#		    cmd_mpi[${fl_idx}]="mpirun -H ${nd_nm[$((${fl_idx} % ${nd_nbr}))]} -npernode 1 -n 1" ; ;; # Other
 	    esac # !HOSTNAME
-	done # !clm_idx
+	done # !fl_idx
 	if [ -n "${SLURM_NODELIST}" ]; then 
 	    /bin/rm -f ${nd_fl}
 	fi # !SLURM
@@ -703,7 +791,7 @@ if [ "${mpi_flg}" = 'Yes' ]; then
 	    thr_nbr=$((PBS_NUM_PPN > 8 ? 8 : PBS_NUM_PPN))
 	fi # !pbs
     fi # !thr_usr
-fi # !mpi
+fi # !mpi_flg
 
 # Print initial state
 if [ ${dbg_lvl} -ge 2 ]; then
@@ -735,7 +823,7 @@ if [ ${dbg_lvl} -ge 2 ]; then
     printf "dbg: var_lst  = ${var_lst}\n"
     printf "dbg: var_rgr  = ${var_rgr}\n"
     printf "dbg: wgt_usr  = ${wgt_usr}\n"
-    printf "Asked to regrid ${fl_nbr} files:\n"
+    printf "dbg: Will regrid ${fl_nbr} files:\n"
     for ((fl_idx=0;fl_idx<${fl_nbr};fl_idx++)); do
 	printf "${fl_in[${fl_idx}]}\n"
     done # !fl_idx
@@ -747,25 +835,35 @@ if [ ${dbg_lvl} -ge 2 ]; then
 	done # !nd
     fi # !mpi
 fi # !dbg
+if [ ${dbg_lvl} -ge 2 ]; then
+    psn_nbr=$#
+    printf "dbg: Found ${psn_nbr} positional parameters (besides \$0):\n"
+    for ((psn_idx=1;psn_idx<=psn_nbr;psn_idx++)); do
+	printf "dbg: psn_arg[${psn_idx}] = ${!psn_idx}\n"
+    done # !psn_idx
+fi # !dbg
 
 # Create output directory
-mkdir -p ${drc_out}
-mkdir -p ${drc_tmp}
+if [ -n "${drc_out}" ]; then 
+    mkdir -p ${drc_out}
+fi # !drc_out
+if [ -n "${drc_tmp}" ]; then 
+    mkdir -p ${drc_tmp}
+fi # !drc_tmp
 
 # Human-readable summary
+date_srt=$(date +"%s")
 if [ ${dbg_lvl} -ge 1 ]; then
     printf "NCO regridder invoked with command:\n"
     echo "${cmd_ln}"
 fi # !dbg
-date_srt=$(date +"%s")
-
 if [ -f 'PET0.RegridWeightGen.Log' ]; then
     printf "${spt_nm}: Removing PET0.RegridWeightGen.Log file from current directory before running\n"
     /bin/rm -f PET0.RegridWeightGen.Log
 fi # !PETO
 printf "Started processing at `date`.\n"
 printf "Running remap script ${spt_nm} from directory ${drc_spt}\n"
-printf "NCO version ${nco_vrs} from directory ${drc_nco}\n"
+printf "NCO binaries version ${nco_vrs} from directory ${drc_nco}\n"
 printf "Input files in or relative to directory ${drc_in}\n"
 printf "Intermediate/temporary files written to directory ${drc_tmp}\n"
 printf "Output files to directory ${drc_out}\n"
@@ -794,7 +892,7 @@ if [ ${fl_nbr} -eq 0 ]; then
     printf "Map-only run: no input data detected therefore will exit after generating map\n"
 fi # !fl_nbr
 if [ -n "${pdq_opt}" ]; then 
-    printf "Input data obey \"${pdq_typ}\"-ordering and will be permuted with \"ncpdq ${pdq_opt}\"\n"
+    printf "Input data shaped in \"${pdq_typ}\"-order, will permute with \"ncpdq ${pdq_opt}\"\n"
 fi # !pdq_opt
 if [ "${pdq_typ}" = 'mpas' ]; then
     printf "Input assumed to be MPAS-O/I data: will apply renormalized regridding (--rnr=0.0)\n"
@@ -925,7 +1023,7 @@ for ((fl_idx=0;fl_idx<${fl_nbr};fl_idx++)); do
     if [ "${out_usr_flg}" = 'Yes' ]; then 
 	if [ ${fl_nbr} -ge 2 ]; then 
 	    echo "ERROR: Single output filename specified with -o for multiple input files"
-	    echo "HINT: For multiple input files use -O option to specify output directory and do not use -o option. Output files will have same name as input files, but will be in different directory."
+	    echo "HINT: For multiple input files use -O option to specify output directory and do not use -o or second positional option. Output files will have same name as input files, but will be in different directory."
 	    exit 1
 	fi # !fl_nbr
 	if [ -n "${drc_usr}" ]; then
@@ -1038,7 +1136,7 @@ for ((fl_idx=0;fl_idx<${fl_nbr};fl_idx++)); do
     fi # !map_mk
     
     # Block 4: Special cases
-    # Block 4a: Add missing metadata to MPAS files unless script was invoked by climo_nco.sh (it makes no sense to give naked files to climo_nco.sh and then annotate here, so assume climo_nco.sh is working with annotated files)
+    # Block 4a: Add missing metadata to MPAS files unless script was invoked by ncclimo (it makes no sense to give naked files to ncclimo and then annotate here, so assume ncclimo is working with annotated files)
     if [ "${pdq_typ}" = 'mpas' ] && [ "${clm_flg}" = 'No' ]; then
 	cmd_att[${fl_idx}]="ncatted -O -t -a _FillValue,,o,d,-9.99999979021476795361e+33 ${in_fl} ${att_fl};"
 	in_fl="${att_fl}"
@@ -1095,7 +1193,7 @@ for ((fl_idx=0;fl_idx<${fl_nbr};fl_idx++)); do
     fi # !dbg
 
     # Block 6: Wait
-    # Parallel regridding (both Background and MPI) spawn simultaneous processes in batches of ${job_nbr}
+    # Parallel regridding (both Background and MPI) spawns simultaneous processes in batches of ${job_nbr}
     # Once ${job_nbr} jobs are running, wait() for all to finish before issuing another batch
     if [ -n "${par_opt}" ]; then
 	let bch_idx=$((fl_idx / job_nbr))
@@ -1136,7 +1234,7 @@ for ((fl_idx=0;fl_idx<${fl_nbr};fl_idx++)); do
 
 done # !fl_idx
 
-# Parallel mode will often exit loop after a partial batch, wait() for remaining jobs to finish
+# Parallel mode might exit loop after a partial batch, wait() for remaining jobs to finish
 if [ -n "${par_opt}" ]; then
     let bch_flg=$((fl_nbr % job_nbr))
     if [ ${bch_flg} -ne 0 ]; then

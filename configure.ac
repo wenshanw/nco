@@ -3,7 +3,7 @@
 # Purpose: Template autoconf uses to generate NCO configure script
 # Newer convention names this file configure.ac, rather than configure.in
 
-# Copyright (C) 2003--2016 Charlie Zender
+# Copyright (C) 2003--2017 Charlie Zender
 # License: GNU General Public License (GPL) Version 3
 # See http://www.gnu.org/copyleft/gpl.html for full license text
 
@@ -51,7 +51,7 @@
 
 # Process configure input with autoconf to produce configure script
 # (package name,version,bug-report-address,tarball name)
-AC_INIT([NCO netCDF Operators],[4.6.2],[nco-bugs@lists.sourceforge.net],[nco])
+AC_INIT([NCO netCDF Operators],[4.6.5-alpha02],[nco-bugs@lists.sourceforge.net],[nco])
 
 # Print GNU copyright in configure script
 AC_COPYRIGHT
@@ -735,6 +735,7 @@ if test "${enable_udunits2}" != 'no'; then
 	# 20160418 FC23 has /usr/include/udunits2/udunits2.h
 	# Add this path to CPPFLAGS if it exists, otherwise do nothing
 	AC_CHECK_FILE([/usr/include/udunits2/udunits2.h], [CPPFLAGS="$CPPFLAGS -I/usr/include/udunits2"], [])
+	# 20170113 FC25 has /usr/include/udunits2/udunits2.h
 	# Ubuntu
 	# /usr/lib/x86_64-linux-gnu/libudunits2.a
 	# /usr/lib/i386-linux-gnu/libudunits2.a
