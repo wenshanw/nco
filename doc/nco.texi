@@ -122,7 +122,7 @@ Octave TeXInfo manual shows clean TeXInfo structure
 @set doc-edition 4.6.5-alpha02
 @set copyright-years 1995--2017
 @set update-year 2017
-@set update-date 9 February 2017
+@set update-date 21 February 2017
 @set update-month February 2017
 
 @settitle @acronym{NCO} @value{nco-edition} User Guide
@@ -11862,7 +11862,7 @@ three_mw=three_dmn_var_dbl.permute($0,$2,$1);
 @end example
 
 @noindent @strong{ID Quoting @*}
-If the dimension name contains non-regular characters use ID quoting. 
+If the dimension name contains non-regular characters use ID quoting:
 See @pxref{ID Quoting}
 @example
 defdim("a--list.A",10);
@@ -12331,7 +12331,7 @@ push(&@h," again"s); // BAD PUSH
 @end verbatim
 @end example
 
-If the attribute name contains non-regular characters use ID quoting.
+If the attribute name contains non-regular characters use ID quoting:
 @example
 @verbatim
 'b..m1@c--lost'=23;
