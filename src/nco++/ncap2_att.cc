@@ -71,6 +71,7 @@ ncap_att2var          //   [fnc] return text content of var
 }
 
 
+
 int                    // O [flg] 0 - att doesnt exist 1 - att exists
 ncap_att2var_chk       //   [fnc] returns nco_bool
 ( prs_cls *prs_arg,    // I [cls] var/att symbol tables
@@ -330,6 +331,40 @@ ncap_att_stretch /* stretch a single valued attribute from 1 to sz */
   return true;
 } /* end ncap_att_stretch */
 
+nco_bool                 /* O [flg] true if var has been stretched */
+ncap_att_char_stretch    /* pad out or truncate a NC_CHAR attribute */
+(var_sct* var,           /* I/O [sct] var/att */
+ long nw_sz)             /* I [nbr] new var size */
+{
+  long  var_typ_sz;
+  char *cp;
+  void* vp;
+
+  if(var->type != NC_CHAR)
+    return False;
+
+  var_typ_sz=nco_typ_lng(NC_CHAR);
+
+
+  vp=(void*)nco_calloc(var_typ_sz,nw_sz);
+  cp=(char*)vp;
+  cast_void_nctype(NC_CHAR,&var->val);
+
+  if( nw_sz > var->sz )
+    strncpy(cp, var->val.cp, var->sz);
+  else
+    strncpy(cp, var->val.cp,nw_sz);
+
+
+  cast_nctype_void(NC_CHAR,&var->val);
+
+  var->val.vp=(void*)nco_free(var->val.vp);
+  var->sz=nw_sz;
+  var->val.vp=vp;
+
+  return true;
+
+} /* end ncap_att_char_stretch */
 
 int 
 ncap_att_cpy_sct
@@ -465,8 +500,7 @@ ncap_att_sprn     /* [fnc] Print a single attribute*/
   char *cp_max;  
 
   long att_lmn;
-  long att_sz; 
-  long max_sz;
+  long att_sz;
   
   /* Copy value to avoid indirection in loop over att_sz */
   att_sz=var->sz;
@@ -609,8 +643,7 @@ char *          /* new malloc'ed string */
 ncap_att_char  /* extract string from a NC_CHAR or first NC_STRING */
 (var_sct *var_att)
 {
-  int idx;
-  char *cstr;
+  char *cstr=NULL;
   
   (void)cast_void_nctype((nc_type)var_att->type,&var_att->val);
 

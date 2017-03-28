@@ -1,95 +1,80 @@
 $Header$ -*-text-*-
 
-The netCDF Operators NCO version 4.6.5 are ready. 
+The netCDF Operators NCO version 4.6.6 are ready. 
 
 http://nco.sf.net (Homepage, Mailing lists)
 http://github.com/nco (Source Code, Releases, Developers)
 
 What's new?
 
-The main new features in 4.6.5 are the "splitter" and daily
-climatology capabilities for ncclimo. ncclimo now generates,
-combines existing, and splits climatologies. Thus it is a
-fairly general purpose climatology operator. NCO now supports
-two more CF conventions (formula_terms and cell_measures),
-and has a few bugfixes.
+4.6.6 contains a potpurri of new features...
 
-Work on NCO 4.6.5 has commenced. Planned improvements include 
-support for conda installs on MS Windows, and more ncclimo
-and ncremap features.
+I am considering changing the default behavior of ncks printing.
+For 20+ years ncks has, by default, dumped the text representation
+of a file in (what we call) "traditional" mode. CDL has become
+increasingly popular, and may be more useful than traditional mode
+for the majority of users. ncks has printed CDL only since 2013 and so
+is not the default. ncdump has always printed CDL very cleanly and
+clearly there was little point in making CDL the default for ncks.
+
+ncks CDL mode has now matured to the point where it rivals ncdump, and
+is arguably superior in many ways. I find myself using CDL more and
+more and ncdump less and less. Hence I'm interested in changing
+the default printed output of ncks to CDL, and requiring a new "--trd"
+option to view the tradiational output. Then I can type simply
+"ncks" instead of "ncks --cdl". 
+
+Work on NCO 4.6.7 has commenced. Planned improvements include 
+support for conda installs on MS Windows, and human-legible calendar
+date printing, more ncclimo and ncremap features.
 
 Enjoy,
 Charlie
 
 NEW FEATURES (full details always in ChangeLog):
 
-A. ncclimo will reshape timeseries, i.e., split input datasets into
-   per-variable files that span the entire timeseries.
-   Input files are specified via stdin, via positional arguments
-   (after all options) on the command-line, or as the set of .nc files
-   in drc_in 
-   ls $drc_in/*.nc | ncclimo -v T,Q --output=drc_out --map=rgr_map
-   ncclimo -v T,Q --output=drc_out --map=rgr_map < list
-   ncclimo -v T,Q --output=drc_out --map=rgr_map $drc_in/*.nc
-   ncclimo -v T,Q --input=$drc_in --output=drc_out --map=rgr_map
-   http://nco.sf.net/nco.html#ncclimo
+A. ncks now prints the units, if any, in comments after CDL values
+   when debugging is enabled with dbg_lvl >=1:
+   zender@foo: ncks --cdl -D 1 in.nc
+   lat = -90, 90 ; // units="degrees_north"
+   lon = 0, 90, 180, 270 ; // units="degrees_east"
+   tpt = 273.1, 273.2, ... 274 ; // units="kelvin"
+   http://nco.sf.net/nco.html#cdl
 
-B. ncks allows setting per-variable chunk cache-size with --cnk_csh. 
-   The effects of varying chunk cache-size are not well understood,
-   at least by we who work on NCO. Users asked for a knob to tune
-   it, and now that exists. Experiment with this and if you find
-   reasons for NCO to set this to non-default values, let us know.
-   If you want more knobs, let us know.
-   This setting only works on netCDF4 files.
-   ncks -D 3 --cnk_csh 1000000 in.nc4 out.nc
-   http://nco.sf.net/nco.html#cnk_csh
+A. fxm: not done yet
+   Since 4.6.5 ncks has printed the human-legible calendar string
+   corresponding to values with UDUnits date units (time since
+   basetime, e.g., "days since 2000-01-01") and CF calendar attribute,
+   if any. Now ncks also translates and prints time values associated
+   with CF climatology and bounds variables as human legible dates.
+   As before, enact this with the --calendar option when printing.
+   Using dbg_lvl >= 1 in CDL mode prints both the value and calendar
+   string (one in comments): 
 
-C. ncremap now includes staggered grid weights with FV grid output. 
-   The weights are named w_stag, following the CESM CAM convention. 
-   http://nco.sf.net/nco.html#ncremap
+   zender@aerosol:~$ ncks -D 1 --cdl --cal -v tm_365 ~/nco/data/in.nc
+   tm_365 = "2013-03-01"; // double value: 59
+   zender@aerosol:~$ ncks -D 1 --cdl -v tm_365 ~/nco/data/in.nc
+   tm_365 = 59; // calendar format: "2013-03-01"
 
-D. Variables listed in a formula_terms attribute are now extracted
-   by default. Turn-off this behavior with --no_frm_trm.
-   The CF formula_terms convention is used to associate variables
-   with terms in defined formulas, such as vertical coordinates:
-   lev:standard_name = "atmosphere_hybrid_sigma_pressure_coordinate"
-   lev:formula_terms = "a: hyam b: hybm p0: P0 ps: PS"
-   Unless the default behavior is overridden, NCO attaches any 
-   formula variables to the extraction list along with the primary
-   variable and other associated variables. By definition, formula
-   variables are a subset of the rank of the variable they define.
-   http://nco.sf.net/nco.html#frm_trm
-
-E. Variables listed in a cell_measures attribute are now extracted
-   by default. Turn-off this behavior with --no_cll_msr.
-   This convention allows variables to indicate which other variables 
-   contains area or volume information about a gridcell.
-   These measures variables are pointed to by the cell_measures
-   attribute. Unless the default behavior is overridden, NCO attaches
-   all measures variables to the extraction list along with the
-   primary variable.
-   http://nco.sf.net/nco.html#cll_msr
+   This option is similar to the ncdump -t option.
+   Does this work how you'd like? Let us know.
+   http://nco.sf.net/nco.html#cal
 
 BUG FIXES:
 
-A. Fix bug introduced in 4.6.3 where hyperslabs involving UDUnits
-   dates could fail, depending on exactly how NCO was compiled.
-   Failures most likely on MacOS because clang, unlike gcc, does not
-   initialize pointers to NULL by default. Solution is to upgrade.
-
-A. Fix bug introduced in ~4.4.6 where some hyperslabs of non-unity 
-   stride in netCDF4 files could return incorrect values.
-   If you use the hyperslab stride argument on netCDF4 files, we
-   suggest you upgrade immediately. The workaround is to convert
-   to netCDF3 before using a strided hyperslab. 
-   Thanks to Martin Dix for reporting this bug.
+A. ncks now prints the braces required to disambiguate compound
+   record dimensions in CDL mode. Such braces have been required by 
+   ncgen-like parsers since ~2013 in order to unambiguously determine
+   the record dimension sizes in variables with multiple record
+   dimensions. This fix only affects CDL printing of netCDF4 files
+   that contain compound record variables. 
 
 KNOWN PROBLEMS DUE TO NCO:
 
    This section of ANNOUNCE reports and reminds users of the
    existence and severity of known, not yet fixed, problems. 
-   These problems occur with NCO 4.6.5 built/tested under
-   MacOS 10.12.1 with netCDF 4.4.1 on HDF5 1.8.16 and with
+   These problems occur with NCO 4.6.6 built/tested under
+   MacOS 10.12.3 with netCDF 4.4.1 on HDF5 1.8.16 and with
    Linux with netCDF 4.4.2-development (20161116) on HDF5 1.8.16.
 
 A. NOT YET FIXED (NCO problem)
@@ -144,11 +129,23 @@ B. NOT YET FIXED (netCDF4 library bug)
    20160212: Verified problem still exists in netCDF library
    20160512: Ditto
    20161028: Verified problem still exists with netCDF 4.4.1
+   20170323: Verified problem still exists with netCDF 4.4.2-development
 
    Bug tracking: https://www.unidata.ucar.edu/jira/browse/fxm
    More details: http://nco.sf.net/nco.html#ncrename_crd
 
-C. FIXED in netCDF Development branch as of 20161116 and in maintenance release 4.4.1.1
+C. NOT YET FIXED (netCDF4 library bug)
+   Renaming a non-coordinate variable to a coordinate variable fails in netCDF4
+
+   Demonstration:
+   ncrename -O -v non_coord,coord ~/nco/data/in_grp.nc ~/foo.nc # Fails (HDF error)
+
+   20170323: Confirmed problem reported by Paolo Oliveri, reported to Unidata
+
+   Bug tracking: https://www.unidata.ucar.edu/jira/browse/fxm
+   More details: http://nco.sf.net/nco.html#ncrename_crd
+
+D. FIXED in netCDF Development branch as of 20161116 and in maintenance release 4.4.1.1
    nc-config/nf-config produce erroneous switches that cause NCO builds to fail
    This problem affects netCDF 4.4.1 on all operating systems.
    Some pre-compiled netCDF packages may have patched the problem.
@@ -167,7 +164,7 @@ C. FIXED in netCDF Development branch as of 20161116 and in maintenance release 
    20161116: Unidata patch is in tree for netCDF 4.4.2 release
    20161123: Fixed in maintenance release netCDF 4.4.1.1
 
-D. NOT YET FIXED (would require DAP protocol change?)
+E. NOT YET FIXED (would require DAP protocol change?)
    Unable to retrieve contents of variables including period '.' in name
    Periods are legal characters in netCDF variable names.
    Metadata are returned successfully, data are not.
@@ -182,7 +179,7 @@ D. NOT YET FIXED (would require DAP protocol change?)
 
    Bug tracking: https://www.unidata.ucar.edu/jira/browse/NCF-47
 
-E. NOT YET FIXED (would require DAP protocol change)
+F. NOT YET FIXED (would require DAP protocol change)
    Correctly read scalar characters over DAP.
    DAP non-transparency: Works locally, fails through DAP server.
    Problem, IMHO, is with DAP definition/protocol

@@ -2,17 +2,17 @@
 # http://cvs.fedoraproject.org/viewvc/devel/nco/nco.spec?view=co
 
 Name:           nco
-Version:        4.6.5
+Version:        4.6.6
 Release:        1%{?dist}
 Summary:        Programs that manipulate netCDF files
 Group:          Applications/Engineering
 License:        GPL3
 URL:            http://nco.sf.net/
 
-# Obtain NCO version 4.6.5-1 tar.gz from Sourceforge using CVS:
+# Obtain NCO version 4.6.6-1 tar.gz from Sourceforge using CVS:
 # cvs -d:pserver:anonymous@nco.cvs.sf.net:/cvsroot/nco login
-# cvs -z3 -d:pserver:anonymous@nco.cvs.sf.net:/cvsroot/nco co -r nco-4.6.5-1 -d nco-%{version} nco
-# tar czf nco-%{version}.tar.gz --exclude='nco-4.6.5/debian*' --exclude='.cvsignore' --exclude=ncap_lex.c --exclude='ncap_yacc.[ch]' ./nco-%{version}
+# cvs -z3 -d:pserver:anonymous@nco.cvs.sf.net:/cvsroot/nco co -r nco-4.6.6-1 -d nco-%{version} nco
+# tar czf nco-%{version}.tar.gz --exclude='nco-4.6.6/debian*' --exclude='.cvsignore' --exclude=ncap_lex.c --exclude='ncap_yacc.[ch]' ./nco-%{version}
 Source0:        nco-%{version}.tar.gz
 #Patch0:		nco_install_C_headers.patch
 #Patch1:         nco_find_udunits-dat.patch
@@ -108,7 +108,10 @@ fi
 # %{_libdir}/libnco++.so
 
 %changelog
-* Tue Mar 07 2017 Charlie Zender <zender@uci.edu> - 4.6.5-1
+* Wed Apr 15 2017 Charlie Zender <zender@uci.edu> - 4.6.6-1
+- new upstream 4.6.6
+
+* Wed Mar 15 2017 Charlie Zender <zender@uci.edu> - 4.6.5-1
 - new upstream 4.6.5
 
 * Tue Feb 07 2017 Charlie Zender <zender@uci.edu> - 4.6.4-1

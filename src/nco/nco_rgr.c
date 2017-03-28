@@ -218,10 +218,7 @@ nco_rgr_ini /* [fnc] Initialize regridding structure */
     if(sng_fnl) sng_fnl=(char *)nco_free(sng_fnl);
 
     /* Count number of keys */
-    for(rgr_var_idx=0;(rgr_lst+rgr_var_idx)->key;rgr_var_idx++){
-      rgr_var_nbr=rgr_var_idx;
-    } /* !rgr_var_idx */
-    rgr_var_nbr++;
+    for(rgr_var_idx=0;(rgr_lst+rgr_var_idx)->key;rgr_var_idx++,rgr_var_nbr++);/* !rgr_var_idx */
   } /* !rgr_arg_nbr */
 
   /* NULL-initialize key-value properties required for string variables */
@@ -1715,19 +1712,20 @@ nco_rgr_map /* [fnc] Regrid with external weights */
     else if((rcd=nco_inq_dimid_flg(in_id,"lat",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("lat");
     else if((rcd=nco_inq_dimid_flg(in_id,"Latitude",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("Latitude");
     else if((rcd=nco_inq_dimid_flg(in_id,"Lat",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("Lat");
-    else if((rcd=nco_inq_dimid_flg(in_id,"south_north",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("south_north");
+    else if((rcd=nco_inq_dimid_flg(in_id,"south_north",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("south_north"); /* WRF */
     else if((rcd=nco_inq_dimid_flg(in_id,"south_north_stag",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("south_north_stag");
-    else if((rcd=nco_inq_dimid_flg(in_id,"YDim:location",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("YDim:location");
-    else if((rcd=nco_inq_dimid_flg(in_id,"YDim:MOD_Grid_monthly_CMG_VI",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("YDim:MOD_Grid_monthly_CMG_VI");
-    else if((rcd=nco_inq_dimid_flg(in_id,"natrack",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("natrack");
-    else if((rcd=nco_inq_dimid_flg(in_id,"nj",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("nj");
-    else if((rcd=nco_inq_dimid_flg(in_id,"nlat",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("nlat");
-    else if((rcd=nco_inq_dimid_flg(in_id,"nscan",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("nscan");
-    else if((rcd=nco_inq_dimid_flg(in_id,"nTimes",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("nTimes");
-    else if((rcd=nco_inq_dimid_flg(in_id,"GeoTrack",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("GeoTrack");
-    else if((rcd=nco_inq_dimid_flg(in_id,"GeoTrack:L2_Standard_atmospheric&surface_product",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("GeoTrack:L2_Standard_atmospheric&surface_product");
-    else if((rcd=nco_inq_dimid_flg(in_id,"Cell_Along_Swath:mod04",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("Cell_Along_Swath:mod04");
+    else if((rcd=nco_inq_dimid_flg(in_id,"YDim:location",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("YDim:location"); /* AIRS L3 */
+    else if((rcd=nco_inq_dimid_flg(in_id,"YDim:MOD_Grid_monthly_CMG_VI",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("YDim:MOD_Grid_monthly_CMG_VI"); /* MODIS MOD13C2 */
+    else if((rcd=nco_inq_dimid_flg(in_id,"natrack",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("natrack"); /* MODIS DeepBlue SeaWiFS L2 */
+    else if((rcd=nco_inq_dimid_flg(in_id,"nj",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("nj"); /* CICE RTM */
+    else if((rcd=nco_inq_dimid_flg(in_id,"nlat",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("nlat"); /* POP */
+    else if((rcd=nco_inq_dimid_flg(in_id,"nscan",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("nscan"); /* AMSR, TRMM */
+    else if((rcd=nco_inq_dimid_flg(in_id,"nTimes",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("nTimes"); /* OMI L2 */
+    else if((rcd=nco_inq_dimid_flg(in_id,"GeoTrack",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("GeoTrack"); /* AIRS L2 DAP NC */
+    else if((rcd=nco_inq_dimid_flg(in_id,"GeoTrack:L2_Standard_atmospheric&surface_product",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("GeoTrack:L2_Standard_atmospheric&surface_product"); /* AIRS L2 HDF */
+    else if((rcd=nco_inq_dimid_flg(in_id,"Cell_Along_Swath:mod04",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("Cell_Along_Swath:mod04"); /* MODIS MOD04 L2 */
     else if((rcd=nco_inq_dimid_flg(in_id,"CO_Latitude",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("CO_Latitude");
+    else if((rcd=nco_inq_dimid_flg(in_id,"x",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("x"); /* NSIDC polar stereographic */
     else{
       (void)fprintf(stdout,"%s: ERROR %s reports unable to find latitude dimension in input file. Tried the usual suspects. HINT: Inform regridder of latitude dimension name with --rgr lat_nm=name\n",nco_prg_nm_get(),fnc_nm);
       nco_exit(EXIT_FAILURE);
@@ -1743,19 +1741,20 @@ nco_rgr_map /* [fnc] Regrid with external weights */
     else if((rcd=nco_inq_dimid_flg(in_id,"lon",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("lon");
     else if((rcd=nco_inq_dimid_flg(in_id,"Longitude",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("Longitude");
     else if((rcd=nco_inq_dimid_flg(in_id,"Lon",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("Lon");
-    else if((rcd=nco_inq_dimid_flg(in_id,"west_east",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("west_east");
+    else if((rcd=nco_inq_dimid_flg(in_id,"west_east",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("west_east"); /* WRF */
     else if((rcd=nco_inq_dimid_flg(in_id,"west_east_stag",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("west_east_stag");
-    else if((rcd=nco_inq_dimid_flg(in_id,"XDim:location",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("XDim:location");
-    else if((rcd=nco_inq_dimid_flg(in_id,"XDim:MOD_Grid_monthly_CMG_VI",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("XDim:MOD_Grid_monthly_CMG_VI");
-    else if((rcd=nco_inq_dimid_flg(in_id,"ni",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("ni");
-    else if((rcd=nco_inq_dimid_flg(in_id,"nlon",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("nlon");
-    else if((rcd=nco_inq_dimid_flg(in_id,"npix",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("npix");
-    else if((rcd=nco_inq_dimid_flg(in_id,"npixel",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("npixel");
-    else if((rcd=nco_inq_dimid_flg(in_id,"nxtrack",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("nxtrack");
-    else if((rcd=nco_inq_dimid_flg(in_id,"nXtrack",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("nXtrack");
-    else if((rcd=nco_inq_dimid_flg(in_id,"GeoXTrack",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("GeoXTrack");
-    else if((rcd=nco_inq_dimid_flg(in_id,"GeoXTrack:L2_Standard_atmospheric&surface_product",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("GeoXTrack:L2_Standard_atmospheric&surface_product");
-    else if((rcd=nco_inq_dimid_flg(in_id,"Cell_Across_Swath:mod04",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("Cell_Across_Swath:mod04");
+    else if((rcd=nco_inq_dimid_flg(in_id,"XDim:location",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("XDim:location"); /* AIRS L3 */
+    else if((rcd=nco_inq_dimid_flg(in_id,"XDim:MOD_Grid_monthly_CMG_VI",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("XDim:MOD_Grid_monthly_CMG_VI"); /* MODIS MOD13C2 */
+    else if((rcd=nco_inq_dimid_flg(in_id,"ni",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("ni"); /* CICE RTM */
+    else if((rcd=nco_inq_dimid_flg(in_id,"nlon",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("nlon"); /* POP */
+    else if((rcd=nco_inq_dimid_flg(in_id,"npix",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("npix"); /* AMSR */
+    else if((rcd=nco_inq_dimid_flg(in_id,"npixel",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("npixel"); /* TRMM */
+    else if((rcd=nco_inq_dimid_flg(in_id,"nxtrack",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("nxtrack"); /* MODIS DeepBlue SeaWiFS L2 */
+    else if((rcd=nco_inq_dimid_flg(in_id,"nXtrack",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("nXtrack"); /* OMI L2 */
+    else if((rcd=nco_inq_dimid_flg(in_id,"GeoXTrack",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("GeoXTrack"); /* AIRS L2 DAP NC */
+    else if((rcd=nco_inq_dimid_flg(in_id,"GeoXTrack:L2_Standard_atmospheric&surface_product",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("GeoXTrack:L2_Standard_atmospheric&surface_product"); /* AIRS L2 HDF */
+    else if((rcd=nco_inq_dimid_flg(in_id,"Cell_Across_Swath:mod04",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("Cell_Across_Swath:mod04"); /* MODIS MOD04 L2 */
+    else if((rcd=nco_inq_dimid_flg(in_id,"y",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("y"); /* NSIDC polar stereographic */
     else{
       (void)fprintf(stdout,"%s: ERROR %s reports unable to find longitude dimension in input file. Tried the usual suspects. HINT: Inform regridder of longitude dimension name with --rgr lon_nm=name\n",nco_prg_nm_get(),fnc_nm);
       nco_exit(EXIT_FAILURE);
@@ -2180,9 +2179,7 @@ nco_rgr_map /* [fnc] Regrid with external weights */
 	  dmn_in_fst=0;
 	  rcd=nco_inq_var_packing(in_id,var_id_in,&flg_pck);
 	  if(flg_pck) (void)fprintf(stdout,"%s: WARNING %s reports variable \"%s\" is packed so results unpredictable. HINT: If regridded values seems weird, retry after unpacking input file with, e.g., \"ncpdq -U in.nc out.nc\"\n",nco_prg_nm_get(),fnc_nm,var_nm);
-	  has_mss_val=nco_mss_val_get_dbl(in_id,var_id_in,&mss_val_dbl);
-	  if(has_mss_val && !isfinite(mss_val_dbl)) (void)fprintf(stdout,"%s: WARNING %s reports variable \"%s\" has %s attribute that fails isfinite() (value is %s) so results are unpredictable. HINT: If regridding fails or values seem weird, retry after converting %s to normal number with, e.g., \"ncatted -a %s,%s,m,f,1.0e36 in.nc out.nc\"\n",nco_prg_nm_get(),fnc_nm,var_nm,nco_mss_val_sng_get(),(isnan(mss_val_dbl)) ? "NaN" : ((isinf(mss_val_dbl)) ? "Infinity" : ""),nco_mss_val_sng_get(),nco_mss_val_sng_get(),var_rgr_nbr == 1 ? var_nm : "");
-	  if(flg_pck) (void)fprintf(stdout,"%s: WARNING %s reports variable \"%s\" is packed so results unpredictable. HINT: If regridded values seem weird, retry after unpacking input file with, e.g., \"ncpdq -U in.nc out.nc\"\n",nco_prg_nm_get(),fnc_nm,var_nm);
+	  has_mss_val=nco_mss_val_get_dbl(in_id,var_id_in,(double *)NULL);
 	  for(dmn_idx=0;dmn_idx<dmn_nbr_in;dmn_idx++){
 	    rcd=nco_inq_dimname(in_id,dmn_id_in[dmn_idx],dmn_nm);
 	    //dmn_idx_in_out_pre_rgr[dmn_idx]=dmn_idx;
@@ -3736,10 +3733,10 @@ nco_sph_plg_area /* [fnc] Compute area of spherical polygon */
     } /* !tri_idx */
     if(flg_ltr_cll){
       /* Current gridcell contained at least one latitude-triangle */
-      (void)fprintf(stdout,"%s: INFO %s col_idx = %u spherical area, latitude-gridcell area, %% difference: %g, %g, %g\n",nco_prg_nm_get(),fnc_nm,col_idx,area[col_idx],area_ltr,100.0*(area_ltr-area[col_idx])/area[col_idx]);
+      if(nco_dbg_lvl_get() >= nco_dbg_scl) (void)fprintf(stdout,"%s: INFO %s col_idx = %u spherical area, latitude-gridcell area, %% difference: %g, %g, %g\n",nco_prg_nm_get(),fnc_nm,col_idx,area[col_idx],area_ltr,100.0*(area_ltr-area[col_idx])/area[col_idx]);
     } /* !flg_ltr_cll */    
   } /* !col_idx */
-  (void)fprintf(stdout,"%s: INFO %s total spherical area, latitude-gridcell area, %% difference, crc_ttl, crc_abs_ttl: %g, %g, %g, %g, %g\n",nco_prg_nm_get(),fnc_nm,area_ttl,area_ltr_ttl,100.0*(area_ltr_ttl-area_ttl)/area_ttl,area_crc_ttl,area_crc_abs_ttl);
+  if(nco_dbg_lvl_get() >= nco_dbg_scl) (void)fprintf(stdout,"%s: INFO %s total spherical area, latitude-gridcell area, %% difference, crc_ttl, crc_abs_ttl: %g, %g, %g, %g, %g\n",nco_prg_nm_get(),fnc_nm,area_ttl,area_ltr_ttl,100.0*(area_ltr_ttl-area_ttl)/area_ttl,area_crc_ttl,area_crc_abs_ttl);
   if(lat_bnd_rdn) lat_bnd_rdn=(double *)nco_free(lat_bnd_rdn);
   if(lon_bnd_rdn) lon_bnd_rdn=(double *)nco_free(lon_bnd_rdn);
   if(lat_bnd_cos) lat_bnd_cos=(double *)nco_free(lat_bnd_cos);
@@ -3813,7 +3810,7 @@ nco_grd_2D_sng /* [fnc] Convert two-dimensional grid-type enum to string */
   switch(nco_grd_2D_typ){
   case nco_grd_2D_unk: return "Unknown, unclassified, or unrepresentable 2D grid type (e.g., unstructured, curvilinear, POP displaced-pole)";
   case nco_grd_2D_gss: return "Gaussian latitude grid. Used by spectral transform models, e.g., CCM 1-3, CAM 1-3, LSM, MATCH, UCICTM.";
-  case nco_grd_2D_fv: return "Cap grid. Uniform/Equi-angle (except at poles) latitude grid with poles are considered at (and labeled as) centers of first and last gridcells (i.e., lat_ctr[0]=-90), and those polar gridcells span half the equi-angular latitude increment. AKA FV-scalar grid (in Lin-Rood representation). Used by CAM FV, GEOS-CHEM, UCICTM, UKMO.";
+  case nco_grd_2D_fv: return "Cap grid. Uniform/Equi-angle (except at poles) latitude grid. Poles are considered at (and labeled as) centers of first and last gridcells (i.e., lat_ctr[0]=-90). Polar gridcells span half the equi-angular latitude increment. AKA FV-scalar grid (in Lin-Rood representation). Used by CAM FV, GEOS-CHEM, UCICTM, UKMO.";
   case nco_grd_2D_eqa: return "Uniform/Equi-Angular latitude grid. Uniform/Equi-angle (everywhere) latitude grid. When global (not regional) in extent, poles are at edges of first and last gridcells (i.e., lat_ctr[0]=-89.xxx). When global forms valid FV-staggered AKA FV velocity grid (for Lin-Rood representation). Used by CIESIN/SEDAC, IGBP-DIS, TOMS AAI.";
   default: nco_dfl_case_generic_err(); break;
   } /* end switch */
@@ -3830,7 +3827,7 @@ nco_grd_lat_sng /* [fnc] Convert latitude grid-type enum to string */
   switch(nco_grd_lat_typ){
   case nco_grd_lat_unk: return "Unknown, unclassified, or unrepresentable latitude grid type (e.g., unstructured, curvilinear, POP3)";
   case nco_grd_lat_gss: return "Gaussian latitude grid used by global spectral models: CCM 1-3, CAM 1-3, LSM, MATCH, UCICTM";
-  case nco_grd_lat_fv: return "Cap-latitude grid. Uniform/Equi-angle (except at poles) latitude grid with poles are considered at (and labeled as) centers of first and last gridcells (i.e., lat_ctr[0]=-90), and those polar gridcells span half the equi-angular latitude increment. AKA FV-scalar grid (in Lin-Rood representation). Used by: CAM FV, GEOS-CHEM, UCICTM, UKMO";
+  case nco_grd_lat_fv: return "Cap-latitude grid. Uniform/Equi-angle (except at poles) latitude grid. Poles are considered at (and labeled as) centers of first and last gridcells (i.e., lat_ctr[0]=-90). Polar gridcells span half the equi-angular latitude increment. AKA FV-scalar grid (in Lin-Rood representation). Used by: CAM FV, GEOS-CHEM, UCICTM, UKMO";
   case nco_grd_lat_eqa: return "Uniform/Equi-Angular latitude grid. Uniform/Equi-angle (everywhere) latitude grid. When global (not regional) in extent, poles are at edges of first and last gridcells (e.g., lat_ctr[0]=-89.xxx). When global can be latitude-component of a valid FV-staggered grid AKA FV velocity grid (for Lin-Rood representation). Used by: CIESIN/SEDAC, IGBP-DIS, TOMS AAI";
   default: nco_dfl_case_generic_err(); break;
   } /* end switch */
@@ -5257,14 +5254,6 @@ nco_grd_nfr /* [fnc] Infer SCRIP-format grid file from input data file */
   int dmn_id_lat=NC_MIN_INT; /* [id] Dimension ID */
   int dmn_id_lon=NC_MIN_INT; /* [id] Dimension ID */
 
-  /* Locate dimensions that must be present in unstructured files */
-  if((rcd=nco_inq_dimid_flg(in_id,"ncol",&dmn_id_col)) == NC_NOERR) col_dmn_nm=strdup("ncol"); /* CAM */
-  else if((rcd=nco_inq_dimid_flg(in_id,"lndgrid",&dmn_id_col)) == NC_NOERR) col_dmn_nm=strdup("lndgrid"); /* CLM */
-  else if((rcd=nco_inq_dimid_flg(in_id,"nCells",&dmn_id_col)) == NC_NOERR) col_dmn_nm=strdup("nCells"); /* MPAS-O/I */
-  else if((rcd=nco_inq_dimid_flg(in_id,"nEdges",&dmn_id_col)) == NC_NOERR) col_dmn_nm=strdup("nEdges"); /* MPAS-O/I */
-  else if((rcd=nco_inq_dimid_flg(in_id,"sounding_id",&dmn_id_col)) == NC_NOERR) col_dmn_nm=strdup("sounding_id"); /* OCO2 */
-  if(col_dmn_nm) flg_grd_1D=True;
-
   /* Begin CF-coordinates block */
   cf_crd_sct *cf=NULL;
   char *rgr_var; /* [sng] Variable for special regridding treatment */
@@ -5369,12 +5358,12 @@ nco_grd_nfr /* [fnc] Infer SCRIP-format grid file from input data file */
     nco_bool crd1_is_lat=False; /* [flg] Second coordinate is latitude */
     nco_bool crd1_is_lon=False; /* [flg] Second coordinate is longitude */
     if(cf->unt_sng[0]){
-      if(!strcasecmp(cf->unt_sng[0],"degrees_north")) crd0_is_lat=True;
-      if(!strcasecmp(cf->unt_sng[0],"degrees_east")) crd0_is_lon=True;
+      if(!strcasecmp(cf->unt_sng[0],"degrees_north") || !strcasecmp(cf->unt_sng[0],"degree_north") || !strcasecmp(cf->unt_sng[0],"degree_N") || !strcasecmp(cf->unt_sng[0],"degrees_N") || !strcasecmp(cf->unt_sng[0],"degreeN") || !strcasecmp(cf->unt_sng[0],"degreesN")) crd0_is_lat=True;
+      if(!strcasecmp(cf->unt_sng[0],"degrees_east") || !strcasecmp(cf->unt_sng[0],"degree_east") || !strcasecmp(cf->unt_sng[0],"degree_E") || !strcasecmp(cf->unt_sng[0],"degrees_E") || !strcasecmp(cf->unt_sng[0],"degreeE") || !strcasecmp(cf->unt_sng[0],"degreesE")) crd0_is_lon=True;
     } /* endif */      
     if(cf->unt_sng[1]){
-      if(!strcasecmp(cf->unt_sng[1],"degrees_north")) crd1_is_lat=True;
-      if(!strcasecmp(cf->unt_sng[1],"degrees_east")) crd1_is_lon=True;
+      if(!strcasecmp(cf->unt_sng[1],"degrees_north") || !strcasecmp(cf->unt_sng[1],"degree_north") || !strcasecmp(cf->unt_sng[1],"degree_N") || !strcasecmp(cf->unt_sng[1],"degrees_N") || !strcasecmp(cf->unt_sng[1],"degreeN") || !strcasecmp(cf->unt_sng[1],"degreesN")) crd1_is_lat=True;
+      if(!strcasecmp(cf->unt_sng[1],"degrees_east") || !strcasecmp(cf->unt_sng[1],"degree_east") || !strcasecmp(cf->unt_sng[1],"degree_E") || !strcasecmp(cf->unt_sng[1],"degrees_E") || !strcasecmp(cf->unt_sng[1],"degreeE") || !strcasecmp(cf->unt_sng[1],"degreesE")) crd1_is_lon=True;
     } /* endif */      
     assert((crd0_is_lat && crd1_is_lon) || (crd0_is_lon && crd1_is_lat));
     int idx_lat;
@@ -5426,75 +5415,6 @@ nco_grd_nfr /* [fnc] Infer SCRIP-format grid file from input data file */
   rcd=NC_NOERR;
   /* End CF-coordinates block */
   
-  /* Locate dimensions that must be present in rectangular files */
-  if(dmn_id_lat == NC_MIN_INT){
-    if(lat_dmn_nm && (rcd=nco_inq_dimid_flg(in_id,rgr->lat_dmn_nm,&dmn_id_lat)) == NC_NOERR) lat_dmn_nm=strdup(rgr->lat_dmn_nm);
-    else if((rcd=nco_inq_dimid_flg(in_id,"latitude",&dmn_id_lat)) == NC_NOERR) lat_dmn_nm=strdup("latitude");
-    else if((rcd=nco_inq_dimid_flg(in_id,"lat",&dmn_id_lat)) == NC_NOERR) lat_dmn_nm=strdup("lat");
-    else if((rcd=nco_inq_dimid_flg(in_id,"Latitude",&dmn_id_lat)) == NC_NOERR) lat_dmn_nm=strdup("Latitude"); /* HIRDLS */
-    else if((rcd=nco_inq_dimid_flg(in_id,"Lat",&dmn_id_lat)) == NC_NOERR) lat_dmn_nm=strdup("Lat");
-    else if((rcd=nco_inq_dimid_flg(in_id,"CO_Latitude",&dmn_id_lat)) == NC_NOERR) lat_dmn_nm=strdup("CO_Latitude"); /* MLS */
-  } /* !dmn_id_lat */
-  
-  if(dmn_id_lon == NC_MIN_INT){
-    if(lon_dmn_nm && (rcd=nco_inq_dimid_flg(in_id,rgr->lon_dmn_nm,&dmn_id_lon)) == NC_NOERR) lon_dmn_nm=strdup(rgr->lon_dmn_nm);
-    else if((rcd=nco_inq_dimid_flg(in_id,"longitude",&dmn_id_lon)) == NC_NOERR) lon_dmn_nm=strdup("longitude");
-    else if((rcd=nco_inq_dimid_flg(in_id,"lon",&dmn_id_lon)) == NC_NOERR) lon_dmn_nm=strdup("lon");
-    else if((rcd=nco_inq_dimid_flg(in_id,"Longitude",&dmn_id_lon)) == NC_NOERR) lon_dmn_nm=strdup("Longitude");
-    else if((rcd=nco_inq_dimid_flg(in_id,"Lon",&dmn_id_lon)) == NC_NOERR) lon_dmn_nm=strdup("Lon");
-  } /* !dmn_id_lon */
-  
-  /* Try known curvilinear dimension names for latitude and longitude */
-  if(!lat_dmn_nm || !lon_dmn_nm){
-    if(!lat_dmn_nm){
-      if((rcd=nco_inq_dimid_flg(in_id,"south_north",&dmn_id_lat)) == NC_NOERR) lat_dmn_nm=strdup("south_north"); /* WRF */
-      else if((rcd=nco_inq_dimid_flg(in_id,"YDim:location",&dmn_id_lat)) == NC_NOERR) lat_dmn_nm=strdup("YDim:location"); /* AIRS L3 */
-      else if((rcd=nco_inq_dimid_flg(in_id,"YDim:MOD_Grid_monthly_CMG_VI",&dmn_id_lat)) == NC_NOERR) lat_dmn_nm=strdup("YDim:MOD_Grid_monthly_CMG_VI"); /* MODIS MOD13C2 */
-      else if((rcd=nco_inq_dimid_flg(in_id,"nTimes",&dmn_id_lat)) == NC_NOERR) lat_dmn_nm=strdup("nTimes"); /* OMI L2 */
-      else if((rcd=nco_inq_dimid_flg(in_id,"GeoTrack",&dmn_id_lat)) == NC_NOERR) lat_dmn_nm=strdup("GeoTrack"); /* AIRS L2 DAP NC */
-      else if((rcd=nco_inq_dimid_flg(in_id,"GeoTrack:L2_Standard_atmospheric&surface_product",&dmn_id_lat)) == NC_NOERR) lat_dmn_nm=strdup("GeoTrack:L2_Standard_atmospheric&surface_product"); /* AIRS L2 HDF */
-      else if((rcd=nco_inq_dimid_flg(in_id,"Cell_Along_Swath:mod04",&dmn_id_lat)) == NC_NOERR) lat_dmn_nm=strdup("Cell_Along_Swath:mod04"); /* MODIS MOD04 L2 */
-      else if((rcd=nco_inq_dimid_flg(in_id,"phony_dim_0",&dmn_id_lat)) == NC_NOERR) lat_dmn_nm=strdup("phony_dim_0"); /* OMI */
-      else if((rcd=nco_inq_dimid_flg(in_id,"y",&dmn_id_lat)) == NC_NOERR) lat_dmn_nm=strdup("phony_dim_0"); /* MAR */
-      else if((rcd=nco_inq_dimid_flg(in_id,"lat2d",&dmn_id_lat)) == NC_NOERR) lat_dmn_nm=strdup("phony_dim_0"); /* RACMO */
-      else if((rcd=nco_inq_dimid_flg(in_id,"natrack",&dmn_id_lat)) == NC_NOERR) lat_dmn_nm=strdup("natrack"); /* MODIS DeepBlue SeaWiFS L2 */
-      else if((rcd=nco_inq_dimid_flg(in_id,"nj",&dmn_id_lat)) == NC_NOERR) lat_dmn_nm=strdup("nj"); /* CICE RTM */
-      else if((rcd=nco_inq_dimid_flg(in_id,"nlat",&dmn_id_lat)) == NC_NOERR) lat_dmn_nm=strdup("nlat"); /* POP */
-      else if((rcd=nco_inq_dimid_flg(in_id,"nscan",&dmn_id_lat)) == NC_NOERR) lat_dmn_nm=strdup("nscan"); /* AMSR, TRMM */
-    } /* !lat_dmn_nm */
-    if(!lon_dmn_nm){
-      if((rcd=nco_inq_dimid_flg(in_id,"west_east",&dmn_id_lon)) == NC_NOERR) lon_dmn_nm=strdup("west_east"); /* WRF */
-      else if((rcd=nco_inq_dimid_flg(in_id,"XDim:location",&dmn_id_lon)) == NC_NOERR) lon_dmn_nm=strdup("XDim:location"); /* AIRS L3 */
-      else if((rcd=nco_inq_dimid_flg(in_id,"XDim:MOD_Grid_monthly_CMG_VI",&dmn_id_lon)) == NC_NOERR) lon_dmn_nm=strdup("XDim:MOD_Grid_monthly_CMG_VI"); /* MODIS MOD13C2 */
-      else if((rcd=nco_inq_dimid_flg(in_id,"nxtrack",&dmn_id_lon)) == NC_NOERR) lon_dmn_nm=strdup("nxtrack"); /* MODIS DeepBlue SeaWiFS L2 */
-      else if((rcd=nco_inq_dimid_flg(in_id,"nXtrack",&dmn_id_lon)) == NC_NOERR) lon_dmn_nm=strdup("nXtrack"); /* OMI L2 */
-      else if((rcd=nco_inq_dimid_flg(in_id,"GeoXTrack",&dmn_id_lon)) == NC_NOERR) lon_dmn_nm=strdup("GeoXTrack"); /* AIRS L2 DAP NC */
-      else if((rcd=nco_inq_dimid_flg(in_id,"GeoXTrack:L2_Standard_atmospheric&surface_product",&dmn_id_lon)) == NC_NOERR) lon_dmn_nm=strdup("GeoXTrack:L2_Standard_atmospheric&surface_product"); /* AIRS L2 HDF */
-      else if((rcd=nco_inq_dimid_flg(in_id,"Cell_Across_Swath:mod04",&dmn_id_lon)) == NC_NOERR) lon_dmn_nm=strdup("Cell_Across_Swath:mod04"); /* MODIS MOD04 L2 */
-      else if((rcd=nco_inq_dimid_flg(in_id,"phony_dim_1",&dmn_id_lon)) == NC_NOERR) lon_dmn_nm=strdup("phony_dim_1"); /* OMI */
-      else if((rcd=nco_inq_dimid_flg(in_id,"x",&dmn_id_lon)) == NC_NOERR) lon_dmn_nm=strdup("phony_dim_1"); /* MAR */
-      else if((rcd=nco_inq_dimid_flg(in_id,"lon2d",&dmn_id_lon)) == NC_NOERR) lon_dmn_nm=strdup("phony_dim_1"); /* RACMO */
-      else if((rcd=nco_inq_dimid_flg(in_id,"ni",&dmn_id_lon)) == NC_NOERR) lon_dmn_nm=strdup("ni"); /* CICE RTM */
-      else if((rcd=nco_inq_dimid_flg(in_id,"nlon",&dmn_id_lon)) == NC_NOERR) lon_dmn_nm=strdup("nlon"); /* POP */
-      else if((rcd=nco_inq_dimid_flg(in_id,"npix",&dmn_id_lon)) == NC_NOERR) lon_dmn_nm=strdup("npix"); /* AMSR */
-      else if((rcd=nco_inq_dimid_flg(in_id,"npixel",&dmn_id_lon)) == NC_NOERR) lon_dmn_nm=strdup("npixel"); /* TRMM */
-    } /* !lon_dmn_nm */
-  } /* !lat_dmn_nm */
-
-  if(!(lat_dmn_nm && lon_dmn_nm) && !col_dmn_nm){
-    (void)fprintf(stdout,"%s: ERROR %s unable to identify latitude and/or longitude dimension and/or column dimension.\n",nco_prg_nm_get(),fnc_nm);
-    nco_exit(EXIT_FAILURE);
-  } /* !col_dmn_nm !lat_dmn_nm !lon_dmn_nm */
-    
-  /* Locate spatial dimensions that may be present
-     NB: bounds dimensions may present a special problem
-     CAM-FV and CAM-SE use nbnd for temporal bounds and have no spatial bounds dimension
-     CAM3 uses tbnd for temporal bounds and has no spatial bounds dimension
-     CICE and POP use d2 for temporal bounds, and CICE uses nvertices for spatial bounds while POP uses nothing
-     Hence search for nvertices before nbnd to ensure spatial bound is found first */
-  if((rcd=nco_inq_dimid_flg(in_id,"nv",&dmn_id_bnd)) == NC_NOERR) bnd_dmn_nm=strdup("nv"); /* fxm */
-  else if((rcd=nco_inq_dimid_flg(in_id,"nvertices",&dmn_id_bnd)) == NC_NOERR) bnd_dmn_nm=strdup("nvertices"); /* CICE */
-  
   /* Locate fields that must be present in input file
      Currently these variables must be in root group
      This fails for, e.g., OMI L2 which has coordinates /GEOLOCATION_DATA/[Latitude,Longitude]
@@ -5539,21 +5459,22 @@ nco_grd_nfr /* [fnc] Infer SCRIP-format grid file from input data file */
     nco_exit(EXIT_FAILURE);
   } /* !lat_nm_in */
     
-  /* Use dimension IDs to get dimension sizes and grid size */
-  if(flg_grd_1D){
-    rcd+=nco_inq_dimlen(in_id,dmn_id_col,&col_nbr);
-    lat_nbr=lon_nbr=col_nbr;
-  }else{
-    rcd+=nco_inq_dimlen(in_id,dmn_id_lat,&lat_nbr);
-    rcd+=nco_inq_dimlen(in_id,dmn_id_lon,&lon_nbr);
-    col_nbr=NC_MIN_INT;
-  } /* !flg_grd_1D */
-  if(dmn_id_bnd != NC_MIN_INT) rcd+=nco_inq_dimlen(in_id,dmn_id_bnd,&grd_crn_nbr);
-  if(dmn_id_bnd != NC_MIN_INT) rcd+=nco_inq_dimlen(in_id,dmn_id_bnd,&bnd_nbr);
-  
   /* Rank of coordinates determines whether grid is curvilinear */
   rcd+=nco_inq_varndims(in_id,lat_ctr_id,&lat_rnk);
   rcd+=nco_inq_varndims(in_id,lon_ctr_id,&lon_rnk);
+  /* If lat_ctr and lon_ctr share same and only dimension then grid is unstructured */
+  if(lat_rnk*lon_rnk == 1){
+    rcd+=nco_inq_vardimid(in_id,lat_ctr_id,&dmn_id_lat);
+    rcd+=nco_inq_vardimid(in_id,lon_ctr_id,&dmn_id_lon);
+    if(dmn_id_lat == dmn_id_lon){
+      dmn_id_col=dmn_id_lat;
+      dmn_id_lat=NC_MIN_INT;
+      dmn_id_lon=NC_MIN_INT;
+      rcd+=nco_inq_dimname(in_id,dmn_id_col,dmn_nm);
+      col_dmn_nm=(char *)strdup(dmn_nm);
+      flg_grd_1D=True;
+    } /* !unstructured */
+  } /* lat_rnk == lon_rnk == 1 */
   if(lat_rnk*lon_rnk == 1 && dmn_id_lat != NC_MIN_INT && dmn_id_lon != NC_MIN_INT){
     flg_grd_crv=False;
     flg_grd_2D=True;
@@ -5567,6 +5488,51 @@ nco_grd_nfr /* [fnc] Infer SCRIP-format grid file from input data file */
     nco_exit(EXIT_FAILURE);
   } /* !3D */
   if(lat_rnk*lon_rnk != 1 && lat_rnk*lon_rnk != 4) assert(False);
+
+  /* Scrutinize coordinates for their dimensions
+     NB: Unstructure already known */
+  if(flg_grd_2D){
+    rcd+=nco_inq_dimname(in_id,dmn_id_lat,dmn_nm);
+    lat_dmn_nm=(char *)strdup(dmn_nm);
+    rcd+=nco_inq_dimname(in_id,dmn_id_lon,dmn_nm);
+    lon_dmn_nm=(char *)strdup(dmn_nm);
+  } /* !flg_grd_2D */
+  if(flg_grd_crv){
+    rcd+=nco_inq_vardimid(in_id,lat_ctr_id,dmn_ids);
+    /* fxm: use cf struct and match with units name, if any? normally curvilinear grid dimensions are just pixel dimensions that are not aligned north-south or east-west */
+    dmn_id_lat=dmn_ids[0];
+    dmn_id_lon=dmn_ids[1];
+    rcd+=nco_inq_dimname(in_id,dmn_id_lat,dmn_nm);
+    lat_dmn_nm=(char *)strdup(dmn_nm);
+    rcd+=nco_inq_dimname(in_id,dmn_id_lon,dmn_nm);
+    lon_dmn_nm=(char *)strdup(dmn_nm);
+  } /* !flg_grd_crv */
+  
+  if(!(lat_dmn_nm && lon_dmn_nm) && !col_dmn_nm){
+    (void)fprintf(stdout,"%s: ERROR %s unable to identify latitude and/or longitude dimension and/or column dimension.\n",nco_prg_nm_get(),fnc_nm);
+    nco_exit(EXIT_FAILURE);
+  } /* !col_dmn_nm !lat_dmn_nm !lon_dmn_nm */
+    
+  /* Locate spatial dimensions that may be present
+     NB: bounds dimensions may present a special problem
+     CAM-FV and CAM-SE use nbnd for temporal bounds and have no spatial bounds dimension
+     CAM3 uses tbnd for temporal bounds and has no spatial bounds dimension
+     CICE and POP use d2 for temporal bounds, and CICE uses nvertices for spatial bounds while POP uses nothing
+     Hence search for nvertices before nbnd to ensure spatial bound is found first */
+  if((rcd=nco_inq_dimid_flg(in_id,"nv",&dmn_id_bnd)) == NC_NOERR) bnd_dmn_nm=strdup("nv"); /* fxm */
+  else if((rcd=nco_inq_dimid_flg(in_id,"nvertices",&dmn_id_bnd)) == NC_NOERR) bnd_dmn_nm=strdup("nvertices"); /* CICE */
+  
+  /* Use dimension IDs to get dimension sizes and grid size */
+  if(flg_grd_1D){
+    rcd+=nco_inq_dimlen(in_id,dmn_id_col,&col_nbr);
+    lat_nbr=lon_nbr=col_nbr;
+  }else{
+    rcd+=nco_inq_dimlen(in_id,dmn_id_lat,&lat_nbr);
+    rcd+=nco_inq_dimlen(in_id,dmn_id_lon,&lon_nbr);
+    col_nbr=NC_MIN_INT;
+  } /* !flg_grd_1D */
+  if(dmn_id_bnd != NC_MIN_INT) rcd+=nco_inq_dimlen(in_id,dmn_id_bnd,&grd_crn_nbr);
+  if(dmn_id_bnd != NC_MIN_INT) rcd+=nco_inq_dimlen(in_id,dmn_id_bnd,&bnd_nbr);
   
   if(flg_grd_1D){
     /* Unstructured grid (e.g., CAM-SE) */

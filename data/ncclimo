@@ -207,6 +207,8 @@ esac # !HOSTNAME
 # ncclimo --dbg=1 -s 1979 -e 1979 --var=FSNT,AODVIS,T --map=${DATA}/maps/map_ne30np4_to_fv129x256_aave.20150901.nc --drc_out=${DATA}/ne30/clm ${DATA}/ne30/raw/famipc5_ne30_v0.3_00003.cam.h0.1979-??.nc
 # Split directory:
 # ncclimo --dbg=1 --ypf=50 -s 1979 -e 1983 --var=FSNT,AODVIS --map=${DATA}/maps/map_ne30np4_to_fv129x256_aave.20150901.nc --drc_in=${DATA}/ne30/raw --drc_out=${DATA}/ne30/clm
+# Split all
+# cd ${DATA}/ne30/raw;ls *1979-??*.nc *198[01]-??*.nc | ncclimo --dbg=1 -s 1979 -e 1981 --map=${DATA}/maps/map_ne30np4_to_fv129x256_aave.20150901.nc --drc_out=${DATA}/ne30/clm
 # Split production:
 # cd /scratch2/scratchdirs/golaz/ACME_simulations/20161117.beta0.A_WCYCL1850S.ne30_oEC_ICG.edison/run;ls *cam.h0.000[1-9]* | ncclimo --dbg=1 --yr_srt=1 --yr_end=9 --var=FSNT,AODVIS,T --map=${DATA}/maps/map_ne30np4_to_fv129x256_aave.20150901.nc --drc_out=${DATA}/ne30/clm > ~/ncclimo.out 2>&1 &
 # cd /scratch2/scratchdirs/golaz/ACME_simulations/20161117.beta0.A_WCYCL1850S.ne30_oEC_ICG.edison/run;ls *cam.h0.0[012]??* | ncclimo --dbg=1 --yr_srt=1 --yr_end=250 --var=FSNT,AODVIS,T --map=${DATA}/maps/map_ne30np4_to_fv129x256_aave.20150901.nc --drc_out=${DATA}/ne30/clm > ~/ncclimo.out 2>&1 &
@@ -337,7 +339,8 @@ while [ -h "${nco_exe}" ]; do
   [[ ${nco_exe} != /* ]] && nco_exe="${drc_nco}/${nco_exe}"
 done
 drc_nco="$( cd -P "$( dirname "${nco_exe}" )" && pwd )"
-nco_vrs=$(ncks --version 2>&1 >/dev/null | grep NCO | awk '{print $5}')
+nco_vrs=$(ncks --version 2>&1 > /dev/null | grep NCO | awk '{print $5}')
+lbr_vrs=$(ncks --library 2>&1 > /dev/null | awk '{print $6}')
 
 # When running in a terminal window (not in an non-interactive batch queue)...
 if [ -n "${TERM}" ]; then
@@ -408,6 +411,7 @@ thr_nbr=2 # [nbr] Thread number for regridder
 tpd_out=1 # [nbr] Timesteps-per-day in ouput
 #var_lst='FSNT,AODVIS' # [sng] Variables to process (empty means all)
 var_lst='' # [sng] Variables to process (empty means all)
+vrs_prn='No' # [sng] Print version information
 xtn_flg='No' # [sng] Produce extended climatology
 ypf_max=50 # [yr] Years-per-output-file
 yr_end='1983' # [yr] End year
@@ -435,25 +439,27 @@ function fnc_usg_prn { # NB: dash supports fnc_nm (){} syntax, not function fnc_
     echo "${fnt_rvr}-O${fnt_nrm} ${fnt_bld}drc_rgr${fnt_nrm}  Regridded directory (default ${fnt_bld}${drc_rgr}${fnt_nrm}) [${fnt_tlc}drc_rgr, rgr_drc, dir_regrid, regrid${fnt_nrm}]"
     echo "${fnt_rvr}-o${fnt_nrm} ${fnt_bld}drc_out${fnt_nrm}  Output directory (default ${fnt_bld}${drc_out}${fnt_nrm}) [${fnt_tlc}drc_out, out_drc, dir_out, out_dir, output${fnt_nrm}]"
     echo "${fnt_rvr}-p${fnt_nrm} ${fnt_bld}par_typ${fnt_nrm}  Parallelism type (default ${fnt_bld}${par_typ}${fnt_nrm}) [${fnt_tlc}par_typ, par_md, parallel_type, parallel_mode, parallel${fnt_nrm}]"
-    echo "${fnt_rvr}-r${fnt_nrm} ${fnt_bld}rgr_map${fnt_nrm}  Regrid map (empty means none) (default ${fnt_bld}${rgr_map}${fnt_nrm}) [${fnt_tlc}rgr_map, regrid_map$, map, map_file, map_fl{fnt_nrm}]"
+    echo "${fnt_rvr}-r${fnt_nrm} ${fnt_bld}rgr_map${fnt_nrm}  Regrid map (empty means none) (default ${fnt_bld}${rgr_map}${fnt_nrm}) [${fnt_tlc}rgr_map, regrid_map$, map, map_file, map_fl]"
     echo "${fnt_rvr}-R${fnt_nrm} ${fnt_bld}rgr_opt${fnt_nrm}  Regrid options (empty means none) (default ${fnt_bld}${rgr_opt}${fnt_nrm}) [${fnt_tlc}rgr_opt, regrid_options${fnt_nrm}]"
     echo "${fnt_rvr}-S${fnt_nrm} ${fnt_bld}yr_srt${fnt_nrm}   Start year previous climo (empty means none) (default ${fnt_bld}${yr_srt_prv}${fnt_nrm}) [${fnt_tlc}yr_srt_prv, prv_yr_srt, previous_start${fnt_nrm}]"
     echo "${fnt_rvr}-s${fnt_nrm} ${fnt_bld}yr_srt${fnt_nrm}   Start year (default ${fnt_bld}${yr_srt}${fnt_nrm}) [${fnt_tlc}yr_srt, start_yr, year_start, start_year, start${fnt_nrm}]"
-    echo "${fnt_rvr}  ${fnt_nrm} ${fnt_bld}stdin${fnt_nrm}    Stdin used for input (default ${fnt_bld}${inp_std}${fnt_nrm}) [${fnt_tlc}stdin, std_flg, inp_std, redirect, standard_input${fnt_nrm}]"
+    echo " ${fnt_bld}--std_flg${fnt_nrm}  Stdin used for input (default ${fnt_bld}${inp_std}${fnt_nrm}) [${fnt_tlc}stdin, std_flg, inp_std, redirect, standard_input${fnt_nrm}]"
     echo "${fnt_rvr}-t${fnt_nrm} ${fnt_bld}thr_nbr${fnt_nrm}  Thread number for regridder (default ${fnt_bld}${thr_nbr}${fnt_nrm}) [${fnt_tlc}thr_nbr, thread_number, thread, threads${fnt_nrm}]"
-    echo "${fnt_rvr}  ${fnt_nrm} ${fnt_bld}tpd_out${fnt_nrm}  Timesteps-per-day in output (default ${fnt_bld}${tpd_out}${fnt_nrm}) [${fnt_tlc}tpd_out, tpd, timesteps_per_day${fnt_nrm}]"
+    echo " ${fnt_bld}--tpd_out${fnt_nrm}  Timesteps-per-day in output (default ${fnt_bld}${tpd_out}${fnt_nrm}) [${fnt_tlc}tpd_out, tpd, timesteps_per_day${fnt_nrm}]"
     echo "${fnt_rvr}-v${fnt_nrm} ${fnt_bld}var_lst${fnt_nrm}  Variable list (empty means all) (default ${fnt_bld}${var_lst}${fnt_nrm}) [${fnt_tlc}var_lst, variable_list, var, vars, variable, variables${fnt_nrm}]"
+    echo " ${fnt_bld}--version${fnt_nrm}  Version and configuration information [${fnt_tlc}version, vrs, config, configuration, cnf${fnt_nrm}]"
     echo "${fnt_rvr}-X${fnt_nrm} ${fnt_bld}drc_xtn${fnt_nrm}  Extended climo directory (default ${fnt_bld}${drc_xtn}${fnt_nrm}) [${fnt_tlc}drc_xtn, xtn_drc, extended_dir, extended_climo, extended${fnt_nrm}]"
     echo "${fnt_rvr}-x${fnt_nrm} ${fnt_bld}drc_prv${fnt_nrm}  Previous climo directory (default ${fnt_bld}${drc_prv}${fnt_nrm}) [${fnt_tlc}drc_prv, prv_drc, previous_dir, previous_climo, previous${fnt_nrm}]"
     echo "${fnt_rvr}-Y${fnt_nrm} ${fnt_bld}rgr_xtn${fnt_nrm}  Regridded extended climo directory (default ${fnt_bld}${drc_rgr_xtn}${fnt_nrm}) [${fnt_tlc}drc_rgr_xtn, drc_xtn_rgr, regridded_extended, extended_regridded${fnt_nrm}]"
-    echo "${fnt_rvr}-y${fnt_nrm} ${fnt_bld}rgr_prv${fnt_nrm}  Regridded previous climo directory (default ${fnt_bld}${drc_rgr_prv}${fnt_nrm}) [${fnt_tlc}drc_rgr_prv, drc_prv_rgr, regridded_previous, prefvious_regridded${fnt_nrm}]"
-    echo "${fnt_rvr}  ${fnt_nrm} ${fnt_bld}ypf_max${fnt_nrm}  Years-per-output-file maximum (empty means none) (default ${fnt_bld}${ypf_max}${fnt_nrm}) [${fnt_tlc}ypf_max, ypf, years, years_per_file${fnt_nrm}]"
+    echo "${fnt_rvr}-y${fnt_nrm} ${fnt_bld}rgr_prv${fnt_nrm}  Regridded previous climo directory (default ${fnt_bld}${drc_rgr_prv}${fnt_nrm}) [${fnt_tlc}drc_rgr_prv, drc_prv_rgr, regridded_previous, previous_regridded${fnt_nrm}]"
+    echo " ${fnt_bld}--ypf_max${fnt_nrm}  Years-per-output-file maximum (default ${fnt_bld}${ypf_max}${fnt_nrm}) [${fnt_tlc}ypf_max, ypf, years, years_per_file${fnt_nrm}]"
     printf "\n"
-    printf "${fnt_rvr}Examples:${fnt_nrm}\n${fnt_bld}${spt_nm} -c ${caseid_xmp} -s ${yr_srt} -e ${yr_end} -i ${drc_in_xmp} -o ${drc_out_xmp} -r ~zender/data/maps/map_ne30np4_to_fv129x256_aave.20150901.nc ${fnt_nrm}\n"
-    printf "${fnt_bld}${spt_nm} -c control -m clm2 -s ${yr_srt} -e ${yr_end} -i ${drc_in_xmp} -o ${drc_out_xmp} -r ~zender/data/maps/map_ne30np4_to_fv129x256_aave.20150901.nc ${fnt_nrm}\n"
-    printf "${fnt_bld}${spt_nm} -m mpascice  -s ${yr_srt} -e ${yr_end} -i ${drc_in_mps} -o ${drc_out_mps} -r ~zender/data/maps/map_oEC60to30_to_t62_bilin.20160301.nc ${fnt_nrm}\n"
-    printf "${fnt_bld}${spt_nm} -m mpaso -p mpi -s 1 -e 5 -i ${drc_in_mps} -o ${drc_out_mps} -r ~zender/data/maps/map_oEC60to30_to_t62_bilin.20160301.nc ${fnt_nrm}\n"
-    printf "${fnt_bld}cd output;ls *cam*19??-??*.nc | ${spt_nm} -v FSNT,TREFHT -s 1900 -e 1999 -o ${drc_out_xmp} -r ~zender/data/maps/map_ne30np4_to_fv129x256_aave.20150901.nc ${fnt_nrm}\n\n"
+    printf "${fnt_rvr}Examples:${fnt_nrm}\n${fnt_bld}${spt_nm} -c ${caseid_xmp} -s ${yr_srt} -e ${yr_end} -i ${drc_in_xmp} -o ${drc_out_xmp} -r ~zender/data/maps/map_ne30np4_to_fv129x256_aave.20150901.nc ${fnt_nrm}# Generate CAM climo\n"
+    printf "${fnt_bld}${spt_nm} -c control -m clm2 -s ${yr_srt} -e ${yr_end} -i ${drc_in_xmp} -o ${drc_out_xmp} -r ~zender/data/maps/map_ne30np4_to_fv129x256_aave.20150901.nc ${fnt_nrm}# Generate CLM climo\n"
+    printf "${fnt_bld}${spt_nm} -m mpascice  -s ${yr_srt} -e ${yr_end} -i ${drc_in_mps} -o ${drc_out_mps} -r ~zender/data/maps/map_oEC60to30_to_t62_bilin.20160301.nc ${fnt_nrm}# Generate MPAS-CICE climo\n"
+    printf "${fnt_bld}${spt_nm} -m mpaso -p mpi -s 1 -e 5 -i ${drc_in_mps} -o ${drc_out_mps} -r ~zender/data/maps/map_oEC60to30_to_t62_bilin.20160301.nc ${fnt_nrm}# Generate MPAS-Ocean climo\n"
+    printf "${fnt_bld}cd output;ls *cam*19??-??*.nc | ${spt_nm} -v FSNT,TREFHT -s 1900 -e 1999 -o ${drc_out_xmp} -r ~zender/data/maps/map_ne30np4_to_fv129x256_aave.20150901.nc ${fnt_nrm}# Split climo\n"
+    printf "${fnt_bld}ncclimo -a sdd -c ${caseid_xmp} -m cam -S 41 -E 50 -x ${drc_rgr_xmp}/0041-0050 -s 51 -e 60 -i ${drc_rgr_xmp}/0051-0060 -X ${drc_rgr_xmp}/0041-0060 ${fnt_nrm}# Combine two climos\n\n"
     printf "${fnt_rvr}Interactive batch queues:${fnt_nrm}\n"
     printf "blues : qsub -I -A ACME -q acme -l nodes=1 -l walltime=00:30:00 -N ncclimo\n"
     printf "cooley: qsub -I -A HiRes_EarthSys --nodecount=1 --time=00:30:00 --jobname=ncclimo\n"
@@ -572,6 +578,7 @@ while getopts :a:C:c:d:E:e:f:h:i:j:l:m:n:O:o:p:R:r:S:s:t:v:X:x:Y:y:-: OPT; do
 	       stdin=?* | inp_std=?* | std_flg=?* | redirect=?* | standard_input=?* ) echo "No argument allowed for --${OPTARG switch}" >&2; exit 1 ;; # # Input file list from stdin
 	       tpd_out=?* | tpd=?* | timesteps_per_day=?* ) tpd_out="${LONG_OPTARG}" ;; # # Timesteps-per-day in output
 	       var_lst=?* | variable_list=?* | var=?* | vars=?* | variable=?* | variables=?* ) var_lst="${LONG_OPTARG}" ;; # -v # Variables
+	       version | vrs | config | configuration | cnf ) vrs_prn='Yes' ;; # # Print version information
 	       drc_xtn=?* | xtn_drc=?* | extended_dir=?* | extended_climo=?* | extended=?* ) drc_xtn="${LONG_OPTARG}" ;; # -X # Extended climo directory
 	       drc_prv=?* | prv_drc=?* | previous_dir=?* | previous_climo=?* | previous=?* ) drc_prv="${LONG_OPTARG}" ;; # -x # Previous climo directory
 	       drc_rgr_xtn=?* | drc_xtn_rgr=?* | regridded_extended=?* | extended_regridded=?* ) drc_rgr_xtn="${LONG_OPTARG}" ;; # -Y # Regridded extended climo directory
@@ -590,7 +597,21 @@ psn_nbr=$#
 if [ ${psn_nbr} -ge 1 ]; then
     inp_psn='Yes'
 fi # !psn_nbr
-    
+if [ ${vrs_prn} = 'Yes' ]; then
+    printf "${spt_nm}, the NCO climatology operator, version ${nco_vrs}\n"
+    printf "Copyright (C) 2016--2017 Charlie Zender\n"
+    printf "This program is part of NCO, the netCDF Operators\n"
+    printf "NCO is free software and comes with a BIG FAT KISS and ABOLUTELY NO WARRANTY\n"
+    printf "You may redistribute and/or modify NCO under the terms of the\n"
+    printf "GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file\n"
+    printf "GPL: http://www.gnu.org/copyleft/gpl.html\n"
+    printf "LICENSE: https://github.com/nco/nco/tree/master/LICENSE\n"
+    printf "Config: ${spt_nm} running from directory ${drc_spt}\n"
+    printf "Config: calling NCO binaries in directory ${drc_nco}\n"
+    printf "Config: binaries linked to netCDF library version ${lbr_vrs}\n"
+    exit 0
+fi # !vrs_prn
+
 # Detect input on pipe to stdin:
 # http://stackoverflow.com/questions/2456750/detect-presence-of-stdin-contents-in-shell-script
 # http://unix.stackexchange.com/questions/33049/check-if-pipe-is-empty-and-run-a-command-on-the-data-if-it-isnt
@@ -668,7 +689,7 @@ else
 	mdl_nm='nil' # Unset model name for stdin pipe and positional arguments, otherwise default mdl_nm could be used to add model-specific variables to var_lst_xtn
     fi # !stdin || !psn
     if [ -n "${ypf_max_usr}" ]; then 
-	# fxm: Must specify --ypf to turn-on split mode when input files are specified by -i drc_in
+	# fxm: Must specify --ypf to turn-on splitter mode when input files are specified by -i drc_in
 	# Otherwise it is ambiguous whether to generate climatology or to split
 	ypf_max=${ypf_max_usr}
 	sbs_flg='Yes'
@@ -883,8 +904,11 @@ fi # !inp_std
 # Parse grid/map arguments before in_fl arguments so we know whether this could be a map-only invocation
 if [ "${sbs_flg}" = 'Yes' ]; then
     if [ -z "${var_lst}" ]; then
-	echo "${spt_nm}: ERROR Split mode requires variable list"
+	echo "${spt_nm}: ERROR Splitter mode requires variable list"
 	echo "${spt_nm}: HINT Supply the variable list with -v var_lst"
+	echo "${spt_nm}: DEBUG Provisional R>=2 list automatically generated for empty splitter list (not supported yet, ask CZ to finish this ):"
+	var_lst=`ncks --lst_rnk_ge2 ${fl_in[0]}`
+	echo "${var_lst}"
 	exit 1
     fi # !var_lst
     # http://stackoverflow.com/questions/27702452/loop-through-a-comma-separated-shell-variable

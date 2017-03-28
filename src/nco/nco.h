@@ -336,7 +336,7 @@ extern "C" {
 # define NCO_VERSION_MINOR 6
 #endif /* !NCO_VERSION_MINOR */
 #ifndef NCO_VERSION_PATCH
-# define NCO_VERSION_PATCH 5
+# define NCO_VERSION_PATCH 6
 #endif /* !NCO_VERSION_PATCH */
 #ifndef NCO_VERSION_NOTE
 # define NCO_VERSION_NOTE "alpha02" /* Blank for final versions, non-blank (e.g., "beta37") for pre-release versions */
@@ -346,7 +346,7 @@ extern "C" {
 # define NCO_LIB_VERSION ( NCO_VERSION_MAJOR * 100 + NCO_VERSION_MINOR * 10 + NCO_VERSION_PATCH )
 #endif /* !NCO_LIB_VERSION */
 #ifndef NCO_VERSION
-# define NCO_VERSION "4.6.5-alpha02"
+# define NCO_VERSION "4.6.6-alpha02"
 #endif /* !NCO_VERSION */
 
 /* Compatibility tokens new to netCDF4 netcdf.h: */
@@ -974,6 +974,7 @@ extern "C" {
     nco_bool PRN_MSS_VAL_BLANK; /* [flg] Print missing values as blanks */
     nco_bool PRN_VAR_DATA; /* [flg] Print variable data */
     nco_bool PRN_VAR_METADATA; /* [flg] Print variable metadata */
+    nco_bool PRN_CLN_LGB; /* [flg] Print UDUnits-formatted calendar dates/times human-legibly */
   } prn_fmt_sct;
   
   /* Types used in Terraref structure */
