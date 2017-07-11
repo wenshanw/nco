@@ -1,81 +1,78 @@
 $Header$ -*-text-*-
 
-The netCDF Operators NCO version 4.6.6 are ready. 
+The netCDF Operators NCO version 4.6.8 are ready. 
 
 http://nco.sf.net (Homepage, Mailing lists)
 http://github.com/nco (Source Code, Releases, Developers)
 
 What's new?
+The main new features in 4.6.8...
 
-4.6.6 contains a potpurri of new features...
-
-I am considering changing the default behavior of ncks printing.
+PLEASE READ THIS IF YOU USE NCKS TO PRINT DATA:
+The ncks default printing will change to CDL in summer 2017.
 For 20+ years ncks has, by default, dumped the text representation
-of a file in (what we call) "traditional" mode. CDL has become
-increasingly popular, and may be more useful than traditional mode
-for the majority of users. ncks has printed CDL only since 2013 and so
-is not the default. ncdump has always printed CDL very cleanly and
-clearly there was little point in making CDL the default for ncks.
+of a file in (what we call) "traditional" mode, which best facilitates
+meticulous data examination in line-by-line format.
+ncdump produces CDL format that is more useful for most NCO users.
+ncdump has always printed clean CDL and for many years there was
+little point in defaulting ncks printed output to CDL.
+However, ncks CDL mode now rivals ncdump in many ways.
+In particular, ncks --cln now prints times as human-readable calendar
+dates, the last ncdump feature that I used which ncks lacked. 
+Hence in summer 2017 ncks default printed output will change to CDL. 
+Then one will type simply "ncks" instead of "ncks --cdl". 
+We just added a new "--trd" option to print traditional output.
+User --trd in your scripts and their behavior will not change.
+Otherwise your printing scripts will start to print CDL this summer.
+You have been warned :)
 
-ncks CDL mode has now matured to the point where it rivals ncdump, and
-is arguably superior in many ways. I find myself using CDL more and
-more and ncdump less and less. Hence I'm interested in changing
-the default printed output of ncks to CDL, and requiring a new "--trd"
-option to view the tradiational output. Then I can type simply
-"ncks" instead of "ncks --cdl". 
-
-Work on NCO 4.6.7 has commenced. Planned improvements include 
-support for conda installs on MS Windows, and human-legible calendar
-date printing, more ncclimo and ncremap features.
+Work on NCO 4.6.9 has commenced. Planned improvements include 
+support for conda installs on MS Windows, more ncclimo and ncremap
+features, more ncap2 chunking flexibility. 
 
 Enjoy,
 Charlie
 
 NEW FEATURES (full details always in ChangeLog):
 
-A. ncks now prints the units, if any, in comments after CDL values
-   when debugging is enabled with dbg_lvl >=1:
-   zender@foo: ncks --cdl -D 1 in.nc
-   lat = -90, 90 ; // units="degrees_north"
-   lon = 0, 90, 180, 270 ; // units="degrees_east"
-   tpt = 273.1, 273.2, ... 274 ; // units="kelvin"
-   http://nco.sf.net/nco.html#cdl
+A. ncap2 now fully implements NCO chunking maps and policies.
+   Previously ncap2 preserved existing chunking in variables,
+   but could not be told to do anythin different. Now all command-line
+   chunking behavior supported by NCO works in ncap2.
+   ncap2 --cnk_plc=unchunk -S cnk.nco in.nc4 out.nc4
+   http://nco.sf.net/nco.html#cnk
 
-A. fxm: not done yet
-   Since 4.6.5 ncks has printed the human-legible calendar string
-   corresponding to values with UDUnits date units (time since
-   basetime, e.g., "days since 2000-01-01") and CF calendar attribute,
-   if any. Now ncks also translates and prints time values associated
-   with CF climatology and bounds variables as human legible dates.
-   As before, enact this with the --calendar option when printing.
-   Using dbg_lvl >= 1 in CDL mode prints both the value and calendar
-   string (one in comments): 
+A. ncks CDL printing supports finer-grained control of date formats,
+   including an ISO 8601 "T" option. Previously ncks printed
+   UDUnits-compliant times as dates when invoked with the --cdl and
+   --cal options. A third option, --dt_fmt, now exposes finer
+   control of the format with short, regular, and ISO8601 options:
+   ncks -H -m -v time_bnds -C --cdl --dt_fmt=1 ~/nco/data/in.nc
+   ncks -H -m -v time_bnds -C --cdl --dt_fmt=2 ~/nco/data/in.nc
+   ncks -H -m -v time_bnds -C --cdl --dt_fmt=3 ~/nco/data/in.nc
+   dt_fmt:   Output:
+   0,1       1964-03-13 09:08:16 (Default, short format)
+   2	     1964-03-13 09:08:16.000000 (regular format)
+   3         1964-03-13T09:08:16.000000 (ISO8601 "T" format)
+   Note that --dt_fmt automatically implies --cal.
+   http://nco.sf.net/nco.html#cln
 
-   zender@aerosol:~$ ncks -D 1 --cdl --cal -v tm_365 ~/nco/data/in.nc
-   tm_365 = "2013-03-01"; // double value: 59
-   zender@aerosol:~$ ncks -D 1 --cdl -v tm_365 ~/nco/data/in.nc
-   tm_365 = 59; // calendar format: "2013-03-01"
-
-   This option is similar to the ncdump -t option.
-   Does this work how you'd like? Let us know.
-   http://nco.sf.net/nco.html#cal
+A. 
 
 BUG FIXES:
 
-A. ncks now prints the braces required to disambiguate compound
-   record dimensions in CDL mode. Such braces have been required by 
-   ncgen-like parsers since ~2013 in order to unambiguously determine
-   the record dimension sizes in variables with multiple record
-   dimensions. This fix only affects CDL printing of netCDF4 files
-   that contain compound record variables. 
+A. The ncap2 implementation of mibs()/mabs()/mebs() is fixed.
+   Thanks to Dominique Briand for reporting this.
+
+B. 
 
 KNOWN PROBLEMS DUE TO NCO:
 
    This section of ANNOUNCE reports and reminds users of the
    existence and severity of known, not yet fixed, problems. 
-   These problems occur with NCO 4.6.6 built/tested under
-   MacOS 10.12.3 with netCDF 4.4.1 on HDF5 1.8.16 and with
-   Linux with netCDF 4.4.2-development (20161116) on HDF5 1.8.16.
+   These problems occur with NCO 4.6.8 built/tested under
+   MacOS 10.12.5 with netCDF 4.4.1 on HDF5 1.10.0-patch1 and with
+   Linux with netCDF 4.4.2-development (20170322) on HDF5 1.8.17.
 
 A. NOT YET FIXED (NCO problem)
    Correctly read arrays of NC_STRING with embedded delimiters in ncatted arguments
@@ -130,6 +127,7 @@ B. NOT YET FIXED (netCDF4 library bug)
    20160512: Ditto
    20161028: Verified problem still exists with netCDF 4.4.1
    20170323: Verified problem still exists with netCDF 4.4.2-development
+   20170323: https://github.com/Unidata/netcdf-c/issues/381
 
    Bug tracking: https://www.unidata.ucar.edu/jira/browse/fxm
    More details: http://nco.sf.net/nco.html#ncrename_crd
@@ -141,6 +139,7 @@ C. NOT YET FIXED (netCDF4 library bug)
    ncrename -O -v non_coord,coord ~/nco/data/in_grp.nc ~/foo.nc # Fails (HDF error)
 
    20170323: Confirmed problem reported by Paolo Oliveri, reported to Unidata
+   20170323: https://github.com/Unidata/netcdf-c/issues/381
 
    Bug tracking: https://www.unidata.ucar.edu/jira/browse/fxm
    More details: http://nco.sf.net/nco.html#ncrename_crd

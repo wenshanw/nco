@@ -41,6 +41,7 @@
 # scp ~/nco/data/ncclimo blues.lcrc.anl.gov:bin
 # scp ~/nco/data/ncclimo cooley.alcf.anl.gov:bin
 # scp ~/nco/data/ncclimo cori.nersc.gov:bin_cori
+# scp ~/nco/data/ncclimo dust.ess.uci.edu:bin
 # scp ~/nco/data/ncclimo edison.nersc.gov:bin_edison
 # scp ~/nco/data/ncclimo rhea.ccs.ornl.gov:bin_rhea
 # scp ~/nco/data/ncclimo skyglow.ess.uci.edu:bin
@@ -178,7 +179,7 @@ esac # !HOSTNAME
 # ncclimo -C ann -m cism -h h -c b.e10.BG20TRCN.f09_g16.002 -s 1851 -e 1852 -i /lustre/atlas1/cli115/proj-shared/4ue/data/for_charlie -o ${DATA}/ne30/clm > ~/ncclimo.out 2>&1 &
 
 # Debugging and Benchmarking:
-# ncclimo -v FSNT,AODVIS -c famipc5_ne30_v0.3_00003 -s 1980 -e 1983 -i ${DATA}/ne30/raw -o ${DATA}/ne30/clm -r ${DATA}/maps/map_ne30np4_to_fv129x256_aave.20150901.nc
+# ncclimo -v FSNT,AODVIS,TREFHT -c famipc5_ne30_v0.3_00003 -s 1980 -e 1983 -i ${DATA}/ne30/raw -o ${DATA}/ne30/clm -r ${DATA}/maps/map_ne30np4_to_fv129x256_aave.20150901.nc
 # ncclimo --var_lst=FSNT,AODVIS --caseid=famipc5_ne30_v0.3_00003 --yr_srt=1980 --yr_end=1983 --drc_in=${DATA}/ne30/raw --drc_out=${DATA}/ne30/clm --rgr_map=${DATA}/maps/map_ne30np4_to_fv129x256_aave.20150901.nc
 # ncclimo -v TOTEXTTAU -c merra2_198001.nc4 -s 1980 -e 2015 -a sdd -i ${DATA}/merra2/raw -o ${DATA}/merra2/clm
 # ncclimo > ~/ncclimo.out 2>&1 &
@@ -207,13 +208,19 @@ esac # !HOSTNAME
 # ncclimo --dbg=1 -s 1979 -e 1979 --var=FSNT,AODVIS,T --map=${DATA}/maps/map_ne30np4_to_fv129x256_aave.20150901.nc --drc_out=${DATA}/ne30/clm ${DATA}/ne30/raw/famipc5_ne30_v0.3_00003.cam.h0.1979-??.nc
 # Split directory:
 # ncclimo --dbg=1 --ypf=50 -s 1979 -e 1983 --var=FSNT,AODVIS --map=${DATA}/maps/map_ne30np4_to_fv129x256_aave.20150901.nc --drc_in=${DATA}/ne30/raw --drc_out=${DATA}/ne30/clm
-# Split all
+# Split all:
 # cd ${DATA}/ne30/raw;ls *1979-??*.nc *198[01]-??*.nc | ncclimo --dbg=1 -s 1979 -e 1981 --map=${DATA}/maps/map_ne30np4_to_fv129x256_aave.20150901.nc --drc_out=${DATA}/ne30/clm
+# Split ALM:
+# ncclimo --dbg=1 -s 2000 -e 2000 --var=FSDS,TBOT --drc_out=${DATA}/ne30/clm ${DATA}/ne30/raw/F_acmev03_enso_camse_clm45bgc_ne30_co2cycle.clm2.h0.2000-??.nc
 # Split production:
 # cd /scratch2/scratchdirs/golaz/ACME_simulations/20161117.beta0.A_WCYCL1850S.ne30_oEC_ICG.edison/run;ls *cam.h0.000[1-9]* | ncclimo --dbg=1 --yr_srt=1 --yr_end=9 --var=FSNT,AODVIS,T --map=${DATA}/maps/map_ne30np4_to_fv129x256_aave.20150901.nc --drc_out=${DATA}/ne30/clm > ~/ncclimo.out 2>&1 &
 # cd /scratch2/scratchdirs/golaz/ACME_simulations/20161117.beta0.A_WCYCL1850S.ne30_oEC_ICG.edison/run;ls *cam.h0.0[012]??* | ncclimo --dbg=1 --yr_srt=1 --yr_end=250 --var=FSNT,AODVIS,T --map=${DATA}/maps/map_ne30np4_to_fv129x256_aave.20150901.nc --drc_out=${DATA}/ne30/clm > ~/ncclimo.out 2>&1 &
 # Daily pipe:
 # cd ${DATA}/ne30/raw;ls *h1*.nc | ncclimo --dbg=1 --job_nbr=8 --caseid=famipc5_ne30_v0.3_00007 --clm_md=dly -s 2001 -e 2002 --var=PRECT,TREFHT --drc_out=${DATA}/ne30/clm > ~/ncclimo.out 2>&1 &
+# Diurnal pipe:
+# cd ${DATA}/ne30/raw;ls *h4*.nc | ncclimo --dbg=1 --job_nbr=8 --caseid=famipc5_ne30_v0.3_00007 --clm_md=dly --tpd=8 -s 2001 -e 2002 --var=PRECT,TS,FSDS --drc_out=${DATA}/ne30/clm > ~/ncclimo.out 2>&1 &
+# SGS:
+# ncclimo -d 1 -v TBOT -m clm2 -c essgcm14 -s 1 -e 1 -i ${DATA}/essgcm14 -o ~/rgr --map=${DATA}/maps/map_t42_to_fv129x256_aave.20150621.nc
 
 # Best performance on resolutions finer than ne30 (~1x1 degree) requires a job scheduler/batch processor
 # Cobalt (cooley), SLURM (cori,edison), Maui (a PBS-variant) (blues), Torque (a PBS-variant) (hopper), and PBS (rhea) schedulers allow both interactive and non-interactive (i.e., script) batch jobs
@@ -332,7 +339,7 @@ if [ -z "${nco_exe}" ]; then
     echo "${spt_nm}: ERROR Unable to find NCO, nco_exe = ${nco_exe}"
     exit 1
 fi # !nco_exe
-# Use StackOverflow method to find NCO directory
+# StackOverflow method finds NCO directory
 while [ -h "${nco_exe}" ]; do
   drc_nco="$( cd -P "$( dirname "${nco_exe}" )" && pwd )"
   nco_exe="$(readlink "${nco_exe}")"
@@ -341,6 +348,12 @@ done
 drc_nco="$( cd -P "$( dirname "${nco_exe}" )" && pwd )"
 nco_vrs=$(ncks --version 2>&1 > /dev/null | grep NCO | awk '{print $5}')
 lbr_vrs=$(ncks --library 2>&1 > /dev/null | awk '{print $6}')
+
+# Detect and warn about mixed modules (for Qi Tang 20170531)
+if [ "${drc_spt}" != "${drc_nco}" ]; then
+    echo "WARNING: Possible mixture of NCO versions from different locations. Script ${spt_nm} is from directory ${drc_spt} while NCO binaries are from directory ${drc_nco}. Normally the script and binaries are from the same executables directory. This WARNING may be safely ignore for customized scripts and/or binaries that the user has intentionally split into different directories."
+    echo "HINT: Conflicting script and binary directories may result from 1) Hardcoding an NCO script and/or binary pathname, 2) Having incomplete NCO installations in one or more directories in the \$PATH environment variable, 3) Loading multiple NCO modules with different locations."
+fi # drc_spt
 
 # When running in a terminal window (not in an non-interactive batch queue)...
 if [ -n "${TERM}" ]; then
@@ -401,11 +414,14 @@ mpi_flg='No' # [sng] Parallelize over nodes
 nco_opt='--no_tmp_fl' # [sng] NCO options (e.g., '-7 -D 1 -L 1')
 ncr_flg='No' # [sng] Incremental method
 nd_nbr=1 # [nbr] Number of nodes
+no_ntv_tms='No' # [flg] Omit native-grid split timeseries
 par_opt='' # [sng] Parallel options to shell
 par_typ='bck' # [sng] Parallelism type
 rgr_map='' # [sng] Regridding map
 #rgr_map="${DATA}/maps/map_ne30np4_to_fv129x256_aave.20150901.nc"
 rgr_opt='' # [sng] Regridding options (e.g., '--rgr col_nm=lndgrid', '--rgr col_nm=nCells')
+spl_opt='' # [sng] Splitter options (non-MPAS only) (e.g., '--no_cll_msr')
+spl_rgr_opt='--rgr no_stagger' # [sng] Splitter regridding options
 sbs_flg='No' # [sng] Split (subset) climatologies
 thr_nbr=2 # [nbr] Thread number for regridder
 tpd_out=1 # [nbr] Timesteps-per-day in ouput
@@ -436,11 +452,15 @@ function fnc_usg_prn { # NB: dash supports fnc_nm (){} syntax, not function fnc_
     echo "${fnt_rvr}-l${fnt_nrm} ${fnt_bld}lnk_flg${fnt_nrm}  Link ACME-climo to AMWG-climo filenames (default ${fnt_bld}${lnk_flg}${fnt_nrm}) [${fnt_tlc}lnk_flg, link_flag, no_amwg_links${fnt_nrm}]"
     echo "${fnt_rvr}-m${fnt_nrm} ${fnt_bld}mdl_nm${fnt_nrm}   Model name (default ${fnt_bld}${mdl_nm}${fnt_nrm}) [${fnt_tlc}mdl_nm, model_name, model${fnt_nrm}]"
     echo "${fnt_rvr}-n${fnt_nrm} ${fnt_bld}nco_opt${fnt_nrm}  NCO options (empty means none) (default ${fnt_bld}${nco_opt}${fnt_nrm}) [${fnt_tlc}nco_opt, nco, nco_options${fnt_nrm}]"
+    echo " ${fnt_bld}--no_cll_msr${fnt_nrm}  Omit cell_measures variables (e.g., 'area') [${fnt_tlc}no_area, no_cll_msr, no_cell_measures${fnt_nrm}]"
+    echo " ${fnt_bld}--no_frm_trm${fnt_nrm}  Omit formula_terms variables (e.g., 'hyba', 'PS') [${fnt_tlc}no_frm_trm, no_frm, no_formula_terms${fnt_nrm}]"
+    echo " ${fnt_bld}--no_ntv_tms${fnt_nrm}  Omit native-grid timeseries (splitter only) [${fnt_tlc}no_ntv_tms, no_ntv, no_native${fnt_nrm}]"
+    echo " ${fnt_bld}--no_stg_grd${fnt_nrm}  Omit staggered grid variables ('slat, slon, w_stag') [${fnt_tlc}no_stg_grd, no_stg, no_stagger, no_staggered_grid${fnt_nrm}]"
     echo "${fnt_rvr}-O${fnt_nrm} ${fnt_bld}drc_rgr${fnt_nrm}  Regridded directory (default ${fnt_bld}${drc_rgr}${fnt_nrm}) [${fnt_tlc}drc_rgr, rgr_drc, dir_regrid, regrid${fnt_nrm}]"
     echo "${fnt_rvr}-o${fnt_nrm} ${fnt_bld}drc_out${fnt_nrm}  Output directory (default ${fnt_bld}${drc_out}${fnt_nrm}) [${fnt_tlc}drc_out, out_drc, dir_out, out_dir, output${fnt_nrm}]"
     echo "${fnt_rvr}-p${fnt_nrm} ${fnt_bld}par_typ${fnt_nrm}  Parallelism type (default ${fnt_bld}${par_typ}${fnt_nrm}) [${fnt_tlc}par_typ, par_md, parallel_type, parallel_mode, parallel${fnt_nrm}]"
-    echo "${fnt_rvr}-r${fnt_nrm} ${fnt_bld}rgr_map${fnt_nrm}  Regrid map (empty means none) (default ${fnt_bld}${rgr_map}${fnt_nrm}) [${fnt_tlc}rgr_map, regrid_map$, map, map_file, map_fl]"
     echo "${fnt_rvr}-R${fnt_nrm} ${fnt_bld}rgr_opt${fnt_nrm}  Regrid options (empty means none) (default ${fnt_bld}${rgr_opt}${fnt_nrm}) [${fnt_tlc}rgr_opt, regrid_options${fnt_nrm}]"
+    echo "${fnt_rvr}-r${fnt_nrm} ${fnt_bld}rgr_map${fnt_nrm}  Regrid map (empty means none) (default ${fnt_bld}${rgr_map}${fnt_nrm}) [${fnt_tlc}rgr_map, regrid_map$, map, map_file, map_fl${fnt_nrm}]"
     echo "${fnt_rvr}-S${fnt_nrm} ${fnt_bld}yr_srt${fnt_nrm}   Start year previous climo (empty means none) (default ${fnt_bld}${yr_srt_prv}${fnt_nrm}) [${fnt_tlc}yr_srt_prv, prv_yr_srt, previous_start${fnt_nrm}]"
     echo "${fnt_rvr}-s${fnt_nrm} ${fnt_bld}yr_srt${fnt_nrm}   Start year (default ${fnt_bld}${yr_srt}${fnt_nrm}) [${fnt_tlc}yr_srt, start_yr, year_start, start_year, start${fnt_nrm}]"
     echo " ${fnt_bld}--std_flg${fnt_nrm}  Stdin used for input (default ${fnt_bld}${inp_std}${fnt_nrm}) [${fnt_tlc}stdin, std_flg, inp_std, redirect, standard_input${fnt_nrm}]"
@@ -566,6 +586,14 @@ while getopts :a:C:c:d:E:e:f:h:i:j:l:m:n:O:o:p:R:r:S:s:t:v:X:x:Y:y:-: OPT; do
 	       lnk_flg=?* | link_flag=?* | no_amwg_link=?* | no_amwg_links=?* | no_AMWG_link=?* | no_AMWG_links=?* ) echo "No argument allowed for --${OPTARG switch}" >&2; exit 1 ;; # -l # Link ACME to AMWG name
 	       mdl_nm=?* | model_name=?* | model=?* ) mdl_nm="${LONG_OPTARG}" ;; # -m # Model name
 	       nco_opt=?* | nco=?* | nco_options=?* ) nco_opt="${LONG_OPTARG}" ;; # -n # NCO options
+	       no_area | no_cll_msr | no_cell_measures ) no_cll_msr='Yes' ;; # # Omit cell_measures variables
+	       no_area=?* | no_cell_msr=?* | no_cell_measures=?* ) echo "No argument allowed for --${OPTARG switch}" >&2; exit 1 ;; # # Omit cell_measures variables
+	       no_frm_trm | no_frm | no_formula_terms ) no_frm_trm='Yes' ;; # # Omit formula_terms variables
+	       no_frm_trm=?* | no_frm=?* | no_formula_terms=?* ) echo "No argument allowed for --${OPTARG switch}" >&2; exit 1 ;; # # Omit formula_terms variables
+	       no_ntv_tms | no_ntv | no_native | no_native_timeseries | delete_native ) no_ntv_tms='Yes' ;; # # Omit native-grid split files
+	       no_ntv_tms=?* | no_ntv=?* | no_native=?* | no_native_timeseries=?* | delete_native=?* ) echo "No argument allowed for --${OPTARG switch}" >&2; exit 1 ;; # # Omit native-grid split files
+	       no_stg_grd | no_stg | no_stagger | no_staggered_grid ) no_stg_grd='Yes' ;; # # Omit staggered grid variables
+	       no_stg_grd=?* | no_stg=?* | no_stagger=?* | no_staggered_grid ) echo "No argument allowed for --${OPTARG switch}" >&2; exit 1 ;; # # Omit staggered grid variables
 	       drc_out=?* | out_drc=?* | dir_out=?* | out_dir=?* | output=?* ) drc_out_usr="${LONG_OPTARG}" ;; # -o # Output directory
 	       drc_rgr=?* | rgr_drc=?* | dir_regrid=?* | regrid_dir=?* | regrid=?* ) drc_rgr_usr="${LONG_OPTARG}" ;; # -O # Regridded directory
 	       par_typ=?* | par_md=?* | parallel_type=?* | parallel_mode=?* | parallel=?* ) par_typ="${LONG_OPTARG}" ;; # -p # Parallelism type
@@ -573,9 +601,9 @@ while getopts :a:C:c:d:E:e:f:h:i:j:l:m:n:O:o:p:R:r:S:s:t:v:X:x:Y:y:-: OPT; do
 	       rgr_map=?* | regrid_map=?* | map=?* ) rgr_map="${LONG_OPTARG}" ;; # -r # Regridding map
 	       yr_srt_prv=?* | prv_yr_srt=?* | previous_start=?* ) yr_srt_prv="${LONG_OPTARG}" ;; # -S # Start year previous
 	       yr_srt=?* | start_yr=?* | year_start=?* | start_year=?* | start=?* ) yr_srt="${LONG_OPTARG}" ;; # -s # Start year
-	       thr_nbr=?* | thread_number=?* | thread=?* | threads=?* ) thr_usr="${LONG_OPTARG}" ;; # -t # Thread number
 	       stdin | inp_std | std_flg | redirect | standard_input ) inp_std='Yes' ;; # # Input file list from stdin
 	       stdin=?* | inp_std=?* | std_flg=?* | redirect=?* | standard_input=?* ) echo "No argument allowed for --${OPTARG switch}" >&2; exit 1 ;; # # Input file list from stdin
+	       thr_nbr=?* | thread_number=?* | thread=?* | threads=?* ) thr_usr="${LONG_OPTARG}" ;; # -t # Thread number
 	       tpd_out=?* | tpd=?* | timesteps_per_day=?* ) tpd_out="${LONG_OPTARG}" ;; # # Timesteps-per-day in output
 	       var_lst=?* | variable_list=?* | var=?* | vars=?* | variable=?* | variables=?* ) var_lst="${LONG_OPTARG}" ;; # -v # Variables
 	       version | vrs | config | configuration | cnf ) vrs_prn='Yes' ;; # # Print version information
@@ -585,10 +613,10 @@ while getopts :a:C:c:d:E:e:f:h:i:j:l:m:n:O:o:p:R:r:S:s:t:v:X:x:Y:y:-: OPT; do
 	       drc_rgr_prv=?* | drc_prv_rgr=?* | regridded_previous=?* | previous_regridded=?* ) drc_rgr_prv="${LONG_OPTARG}" ;; # -y # Regridded previous climo directory
 	       ypf_max=?* | ypf=?* | years=?* | years_per_file=?* ) ypf_max_usr="${LONG_OPTARG}" ;; # -z # Years-per-output-file maximum
                '' ) break ;; # "--" terminates argument processing
-               * ) printf "\nERROR: Illegal option ${fnt_bld}--${OPTARG}${fnt_nrm}\n" >&2; fnc_usg_prn ;;
+               * ) printf "\nERROR: Unrecognized option ${fnt_bld}--${OPTARG}${fnt_nrm}\n" >&2; fnc_usg_prn ;;
 	   esac ;; # !OPTARG
 	\?) # Unrecognized option
-	    printf "\nERROR: Option ${fnt_bld}-${OPTARG}${fnt_nrm} not allowed\n" >&2
+	    printf "\nERROR: Option ${fnt_bld}-${OPTARG}${fnt_nrm} not recognized\n" >&2
 	    fnc_usg_prn ;;
     esac # !OPT
 done # !getopts
@@ -678,6 +706,12 @@ if [ -n "${yr_srt_prv}" ]; then
 fi # !yr_srt_prv extended climo
 if [ -n "${clm_md_usr}" ]; then 
     # Climo mode must be explicitly selected with --clm_md when climo input files are piped or positional
+    if [ "${clm_md_usr}" = 'daily' ] || [ "${clm_md_usr}" = 'doy' ] || [ "${clm_md_usr}" = 'day' ] ; then
+	clm_md_usr='dly'
+    fi # !clm_md
+    if [ "${clm_md_usr}" = 'annual' ] || [ "${clm_md_usr}" = 'yearly' ] || [ "${clm_md_usr}" = 'year' ] ; then
+	clm_md_usr='ann'
+    fi # !clm_md
     clm_md="${clm_md_usr}"
     clm_flg='Yes' # redundant (and safe)
 else
@@ -803,12 +837,24 @@ fi # !gaa_sng
 if [ -n "${job_usr}" ]; then 
     job_nbr="${job_usr}"
 fi # !job_usr
+if [ ${dbg_lvl} -ge 2 ]; then
+    nco_opt="-D ${dbg_lvl} ${nco_opt}"
+fi # !dbg_lvl
 if [ -n "${var_lst}" ] && [ "${sbs_flg}" != 'Yes' ]; then
     nco_opt="${nco_opt} -v ${var_lst}"
 fi # !var_lst
 if [ -n "${hdr_pad}" ]; then
     nco_opt="${nco_opt} --hdr_pad=${hdr_pad}"
 fi # !hdr_pad
+if [ "${no_cll_msr}" = 'Yes' ]; then 
+    spl_opt="${spl_opt} --no_cll_msr"
+fi # !no_cll_msr
+if [ "${no_frm_trm}" = 'Yes' ]; then 
+    spl_opt="${spl_opt} --no_frm_trm"
+fi # !no_frm_trm
+if [ "${no_stg_grd}" = 'Yes' ]; then 
+    spl_rgr_opt=''
+fi # !no_stg_grd
 if [ "${par_typ}" = 'bck' ]; then 
     par_opt=' &'
     par_opt_cf=''
@@ -826,6 +872,12 @@ if [ -n "${rgr_map}" ]; then
 	echo "${spt_nm}: HINT Supply the full path-name for the regridding map"
 	exit 1
     fi # ! -f
+    if [ "${mdl_nm}" = 'clm2' ]; then
+	printf "${spt_nm}: ERROR ${spt_nm} refuses to regrid ALM/CLM output because doing so correctly requires additional steps required for sub-gridscale (SGS) data. These steps can currently only be performed by invoking ncremap with extra arguments.\n"
+	printf "${spt_nm}: HINT Use ${spt_nm} to generate climatology/time-series files from ALM/CLM, and then issue a separate ncremap command with the extra information to regrid those files. To regrid ALM/CLM data, ncremap requires specification of the source and destination grid files (with -s grd_src and -g grd_dst, respectively).\n"
+	printf "${spt_nm}: INFO This restriction prevents users from inadvertently generating regridded output that is up to a few percent wrong. Naively regridding sub-gridscale output will generate inaccurate results in all destination gridcells that contain contributions gridcells whose surface fraction (e.g., landfrac) is less than 1.0 on the source grid. Using ncremap ensures that values from sub-gridcell features like coastlines and islands are treated correctly. For more information, contact Charlie.\n"
+	exit 1
+    fi # !mdl_nm
     rgr_opt="${rgr_opt} --map ${rgr_map}"
 fi # !rgr_map
 if [ -n "${thr_usr}" ]; then 
@@ -904,12 +956,12 @@ fi # !inp_std
 # Parse grid/map arguments before in_fl arguments so we know whether this could be a map-only invocation
 if [ "${sbs_flg}" = 'Yes' ]; then
     if [ -z "${var_lst}" ]; then
-	echo "${spt_nm}: ERROR Splitter mode requires variable list"
-	echo "${spt_nm}: HINT Supply the variable list with -v var_lst"
-	echo "${spt_nm}: DEBUG Provisional R>=2 list automatically generated for empty splitter list (not supported yet, ask CZ to finish this ):"
+	echo "${spt_nm}: WARNING Splitter mode without explicitly specified variable list (i.e., -v var_lst) splits all variables of rank >= 2 into separate files, thus doubling the on-disk data amount"
+#	echo "${spt_nm}: ERROR Splitter mode requires explicitly specified variable list"
+#	echo "${spt_nm}: HINT Supply the variable list with -v var_lst"
+#	exit 1
 	var_lst=`ncks --lst_rnk_ge2 ${fl_in[0]}`
 	echo "${var_lst}"
-	exit 1
     fi # !var_lst
     # http://stackoverflow.com/questions/27702452/loop-through-a-comma-separated-shell-variable
     var_nbr=0 # [sng] Split (subset) files
@@ -1087,6 +1139,7 @@ if [ ${dbg_lvl} -ge 2 ]; then
     printf "dbg: par_typ  = ${par_typ}\n"
     printf "dbg: rgr_map  = ${rgr_map}\n"
     printf "dbg: rgr_sfx  = ${rgr_sfx}\n"
+    printf "dbg: no_ntv   = ${no_ntv_tms}\n"
     printf "dbg: sbs_flg  = ${sbs_flg}\n"
     printf "dbg: thr_nbr  = ${thr_nbr}\n"
     printf "dbg: var_lst  = ${var_lst}\n"
@@ -1170,16 +1223,16 @@ if [ "${sbs_flg}" = 'Yes' ]; then
     printf "Input to split comprises ${yr_sbs} years of contiguous raw data touching ${yr_cln} calendar years from YYYYMM = ${yyyy_clm_srt_dec}${mm_ann_srt} to ${yyyy_end}${mm_ann_end}\n"
     if [ ${sgm_nbr} -gt 1 ]; then
 	if [ ${sgm_flg} = 'Yes' ]; then 
-	    printf "Will split data into ${sgm_nbrm1} segment(s) of length ${ypf_max} years and 1 segment of length ${sgm_rmd} year(s)\n"
+	    printf "Will split data into ${sgm_nbrm1} timeseries segment(s) of length ${ypf_max} years and 1 segment of length ${sgm_rmd} year(s)\n"
 	else
-	    printf "Will split data into ${sgm_nbr} segment(s) of length ${ypf_max} years\n"
+	    printf "Will split data into ${sgm_nbr} timeseries segment(s) of length ${ypf_max} years\n"
 	fi # !sgm_flg
     else # !sgm_nbr
-	printf "Will place all output into one segment of length ${yr_sbs} years\n"
+	printf "Will split data into one timeseries of length ${yr_sbs} years\n"
     fi # !sgm_nbr
-    printf "Output files to directory ${drc_out}\n"
+    printf "Native-grid split files to directory ${drc_out}\n"
     if [ -n "${rgr_map}" ]; then 
-	printf "Split files will also be regridded\n"
+	printf "Regridded split files to directory ${drc_rgr}\n"
     else
 	printf "Split files will not be regridded\n"
     fi # !rgr
@@ -1393,7 +1446,7 @@ if [ "${sbs_flg}" = 'Yes' ]; then
 	let idx_end=$((job_nbr-1))
 	for ((var_idx=0;var_idx<var_nbr;var_idx++)); do
 	    fl_out[${var_idx}]="${fl_out_tpl[${sgm_idx}]/var_nm_tpl/${var_sbs[${var_idx}]}}"
-	    cmd_sbs[${var_idx}]="${cmd_mpi[${var_idx}]} ncrcat -O -v ${var_sbs[${var_idx}]}${var_lst_xtn} ${nco_opt} ${gaa_sng} ${fl_sgm[${sgm_idx}]} ${fl_out[${var_idx}]}"
+	    cmd_sbs[${var_idx}]="${cmd_mpi[${var_idx}]} ncrcat -O -v ${var_sbs[${var_idx}]}${var_lst_xtn} ${nco_opt} ${spl_opt} ${gaa_sng} ${fl_sgm[${sgm_idx}]} ${fl_out[${var_idx}]}"
 	    if [ ${dbg_lvl} -ge 1 ]; then
 		echo ${cmd_sbs[${var_idx}]}
 	    fi # !dbg
@@ -1457,7 +1510,7 @@ if [ "${sbs_flg}" = 'Yes' ]; then
 	    let idx_end=$((job_nbr-1))
 	    for ((var_idx=0;var_idx<var_nbr;var_idx++)); do
 		fl_rgr[${var_idx}]="${fl_rgr_tpl[${sgm_idx}]/var_nm_tpl/${var_sbs[${var_idx}]}}"
-		cmd_rgr[${var_idx}]="${cmd_mpi[${var_idx}]} ncks -t ${thr_nbr} -O ${nco_opt} ${rgr_opt} ${fl_out[${var_idx}]} ${fl_rgr[${var_idx}]}"
+		cmd_rgr[${var_idx}]="${cmd_mpi[${var_idx}]} ncks -t ${thr_nbr} -O ${nco_opt} ${rgr_opt} ${spl_opt} ${spl_rgr_opt} ${fl_out[${var_idx}]} ${fl_rgr[${var_idx}]}"
 		if [ "${mdl_typ}" = 'mpas' ]; then
 		    cmd_rgr[${var_idx}]="${cmd_mpi[${var_idx}]} ncremap -C -u .pid${spt_pid}.split.${var_idx}.tmp -P mpas -t ${thr_nbr} -m ${rgr_map} -i ${fl_out[${var_idx}]} -o ${fl_rgr[${var_idx}]}"
 		fi # !mdl_typ
@@ -1517,6 +1570,14 @@ if [ "${sbs_flg}" = 'Yes' ]; then
 		    done # !pid_idx
 		fi # !bch_flg
 	    fi # !par_typ
+
+	    if [ "${no_ntv_tms}" = 'Yes' ]; then
+		# Omit native-grid split timeseries by moving fl_rgr to fl_out
+		for ((var_idx=0;var_idx<var_nbr;var_idx++)); do
+		    /bin/mv -f ${fl_rgr[${var_idx}]} ${fl_out[${var_idx}]}
+		done # !var_idx
+	    fi # !no_ntv_tms
+
 	fi # !rgr_map
 	
     done # !sgm_idx
@@ -1595,7 +1656,6 @@ if [ "${clm_flg}" = 'Yes' ] && [ "${clm_md}" = 'dly' ]; then
     let srd=${dpy}*${tpd_out}
     drn=${tpd_out}
     
-    # fxm stormy
     yyyy_srt=`printf "%04d" ${yr_srt}`
     yyyy_end=`printf "%04d" ${yr_end}`
     clm_idx=0
@@ -1604,10 +1664,16 @@ if [ "${clm_flg}" = 'Yes' ] && [ "${clm_md}" = 'dly' ]; then
 	for day in `seq 1 ${dpm[${mth}]}`; do
 	    DD=`printf "%02d" ${day}`
 	    fl_out[${clm_idx}]="${drc_out}/${out_nm}_${yyyy_srt}${MM}${DD}_${yyyy_end}${MM}${DD}_climo.nc"
+	    fl_cat[${clm_idx}]="${drc_out}/${out_nm}_${yyyy_srt}${MM}${DD}_${yyyy_end}${MM}${DD}_ncrcat.nc"
 	    fl_rgr[${clm_idx}]="${fl_out[${clm_idx}]/${drc_out}/${drc_rgr}}"
 	    tm_srt="${yyyy_srt}-${MM}-${DD} 00:00:00"
 	    tm_end="${yyyy_end}-${MM}-${DD} 23:59:59"
-	    cmd_clm[${clm_idx}]="${cmd_mpi[${clm_idx}]} ncra -O ${nco_opt} ${gaa_sng} -d time,'${tm_srt}','${tm_end}',${srd},${drn} ${fl_all} -p ${drc_in} ${fl_out[${clm_idx}]}"
+	    if [ ${tpd_out} -eq 1 ]; then
+		cmd_clm[${clm_idx}]="${cmd_mpi[${clm_idx}]} ncra -O ${nco_opt} ${gaa_sng} -d time,'${tm_srt}','${tm_end}',${srd},1 -p ${drc_in} ${fl_all} ${fl_out[${clm_idx}]}"
+	    else
+		# 20170619: Diurnal mode fxm is really slow
+		cmd_clm[${clm_idx}]="${cmd_mpi[${clm_idx}]} ncrcat -O ${nco_opt} ${gaa_sng} -d time,'${tm_srt}','${tm_end}',${srd},${drn} -p ${drc_in} ${fl_all} ${fl_cat[${clm_idx}]};/bin/rm -f ${fl_out[${clm_idx}]};for srt in `seq 0 $((tpd_out-1))`; do ncra --rec_apn -d time,\${srt},,${tpd_out} ${nco_opt} ${gaa_sng} ${fl_cat[${clm_idx}]} ${fl_out[${clm_idx}]};done;/bin/rm -f ${fl_cat[${clm_idx}]}"
+	    fi # !tpd
 	    let clm_idx=${clm_idx}+1
 	done # !day
     done # !mth

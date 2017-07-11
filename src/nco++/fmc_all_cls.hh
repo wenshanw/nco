@@ -77,11 +77,13 @@ public:
     var_sct *fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker);
 };
 
+
 //Aggregate Functions /***************************************/
 class agg_cls: public vtl_cls {
 private:
-  enum{ PAVG ,PAVGSQR , PMIBS, PMABS, PMEBS, PMAX ,PMIN ,PRMS,
-	PRMSSDN, PSQRAVG, PTTL};
+  /* we want the enums to be exactly identical to the values of nco_op_typ */
+  enum{ PAVG=nco_op_avg ,PAVGSQR=nco_op_avgsqr , PMIBS=nco_op_mibs, PMABS=nco_op_mabs, PMEBS=nco_op_mebs, PMAX=nco_op_max ,PMIN=nco_op_min ,PRMS=nco_op_rms,
+	PRMSSDN=nco_op_rmssdn, PSQRAVG=nco_op_sqravg, PTTL=nco_op_ttl, PTABS=nco_op_tabs};
   bool _flg_dbg;
 public:
   agg_cls(bool flg_dbg);
@@ -91,13 +93,20 @@ public:
 //Utility Functions /****************************************/
 class utl_cls: public vtl_cls {
 private:
-  enum {SET_MISS,CH_MISS,DEL_MISS,GET_MISS,NUM_MISS,HAS_MISS, RAM_WRITE,RAM_DELETE};
+  enum {SET_MISS,CH_MISS,DEL_MISS,GET_MISS,NUM_MISS,HAS_MISS, RAM_WRITE,RAM_DELETE, MASK_MISS,LINEAR_FILL_MISS, SIMPLE_FILL_MISS, WEIGHT_FILL_MISS};
    bool _flg_dbg;
 public:
   utl_cls(bool flg_dbg);
   var_sct *fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker);
   var_sct *is_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker);  
-  var_sct *get_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker);  
+  var_sct *get_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker);
+    var_sct *mask_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker);
+  var_sct *fill_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker);
+  var_sct *linear_fill_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker);
+  int simple_fill(var_sct *var, void* msk_vp);
+  int weight_fill(var_sct *var, void* msk_vp, double *lat, double *lon);
+  double point2point(double lat1,double lon1,double lat2, double lon2);
+
 };
 
 //Basic Functions /****************************************/

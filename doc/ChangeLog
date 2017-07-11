@@ -1,8 +1,481 @@
+2017-07-09  Charlie Zender  <zender@uci.edu>
+
+	* Add SHA256 value to homepage
+
+2017-07-02  Charlie Zender  <zender@uci.edu>
+
+	* ncremap: pass fl_fmt -3,-4,-5,-6,-7 options
+
+2017-06-23  Charlie Zender  <zender@uci.edu>
+
+	* nco_rgr.c avoid abort() when nco_rgr_map() gets undefined (e.g., regional curvilinear) lat grid
+
+2017-06-21 Henry Butowsky  <henryb@hush.com>
+
+	* --cll_mth feature not working correctly so turned-off by default in ncap2.cc
+
+2017-06-20  Charlie Zender  <zender@uci.edu>
+
+	* Extend ESMF_weight_only section
+
+	* Fix false-positive regression with ncwa #5
+
+	* Clean-up compiler warnings and CEWIs on Linux
+
+	* ncclimo clean-up ncrcat files in diurnal mode
+
+	* About to work on ncwa mask bug
+
+	* NCO 4.6.8-alpha03 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.8-alpha03 final changes';git push
+	git tag -a 4.6.8-alpha03 -m 'ncap2 cnk, ncclimo diurnal, -W wgt_opt bug, NorESM rgr';git push --tags
+
+2017-06-19  Charlie Zender  <zender@uci.edu>
+
+	* Diurnal daily climos appear to work, though slowly
+
+	* ncclimo: experiment with tpd for diurnal daily climos
+
+2017-06-15 Henry Butowsky  <henryb@hush.com>
+
+	* Modify nco_cnk_sz_set_trv() "final safety check" so if dim_sz != 0L then cnk_sz<=dim_sz
+
+2017-06-14  Charlie Zender  <zender@uci.edu>
+
+	* Implement stubs to handle ERWG 7.1+ --weight_only map-files
+
+	* Fix 4.6.7 ncremap bug where -W wgt_opt was ignored
+
+	* Allow compression with UGRID output
+
+2017-06-13  Charlie Zender  <zender@uci.edu>
+
+	* Make dt_fmt automatically set PRN_CLN_LGB and obviate redundant --cal
+
+2017-06-12  Charlie Zender  <zender@uci.edu>
+
+	* Apply temporary fix whenever cnk_sz == 0L, period
+
+2017-06-11  Charlie Zender  <zender@uci.edu>
+
+	* Temporary fix to TODO nco1137 ncwa chunking fails with --rdd reported by Joy 20170605
+	dmn_cmn[] contains zero for some dimensions with --rdd, so set minimum cnk_sz to 1
+
+2017-06-09  Charlie Zender  <zender@uci.edu>
+
+	* Fix CF dimension inferral algorithm to correctly count coordinates
+
+	* Add lat_nm_in=j, lon_nm_in=i to look-up table for NorESM1 and similar CMIP5 grids
+
+2017-06-08  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.8-alpha02 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.8-alpha02 final changes';git push
+	git tag -a 4.6.8-alpha02 -m 'ncap2 mabs(), CDL dt_fmt, SUSE, --rnr_thr, SGS';git push --tags
+
+	* Rename and re-order cdl_fmt_tm to dt_fmt
+
+2017-06-07 Henry Butowsky  <henryb@hush.com>
+
+	* Aggregate operations mibs(), mebs(), mabs() now work correctly in ncap2
+
+2017-06-06  Charlie Zender  <zender@uci.edu>
+
+	* Merged Daniel Neumann's autoconf patch for SUSE directory structure
+
+2017-06-04  Charlie Zender  <zender@uci.edu>
+
+	* User-specified --rnr_thr='off' turns-off renormalization
+
+	* User-specified --rnr_thr overrides default 0.0 in MPAS-mode
+
+2017-06-02  Charlie Zender  <zender@uci.edu>
+
+	* Invoking --sgs_frc, --sgs_msk, or --sgs_nrm automatically triggers SGS-mode
+
+2017-06-01  Charlie Zender  <zender@uci.edu>
+
+	* Patch for NUL = '\0' != NULL errors in ncap2 supplied by Manfred Schwarb
+
+	* ncclimo add clm_md synonyms: dly=daily,day,doy  ann=annual,yearly,year
+
+2017-05-30  Charlie Zender  <zender@uci.edu>
+
+	* Warn when ncclimo/ncremap and binaries are from different directories
+
+	* Eliminate false positives from warnings about N-to-S grids
+
+	* Fix ncks regress test #49 --mk_rec_dmn false negative by adding --no_frm_trm option
+
+2017-05-26  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.8-alpha01 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.8-alpha01 final changes';git push
+	git tag -a 4.6.8-alpha01 -m 'Same as 4.6.7 except for version';git push --tags
+
+	* NCO 4.6.7 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.7 final changes';git push
+	git tag -a 4.6.7 -m 'ncap2 in-fill, MTA flags, ERWG rgn hints, SGS, ncremap re-org, ncatted nc4 fll_val';git push --tags
+
+	* MSVC fixes, version fix
+
+	* False alarm release
+
+	* Document -P alm, clm, cice
+
+2017-05-25  Charlie Zender  <zender@uci.edu>
+
+	* Add ncremap -P alm, clm, cice options for SGS to implement model-specific idiosyncratic conventions
+
+2017-05-24  Charlie Zender  <zender@uci.edu>
+
+	* Add sub-grid fraction normalization option sgs_nrm for CICE
+
+	* Fix compiler warnings from recent code
+
+2017-05-23  Charlie Zender  <zender@uci.edu>
+
+	* NCO_NETCDF4_AND_FILLVALUE rides again! Fix bug reported by Kyle Wilcox:
+	Adding _FillValue to written variable works in 4.5.5, 4.6.1, wipes whole variable in 4.6.6 :)
+
+	* Add NEMO (IPSL version) coordinates to regridder database
+
+	* Improve CF-inferral algorithm to handle coordinate attributes with > 2 names
+
+2017-05-22  Charlie Zender  <zender@uci.edu>
+
+	* Warn when grid to infer runs N-S instead of S-N
+
+	* Infer NCEP NCAR Reanalysis 1 as Gaussian grid, requires relaxing weight tolerance to < 1.0e-6
+
+2017-05-20  Charlie Zender  <zender@uci.edu>
+
+	* Searched unsuccessfully for tri-pole grid production routines
+
+	* Realized CICE grid is displaced pole or tri-pole. Abandoned empirical inferral routine due to fold nasti-ness at pole.
+
+2017-05-19  Charlie Zender  <zender@uci.edu>
+
+	* CICE grid partially inferred over masked cells
+
+	* NCO 4.6.7-beta02 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.7-beta02 final changes';git push
+	git tag -a 4.6.7-beta02 -m 'ncap2 in-fill, MTA flags, ERWG rgn hints, SGS, ncremap rationalization';git push --tags
+
+	* Add stubs to infer entire grid from regional rectangular CICE in curvilinear format with masked land
+
+	* Add fl_fmt=CDF5 options to documentation
+
+	* Re-run test cases, fix rationalization bugs, improve documentation...
+
+2017-05-18  Charlie Zender  <zender@uci.edu>
+
+	* Document new ncremap options
+
+	* Rationalize ncremap options. Changes to -a -E -T -w -W -U.
+
+	* NCO 4.6.7-beta01 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.7-beta01 final changes';git push
+	git tag -a 4.6.7-beta01 -m 'ncap2 in-fill, MTA flags, ERWG rgn hints, SGS';git push --tags
+
+2017-05-17  Charlie Zender  <zender@uci.edu>
+
+	* Document --rgn_dst/src, -r rgr_thr
+
+	* Add ncremap -r rgr_thr option
+
+	* Make mod04 automatically unpack
+
+	* Change --hnt_dst/src options to --rgn_dst/src flags
+
+	* Add ncremap -P mod04 and make -a tempest synonymous with -w tempest
+
+2017-05-16  Charlie Zender  <zender@uci.edu>
+
+	* Add ncremap --hnt_dst/src options to manually specify	'--dst_regional' for supplied (not inferred) grids
+
+2017-05-15  Charlie Zender  <zender@uci.edu>
+
+	* Allow ncatted to write empty NC_STRING
+
+2017-05-13 Henry Butowsky  <henryb@hush.com>
+
+	* ncap2 add "missing()" and synonym "mask_miss()" to utl_cls()
+	It creates 0/1 array for expression (var == var_miss), returned type same as input type
+
+2017-05-12  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.7-alpha06 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.7-alpha06 final changes';git push
+	git tag -a 4.6.7-alpha06 -m 'Polish and document SGS option';git push --tags
+
+	* Change ncremap pdq_typ to prc_typ to reflect expanded role
+
+	* Document SGS algorithm
+
+	* Disallow SGS source grid inferral due to biases from latitude great/small circle assumptions
+
+2017-05-11  Charlie Zender  <zender@uci.edu>
+
+	* Use dgn_area/diagnose_area flag if ncremap SGS calls nco_grd_nfr()
+
+2017-05-10  Charlie Zender  <zender@uci.edu>
+
+	* Diagnose bad option values in nco_rgr_ini() before calling abort()
+
+	* Re-diagnose inferred area if input area variable has and uses missing values
+
+	* Always infer lat_ntf[0]=-90.0, lat_ntf[lat_nbr]=90.0 for Gaussian grids
+
+2017-05-09  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.7-alpha05 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.7-alpha05 final changes';git push
+	git tag -a 4.6.7-alpha05 -m 'ncremap with sub-gridscale data (-P sgs) works';git push --tags
+
+2017-05-08  Charlie Zender  <zender@uci.edu>
+
+	* Improve verbosity for debugging and generalize names away from ALM/CLM to SGS for "sub-gridcell", and also "fractional area"
+
+	* Allow ncremap to infer source grid when regridding "fractional area" files (not fully working)
+
+2017-05-07  Charlie Zender  <zender@uci.edu>
+
+	* Prevent ncclimo from inadavertently incorrectly (without SGS) regridding ALM/CLM files
+
+	* ncremap move ALM files from homedir to intermediate location
+
+	* Add "none" as synonym for unchunk policy
+
+2017-05-05  Charlie Zender  <zender@uci.edu>
+
+	* Delete missing values with ncap2, eliminate corresponding ncatted step for almu in ncremap
+
+2017-05-04  Charlie Zender  <zender@uci.edu>
+
+	* Revert and allow landmask to be regridded since errors less than not having it at all:
+	T42 CLM with almu has global-mean errors of ~0.005 W/m2 and ~0.01 K (why not better? float landfrac may propagate errors)
+	T42 CLM without almu but with almu landmask has global-mean errors of ~2 W/m2 and ~2 K
+	T42 CLM without almu and with straight regridder land mask has global-mean errors of ~1.5 W/m2 and ~0 K
+
+2017-05-03  Charlie Zender  <zender@uci.edu>
+
+	* Add landmask to regridder exclusion list to keep ALM/CLM sane (users can re-derive it from landfrac)
+
+	* Re-formulate mask conversion in nco_grd_nfr() so output mask is 1 wherever input mask is non-zero and non-missing, and is otherwise 0
+
+2017-05-02  Charlie Zender  <zender@uci.edu>
+
+	* Add ALM/CLM unstructured grid ("almu") stubs to ncremap
+
+	* NCO 4.6.7-alpha04 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.7-alpha04 final changes';git push
+	git tag -a 4.6.7-alpha04 -m 'Version 4.6.7-alpha04 new features: MTA flags, ncap2 in-fill, MSVC';git push --tags
+
+	* Fix Windows MSVC C++ compilation issues introduced in 4.6.6
+
+	* Henry added simple_fill_miss() weighted_fill_miss() to ncap2
+
+2017-05-01  Charlie Zender  <zender@uci.edu>
+
+	* Alter docs and ncclimo/ncremap to use MTA flag-handling
+
+	* Merge Jerome's MTA flag-handling
+
+2017-04-28  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.7-alpha03 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.7-alpha03 final changes';git push
+	git tag -a 4.6.7-alpha03 -m 'Version 4.6.7-alpha03 new features: msk_src,msk_dst,msk_out,ugrid;';git push --tags
+
+	* Document mask features
+
+	* Add --msk_out to ncremap
+
+	* Generalize nco_grd_nfr() to handle msk_rnk_nbr > grd_rnk_nbr so, e.g., SST(time,lat,lon) works
+
+	* Fix numerous other nco_grd_nfr() errors in new mask code
+
+	* Fix uninitialized memory errors caught by valgrind in recent nco_grd_nfr() grid-span code
+
+2017-04-27  Charlie Zender  <zender@uci.edu>
+
+	* Add mask_b = mask_out = dst_grid_imask to regridded output when flg_msk_out == True
+
+2017-04-26  Charlie Zender  <zender@uci.edu>
+
+	* Add ugrid_fl option to direct ncremap to infer UGRID from source input file
+
+	* Regridder can now infer masks from missing values of any variable
+
+	* Add msk_src and msk_dst options to specify mask-template variables to ncremap
+
+2017-04-25  Charlie Zender  <zender@uci.edu>
+
+	* Add clc.cdl, nsm.cdl, and trj.cdl for EarthCube CF2 project
+
+	* Change "grid" argument to "scrip" to distinguish it from UGRID
+
+2017-04-24  Charlie Zender  <zender@uci.edu>
+
+	* Document UGRID
+
+	* NCO 4.6.7-alpha02 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.7-alpha02 final changes';git push
+	git tag -a 4.6.7-alpha02 -m 'Version 4.6.7-alpha02 new features: auto-detect regional grids for ERWG';git push --tags
+
+	* nco_grd_nfr() always diagnose grid extent, nco_grd_xtn, even when corners unknown
+
+	* nco_grd_nfr() writes hint file ncremap_tmp_hnt_[dst/src].txt with regional ERWG flags
+
+2017-04-21  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.7-alpha01 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.7-alpha01 final changes';git push
+	git tag -a 4.6.7-alpha01 -m 'Version 4.6.7-alpha01 new features: Same as 4.6.6';git push --tags
+
+	* Add autoconf/configure stub to use same git-based version as bld/Makefile
+
+	* NCO 4.6.6 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.6 final changes';git push
+	git tag -a 4.6.6 -m 'Version 4.6.6 new features: no_cll_msr,no_frm_trm,no_stg_grd,hsi,lst_rnk_ge2,UGRID 2D,JSON shape,OMI';git push --tags
+
+2017-04-20  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.6-alpha08 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.6-alpha08 final changes';git push
+	git tag -a 4.6.6-alpha08 -m 'Version 4.6.6-alpha08 new features: Document, implement ncremap and ncclimo --no_cll_msr, --no_frm_trm, --no_stg_grd switches';git push --tags
+
+	* Separate eps_rlt_wrt_thr = 3.0e-13 threshold to write frac_b to regridded files
+
+	* Document ncremap and ncclimo --no_cll_msr, --no_frm_trm, --no_stg_grd
+
+	* Document ncclimo --no_ntv_tms
+
+2017-04-17  Charlie Zender  <zender@uci.edu>
+
+	* Remove annoying quotation marks from version in nco_vrs_prn()
+
+	* Clarify conditions for outputting frac_b in regridder
+
+2017-04-16  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.6-alpha07 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.6-alpha07 final changes';git push
+	git tag -a 4.6.6-alpha07 -m 'Version 4.6.6-alpha07 new features: Coordinate --cll_msr, --frm_trm, --no_stg_grd, --area_out in regridder and splitter';git push --tags
+
+	* Link --cll_msr, --frm_trm options to ncra, ncks front-ends
+
+	* Expose --no_cll_msr, --no_frm_trm, --no_stg_grd options to ncclimo users
+
+2017-04-15  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.6-alpha06 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.6-alpha06 final changes';git push
+	git tag -a 4.6.6-alpha06 -m 'Version 4.6.6-alpha06 new features: fix which hsi; lst_rnk_ge2 generic; valid_min/max; rgr no_stg splitter';git push --tags
+
+2017-04-14  Charlie Zender  <zender@uci.edu>
+
+	* Splitter omits staggered FV grid by default when regridding
+
+	* Regridder implement no_stg flag to omit staggered FV grid information
+
+	* Regridder add valid_min/max to lat/lon
+
+	* --lst_rnk_ge2 successfully eliminates grid variables in generic cases
+
+	* Define is_crd_lk_var, is_rec_lk_var to avoid conflicting definitions of is_crd_var, is_rec_var
+
+	* Fix hsi discovery for generic case with `which hsi`
+
+	* NCO 4.6.6-alpha05 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.6-alpha05 final changes';git push
+	git tag -a 4.6.6-alpha05 -m 'Version 4.6.6-alpha05 new features: ncremap front-end from ncclimo; --cal finds climatology, bounds variables; mmr documentation; UGRID 2D works; hsi locations; HPSS works';git push --tags
+
+	* Add characteric coordinates for edges/faces to UGRID 2D output
+
+	* Hard-code Cori/Edison and Rhea hsi locations
+
+2017-04-13  Charlie Zender  <zender@uci.edu>
+
+	* Fix nco_grd_nfr() to infer 2D grids written by nco_grd_mk()
+
+	* Better annotate skeleton files in nco_grd_mk()
+
+	* Exit with clear message instead of core dump on missing files on HPSS systems with hsi command
+
+	* Replace ncremap input file front-end with code from ncclimo
+
+	* Clarify effects of compression on expected memory use in documentation
+
+2017-04-11  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.6-alpha04 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.6-alpha04 final changes';git push
+	git tag -a 4.6.6-alpha04 -m 'Version 4.6.6-alpha04 new features: ncap2 cell_methods fix; 2-D UGRID; lst_rnk_ge2 time_bnds; nfr msk fix; neareststod';git push --tags
+
+	* Quiet CONVENTIONS attribute printing
+
+	* Verified that ncremap mask changes produce expected results with neareststod
+	neareststod/dtos uses nearest value, regardless of whether that value is valid
+	Accurate interpolation of ocean values across continents requires custom algorithm
+
+	* Noted that is_crd_var member of trv structures has been defined incorrectly since birth
+	Member should have been named is_rec_crd for accuracy and consistency with older NCO
+
+	* ncremap nco_grd_nfr() tolerates files with mask and without area variables
+
+	* Hardwire exclusion of area, lat_bnds, lon_bnds into lst_rnk_ge2 so splitter works on NCO-regridded files
+
+2017-04-10  Charlie Zender  <zender@uci.edu>
+
+	* ncremap nco_grd_nfr() always writes mask data when input file has mask variable
+	Until today, nco_grd_nfr() would always define mask variable but only write data when input file had mask
+
+	* ncremap now invokes neareststod when requested, not nearestdtos (doh!)
+
+2017-04-10 Henry Butowsky  <henryb@hush.com>
+
+	* Refactor nco_msa_rcr_clc() to use less memory and run faster for --msa_usr_rdr
+
+2017-04-09  Charlie Zender  <zender@uci.edu>
+
+	* Add Cell_[Along/Across]_Swath_mod04 to dimension database for	ncl_convert2nc compatibility
+
+	* Hardwire exclusion of time_bnds into lst_rnk_ge2
+
+	* Complete minimal UGRID metadata
+
+	* Fix mask type conversion in nco_grd_nfr()
+
+2017-04-08  Charlie Zender  <zender@uci.edu>
+
+	* Add stubs to create UGRID grids from nco_grd_nfr()
+
+2017-04-05  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.6-alpha03 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.6-alpha03 final changes';git push
+	git tag -a 4.6.6-alpha03 -m 'Version 4.6.6-alpha03 new features: ncap2 atoi(), atof(), cell_methods; nco_grd_nfr OMI DOMINO; lst_rnk_ge2; JSON dims->shape';git push --tags
+
+2017-04-01  Charlie Zender  <zender@uci.edu>
+
+  	* Allow nco_grd_nfr() to read grid corners in non-canonical (crn_nbr,lat_nbr,lon_nbr) and permute to canonical (lat_nbr,lon_nbr,crn_nbr) order (for OMI DOMINO)
+
+2017-03-30  Charlie Zender  <zender@uci.edu>
+
+	* Add HINT when nco_grd_nfr() cannot find coordinates
+
+2017-03-30 Henry Butowsky  <henryb@hush.com>
+
+	* Add cell_methods CF convention to aggregate operations in ncap2 agg_cls()
+	 Default is on, toggled by --cll_mth, --cell_method, --no_cell_method, --no_cll_mth
+
 2017-03-26  Charlie Zender  <zender@uci.edu>
 
 	* ncclimo: preliminary support for --lst_rnk_ge2
 
-	* Splitter infrastructure: ncks --lst_rnk_ge2 prints extraction list of N>=D variables and exits
+	* Splitter infrastructure: ncks --lst_rnk_ge2 prints extraction list of R>=2 variables and exits
 
 2017-03-24  Charlie Zender  <zender@uci.edu>
 

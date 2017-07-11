@@ -100,8 +100,6 @@ nco_prn_att /* [fnc] Print all attributes of single variable or group */
   const nco_bool CDL_OR_TRD=prn_flg->cdl || prn_flg->trd; /* [flg] CDL or Traditional output */
   const nco_bool CDL_OR_JSN_OR_XML=prn_flg->cdl || prn_flg->jsn || prn_flg->xml; /* [flg] CDL or JSON or XML output */
 
-  //nco_bool has_fll_val=False; /* [flg] Has _FillValue attribute */
-
   nco_string sng_val; /* [sng] Current string */
 
   prn_ndn=prn_flg->ndn;
@@ -332,9 +330,17 @@ nco_prn_att /* [fnc] Print all attributes of single variable or group */
       att[idx].nm=(char *)nco_malloc(NC_MAX_NAME*sizeof(char));
       (void)nco_inq_attname(grp_id,var_id,idx,att[idx].nm);
       (void)nco_inq_att(grp_id,var_id,att[idx].nm,&att[idx].type,&att[idx].sz);
+
       /* Allocate enough space to hold attribute */
-      att[idx].val.vp=(void *)nco_malloc(att[idx].sz*nco_typ_lng(att[idx].type));
-      (void)nco_get_att(grp_id,var_id,att[idx].nm,att[idx].val.vp,att[idx].type);
+      att[idx].val.vp = (void *) nco_malloc(att[idx].sz * nco_typ_lng(att[idx].type));
+      (void) nco_get_att(grp_id, var_id, att[idx].nm, att[idx].val.vp, att[idx].type);
+
+      /* an NC_CHAR can have zero length size maybe others ? -create with a single FILL value */
+      if(att[idx].sz==0){
+        att[idx].val=nco_mss_val_mk(att[idx].type);
+        att[idx].sz=1;
+      }
+
     } /* idx == att_nbr */
     
     /* Copy value to avoid indirection in loop over att_sz */
@@ -396,7 +402,7 @@ nco_prn_att /* [fnc] Print all attributes of single variable or group */
 	  if(strstr(att[idx].val.cp,spr_sng)) spr_sng=spr_xml_chr_bck;
 	if(att[idx].type == NC_STRING){
 	  for(lmn=0;lmn<att_sz;lmn++){
-	    if(strstr(att[idx].val.sngp[lmn],spr_sng)){
+	    if(att[idx].val.sngp[lmn] && strstr(att[idx].val.sngp[lmn],spr_sng)){
 	      spr_sng=spr_xml_chr_bck;
 	      break;
 	    } /* endif */
@@ -462,6 +468,7 @@ nco_prn_att /* [fnc] Print all attributes of single variable or group */
 	    sng_lngm1=sng_lng-1UL;
 	    /* Worst case is printable strings are six or four times longer than unformatted, i.e., '\"' == "&quot;" or '\\' == "\\\\" */
 	    sng_val_sng_cpy=sng_val_sng=(char *)nco_malloc(6*sng_lng+1UL);
+
 	  } /* endif first element of string array */
 	  /* New string begins each element where penultimate dimension changes */
 	  if(lmn%sng_lng == 0L){
@@ -503,7 +510,8 @@ nco_prn_att /* [fnc] Print all attributes of single variable or group */
     case NC_STRING:
       for(lmn=0;lmn<att_sz;lmn++){
 	sng_val=att[idx].val.sngp[lmn];
-	sng_lng=strlen(sng_val);
+	/* In strict CDL an NC_STRING null is indictaed by NIL, for now we output an empty string */
+	if(sng_val) sng_lng=strlen(sng_val); else sng_lng=0L;
 	sng_lngm1=sng_lng-1UL;
 	if(CDL||XML||JSN){
 	  /* Worst case is printable strings are six or four times longer than unformatted, i.e., '\"' == "&quot;" or '\\' == "\\\\" */
@@ -824,7 +832,6 @@ nco_typ_fmt_sng /* [fnc] Provide sprintf() format string for specified type */
   return (char *)NULL;
 } /* end nco_typ_fmt_sng() */
 
-
 void
 nco_prn_var_val_cmt /* 0 print to stdout var values as CDL comment (delimited by comma ) */
 (var_sct *var,          /* I [sct] variable to print */
@@ -862,7 +869,7 @@ nco_prn_var_val_cmt /* 0 print to stdout var values as CDL comment (delimited by
   #endif /* !NCO_HAVE_REGEX_FUNCTIONALITY */
 
   /* Print type in English in prefix text */
-  if(var->type == NC_STRING) (void)fprintf(stdout,"calendar format: "); else (void)fprintf(stdout,"%s value%s : ",cdl_typ_nm(var->type),(var->sz > 1 ? "s":""));
+  if(var->type == NC_STRING) (void)fprintf(stdout,"calendar format: "); else (void)fprintf(stdout,"%s value%s: ",cdl_typ_nm(var->type),(var->sz > 1 ? "s":""));
 
   for(lmn=0;lmn<sz;lmn++){
 
@@ -895,8 +902,8 @@ nco_prn_var_val_cmt /* 0 print to stdout var values as CDL comment (delimited by
        } /* end switch */
 
     } /* !is_mss_val */
-    if(lmn<sz-1)
-      (void)fprintf(stdout,", ");
+
+    if(lmn<sz-1L) (void)fprintf(stdout,", ");
 
   } /* end loop over element */
 
@@ -904,12 +911,7 @@ nco_prn_var_val_cmt /* 0 print to stdout var values as CDL comment (delimited by
 
   if(fmt_sng_mss_val) fmt_sng_mss_val=(char *)nco_free(fmt_sng_mss_val);
 
-
-
 }/* end nco_prn_var_val_cmt() */
-
-
-
 
 void
 nco_prn_var_val_lmt /* [fnc] Print variable data */
@@ -1487,11 +1489,10 @@ nco_prn_var_dfn                     /* [fnc] Print variable metadata */
     if(prn_flg->PRN_VAR_DATA || prn_flg->PRN_VAR_METADATA) (void)fprintf(stdout,"%s>\n",dmn_sng); else (void)fprintf(stdout,"%s />\n",dmn_sng);
   } /* !xml */
 
-  /* add a comma as next in queue is the atts - nb DONT LIKE THIS */
+  /* Add comma as next in queue is the atts - NB: DONT LIKE THIS */
   if(prn_flg->jsn){
-    if(nbr_dim > 0)
-       (void)fprintf(stdout,"%s\n",dmn_sng); 
-    /* print netCDF type - use same names as XML */ 
+    if(nbr_dim > 0) (void)fprintf(stdout,"%s\n",dmn_sng); 
+    /* Print netCDF type with same names as XML */ 
     (void)fprintf(stdout,"%*s\"type\": \"%s\"",prn_ndn+prn_flg->sxn_fst,spc_sng,jsn_typ_nm(var_typ));
   } /* !xml */
 
@@ -1594,7 +1595,6 @@ nco_prn_var_val_trv /* [fnc] Print variable data (GTT version) */
   int rcd_prn;
   int prn_ndn=0; /* [nbr] Indentation for printing */
   int val_sz_byt=int_CEWI; /* [nbr] Type size */
-
   lmt_msa_sct **lmt_msa=NULL_CEWI; /* [sct] MSA Limits for only for variable dimensions  */          
   lmt_sct **lmt=NULL_CEWI; /* [sct] Auxiliary Limit used in MSA */
 
@@ -1610,7 +1610,7 @@ nco_prn_var_val_trv /* [fnc] Print variable data (GTT version) */
   long var_dsk; /* [nbr] Variable index relative to disk */
   long var_szm1;
 
-
+  nco_cln_typ lmt_cln = cln_std;   /* calendar type - for time@units */
   const nco_bool CDL=prn_flg->cdl; /* [flg] CDL output */
   const nco_bool XML=prn_flg->xml; /* [flg] XML output */
   const nco_bool TRD=prn_flg->trd; /* [flg] Traditional output */
@@ -1621,7 +1621,7 @@ nco_prn_var_val_trv /* [fnc] Print variable data (GTT version) */
   nco_bool flg_malloc_unit_crd=False; /* [flg] Allocated memory for coordinate units string */
   nco_bool flg_malloc_unit_var=False; /* [flg] Allocated memory for variable units string */
   nco_bool unit_cln_crd=False; /* [flg] Coordinate has calendar units */
-  nco_bool unit_cln_var=False; /* [flg] Variable has calendar units */
+  //nco_bool unit_cln_var=False; /* [flg] Variable has calendar units */
 
   nco_string sng_val; /* [sng] Current string */
 
@@ -1679,71 +1679,61 @@ nco_prn_var_val_trv /* [fnc] Print variable data (GTT version) */
   /* Refresh missing value attribute, if any */
   var->has_mss_val=nco_mss_val_get(var->nc_id,var);
 
-
-
-  unit_sng_var = nco_lmt_get_udu_att(grp_id,var->id,"units");
-  if( unit_sng_var && strlen(unit_sng_var)) {
-    flg_malloc_unit_var=True;
-    unit_cln_var=nco_cln_chk_tm(unit_sng_var);
-  }
-
-  if(unit_cln_var && ( prn_flg->PRN_CLN_LGB || nco_dbg_lvl_get()== nco_dbg_std)) {
-
-    var_sct *var_tmp=NULL_CEWI;
-    nco_cln_typ lmt_cln = cln_std;
+  /* Only TRD and CDL need units at this stage and have this flag set */
+  if(prn_flg->PRN_DMN_UNITS) {
+    int cf_var_id;
     char *cln_sng = (char *) NULL;
+    var_sct *var_tmp=NULL_CEWI;
+    var_sct *var_swp=NULL_CEWI;
 
-    var_tmp=nco_var_dpl(var);
+    if(!nco_is_spc_in_cf_att(grp_id, "bounds", var->id, &cf_var_id) &&
+       !nco_is_spc_in_cf_att(grp_id, "climatology", var->id, &cf_var_id))
+      cf_var_id = var->id;
 
-    //(void)fprintf(stderr,"%s: %s reports var \"%s\" has missing value %d\n",nco_prg_nm_get(),fnc_nm,var.nm,var.has_mss_val);
+    unit_sng_var=nco_lmt_get_udu_att(grp_id, cf_var_id, "units");
+    if(unit_sng_var && strlen(unit_sng_var)){
+      flg_malloc_unit_var = True;
+      //unit_cln_var = nco_cln_chk_tm(unit_sng_var);
 
-    cln_sng = nco_lmt_get_udu_att(grp_id, var->id, "calendar");
-    if (cln_sng)
-      lmt_cln = nco_cln_get_cln_typ(cln_sng);
-    else
-      lmt_cln = cln_std;
+      cln_sng = nco_lmt_get_udu_att(grp_id, cf_var_id, "calendar");
+      if(cln_sng) lmt_cln = nco_cln_get_cln_typ(cln_sng); else lmt_cln=cln_std;
+      if(cln_sng) cln_sng=(char *)nco_free(cln_sng);
+    } 
 
-    var_aux = nco_var_dpl(var);
-    var_aux->val.vp = nco_free(var_aux->val.vp);
+    /* Set default for TRD */
+    if(TRD && flg_malloc_unit_var == False){
+      unit_sng_var=strdup("(no units)");
+      flg_malloc_unit_var=True;
+    }else if(CDL && flg_malloc_unit_var == True){
+      if(prn_flg->PRN_CLN_LGB || nco_dbg_lvl_get()== nco_dbg_std){
+        var_tmp=nco_var_dpl(var);
 
-    if(var_aux->has_mss_val)
-      var_aux->mss_val.vp=nco_free(var_aux->mss_val.vp);
-    var_aux->has_mss_val=False;
+        var_aux = nco_var_dpl(var);
+        var_aux->val.vp = nco_free(var_aux->val.vp);
 
-    nco_var_cnf_typ(NC_STRING, var_aux);
+        if(var_aux->has_mss_val)
+          var_aux->mss_val.vp=nco_free(var_aux->mss_val.vp);
+        var_aux->has_mss_val=False;
 
-    /* nb nco_cln_var_prs modifies var */
-    if (nco_cln_var_prs(unit_sng_var, lmt_cln, 2, var_tmp, var_aux) == NCO_NOERR) {
-      /* swap vars about */
-      if (prn_flg->PRN_CLN_LGB) {
-         var_sct *var_swp;
-          var_swp=var;
-          var=var_aux;
-          var_aux=var_swp;
-      }
+        nco_var_cnf_typ(NC_STRING, var_aux);
 
-    }else{
-      /* nco_cln_var_prs() has failed  */
-      if (var_aux) var_aux = nco_var_free(var_aux);
-    }
+        /* nb nco_cln_var_prs modifies var_tmp and var_aux */
+        if (nco_cln_var_prs(unit_sng_var, lmt_cln, prn_flg->cdl_fmt_dt , var_tmp, var_aux) == NCO_ERR)
+          var_aux = nco_var_free(var_aux);
+        /* swap values about */
+        else if (prn_flg->PRN_CLN_LGB) { var_swp=var;var=var_aux;var_aux=var_swp; }
 
-    if(var_tmp) var_tmp=(var_sct*)nco_var_free(var_tmp);
-    if (cln_sng) cln_sng = (char *) nco_free(cln_sng);
-
-  }
-
-
-  /* need to print units if we are using a timestamp */
-  if(!prn_flg->PRN_DMN_UNITS){
-    unit_sng_var=(char*)nco_free(unit_sng_var);
+        if(var_tmp) var_tmp=(var_sct*)nco_var_free(var_tmp);
+      } /* !PRN_CLN_LGB */
+    } /* !CDL */
+  }else{
     flg_malloc_unit_var=False;
     unit_sng_var=&nul_chr;
-  }
+  } /* !TRD */
 
   if(var->has_mss_val) val_sz_byt=nco_typ_lng(var->type);
 
-  if(var->nbr_dim)
-  { 
+  if(var->nbr_dim){ 
     /* Allocate space for dimension information */
     dim=(dmn_sct *)nco_malloc(var->nbr_dim*sizeof(dmn_sct));
     /* Ensure val.vp is NULL-initialized (and thus not inadvertently free'd) when PRN_DMN_IDX_CRD_VAL is False */
@@ -1766,12 +1756,11 @@ nco_prn_var_val_trv /* [fnc] Print variable data (GTT version) */
       for(int jdx=idx;jdx<var->nbr_dim;jdx++)
         mod_map_cnt[idx]*=lmt_msa[jdx]->dmn_cnt;
 
-    /* create mod_map_rv_cnt */ 
+    /* Create mod_map_rv_cnt */ 
     long rsz=1L;
     for(int jdx=var->nbr_dim-1;jdx>=0;jdx--)
-        mod_map_rv_cnt[jdx]=rsz*=lmt_msa[jdx]->dmn_cnt;
-
-  }
+      mod_map_rv_cnt[jdx]=rsz*=lmt_msa[jdx]->dmn_cnt;
+  } /* !var->nbr_dim */
 
   /* Call also initializes var.sz with final size */
   if(prn_flg->md5)
@@ -1782,11 +1771,9 @@ nco_prn_var_val_trv /* [fnc] Print variable data (GTT version) */
     if(nco_pck_dsk_inq(grp_id,var))
       (void)fprintf(stderr,"%s: WARNING will print packed values of variable \"%s\". Unpack first (with ncpdq -U) to see actual values.\n",nco_prg_nm_get(),var_nm);
 
-
   if(prn_flg->dlm_sng) dlm_sng=strdup(prn_flg->dlm_sng); /* [sng] User-specified delimiter string, if any */
 
-
-  if(dlm_sng ){
+  if(dlm_sng){
     /* Print variable with user-supplied dlm_sng (includes nbr_dmn == 0) */
     char *fmt_sng_mss_val=NULL;
 
@@ -1904,7 +1891,12 @@ nco_prn_var_val_trv /* [fnc] Print variable data (GTT version) */
       } /* var.sz */
       (void)fprintf(stdout,">");
     } /* !xml */
-    if(CDL) (void)fprintf(stdout,"%*s%s = ",prn_ndn,spc_sng,nm_cdl);
+    if(CDL) {
+      (void)fprintf(stdout,"%*s%s = ",prn_ndn,spc_sng,nm_cdl);
+      /* pretty printing */
+      if(var->nbr_dim >=2)
+        (void)fprintf(stdout,"\n%*s",prn_ndn,spc_sng);
+    }
     nm_cdl=(char *)nco_free(nm_cdl);
     var_szm1=var->sz-1L;
 
@@ -2038,26 +2030,29 @@ nco_prn_var_val_trv /* [fnc] Print variable data (GTT version) */
         if((var->type == NC_CHAR && lmn%sng_lng == sng_lngm1) || var->type != NC_CHAR)
           (void)fprintf(stdout,"%s",spr_sng);
 
+      /* pretty printing */
+      if(CDL && var->nbr_dim && lmn< var_szm1 && (lmn+1) % lmt_msa[var->nbr_dim-1]->dmn_cnt  ==0)
+        (void)fprintf(stdout,"\n%*s",prn_ndn,spc_sng);
+
       /* if(var.type != NC_CHAR && var.type != NC_STRING ) (void)fprintf(stdout,"%s%s",val_sng,(lmn != var_szm1) ? spr_sng : ""); */
 
     } /* end loop over element */
     rcd_prn+=0; /* CEWI */
 
-    if(CDL) {
+    if(CDL){
       char tmp_sng[100] = {0};
-      if (nco_dbg_lvl_get() >= nco_dbg_std && flg_malloc_unit_var)
+      if(nco_dbg_lvl_get() >= nco_dbg_std && flg_malloc_unit_var)
         (void) sprintf(tmp_sng, "units=\"%s\"", unit_sng_var);
 
-      if (nco_dbg_lvl_get() == nco_dbg_std && var_aux) {
+      if(nco_dbg_lvl_get() == nco_dbg_std && var_aux){
         fprintf(stdout, "; // %s  ", tmp_sng);
-        // print out list of values as a CDL text comment
+        // Print values as CDL text comment
         nco_prn_var_val_cmt(var_aux, prn_flg);
-
-      } else if (tmp_sng[0])
-        (void) fprintf(stdout, " ; // %s\n", tmp_sng);
-      else
+      }else if(tmp_sng[0]){
+        (void)fprintf(stdout, " ; // %s\n", tmp_sng);
+      }else{
         (void) fprintf(stdout, " ; \n");
-
+      }
     }
 
     if(XML) (void)fprintf(stdout,"</values>\n");
@@ -2065,7 +2060,6 @@ nco_prn_var_val_trv /* [fnc] Print variable data (GTT version) */
     if(JSN && var->sz > 1 ) (void)fprintf(stdout,"]");
 
   } /* end if CDL_OR_JSN_OR_XML */
-
 
   if(var->nbr_dim == 0 && !dlm_sng && TRD){
     /* Variable is scalar, byte, or character */
@@ -2126,7 +2120,6 @@ nco_prn_var_val_trv /* [fnc] Print variable data (GTT version) */
   } /* end if variable is scalar, byte, or character */
 
   if(var->nbr_dim > 0 && !dlm_sng && TRD){
-
 
     /* Read coordinate dimensions if required */
     if(prn_flg->PRN_DMN_IDX_CRD_VAL){
@@ -2418,9 +2411,7 @@ lbl_chr_prn:
 
   } /* end if variable has more than one dimension */
 
-
-
-  /* Free value buffer *
+  /* Free value buffer
   if(var->type == NC_STRING)
      //nco_string_lst_free(var.val.sngp,var.sz);
       for(lmn=0;lmn<var->sz;lmn++)
@@ -2429,8 +2420,7 @@ lbl_chr_prn:
   var->val.vp=nco_free(var->val.vp);
 
   var->mss_val.vp=nco_free(var->mss_val.vp);
-  var->nm=(char *)nco_free(var->nm);
-  */
+  var->nm=(char *)nco_free(var->nm); */
 
   if(flg_malloc_unit_crd) unit_sng_crd=(char *)nco_free(unit_sng_crd);
   if(flg_malloc_unit_var) unit_sng_var=(char *)nco_free(unit_sng_var);

@@ -1044,8 +1044,10 @@ nco_xtr_ND_lst /* [fnc] Print extraction list of N>=D variables and exit */
 {
   /* Purpose: Print extraction list of N>=D variables and exit
      Used by ncks to supply arguments to splitter
+     Hence we restrict returned list to non-coordinate record variables
      Usage:
      ncks --lst_rnk_ge2 ~/nco/data/in.nc
+     ncks --lst_rnk_ge2 ~/data/ne30/raw/famipc5_ne30_v0.3_00003.cam.h0.1979-01.nc
      ncks --lst_rnk_ge2 ~/data/ne30/rgr/famipc5_ne30_v0.3_00003.cam.h0.1979-01.nc */
 
   const char fnc_nm[]="nco_xtr_ND_lst()"; /* [sng] Function name */
@@ -1053,13 +1055,34 @@ nco_xtr_ND_lst /* [fnc] Print extraction list of N>=D variables and exit */
   int xtr_nbr_crr=0; /* [nbr] Number of N>=D variables found so far */
   int rnk_xtr=2; /* [nbr] Minimum rank to extract */
 
+  /* 20170414: csz add new definitions is_crd_lk_var and is_rec_lk_var, avoid PVN definitions for sanity */
+  for(unsigned idx_var=0;idx_var<trv_tbl->nbr;idx_var++){
+    trv_sct var_trv=trv_tbl->lst[idx_var];
+    int nc_id; /* [id] File ID */
+    int var_id; /* [id] Variable ID */
+    int grp_id; /* [id] Group ID */
+    nc_id=trv_tbl->in_id_arr[0];
+    if(var_trv.nco_typ == nco_obj_typ_var){
+      (void)nco_inq_grp_full_ncid(nc_id,var_trv.grp_nm_fll,&grp_id);
+      (void)nco_inq_varid(grp_id,var_trv.nm,&var_id);
+      trv_tbl->lst[idx_var].is_crd_lk_var=trv_tbl->lst[idx_var].is_crd_lk_var;
+      if(nco_is_spc_in_cf_att(grp_id,"bounds",var_id,NULL)) trv_tbl->lst[idx_var].is_crd_lk_var=True;
+      if(nco_is_spc_in_cf_att(grp_id,"cell_measures",var_id,NULL)) trv_tbl->lst[idx_var].is_crd_lk_var=True;
+      if(nco_is_spc_in_cf_att(grp_id,"climatology",var_id,NULL)) trv_tbl->lst[idx_var].is_crd_lk_var=True;
+      for(int dmn_idx=0;dmn_idx<var_trv.nbr_dmn;dmn_idx++){
+	if(var_trv.var_dmn[dmn_idx].is_rec_dmn) trv_tbl->lst[idx_var].is_rec_lk_var=True;
+      } /* !dmn_idx */
+    } /* !nco_typ */
+  } /* !idx_var */
+
   /* If variable has N>=D dimensions, add it to list */
   for(unsigned idx_var=0;idx_var<trv_tbl->nbr;idx_var++)
     if(trv_tbl->lst[idx_var].nco_typ == nco_obj_typ_var)
       if((trv_tbl->lst[idx_var].nbr_dmn >= rnk_xtr) && /* Rank at least 2 */
-	 (!trv_tbl->lst[idx_var].is_crd_var) && /* Not a coordinate variable */
-	 (trv_tbl->lst[idx_var].var_typ != NC_CHAR) /* Not an array of characters */
-	 ){
+	 (!trv_tbl->lst[idx_var].is_crd_lk_var) && /* Not a coordinate-like variable */
+	 (trv_tbl->lst[idx_var].is_rec_lk_var) && /* Is a record variable */
+	 (trv_tbl->lst[idx_var].var_typ != NC_CHAR) && /* Not an array of characters */
+	 True){
 	(void)fprintf(stdout,"%s%s",(xtr_nbr_crr > 0) ? "," : "",trv_tbl->lst[idx_var].nm);
 	xtr_nbr_crr++;
       } /* !N>=D */
@@ -1172,7 +1195,7 @@ nco_xtr_cf_var_add /* [fnc] Add variables associated (via CF) with specified var
           *(cf_lst[nbr_cf]+var_lng)='\0';
           strncpy(cf_lst[nbr_cf],cln_ptr+2L,var_lng);
 	  cln_ptr+=var_lng;
-	  if(nco_dbg_lvl_get() >= nco_dbg_var) (void)fprintf(stderr,"%s: DEBUG %s reports variable %s %s variable #%d is %s\n",nco_prg_nm_get(),fnc_nm,var_trv->nm_fll,att_nm,nbr_cf,cf_lst[nbr_cf]);
+	  if(nco_dbg_lvl_get() >= nco_dbg_io) (void)fprintf(stderr,"%s: DEBUG %s reports variable %s %s variable #%d is %s\n",nco_prg_nm_get(),fnc_nm,var_trv->nm_fll,att_nm,nbr_cf,cf_lst[nbr_cf]);
 	  nbr_cf++;
 	} /* !att_val */
       }else{
@@ -1678,6 +1701,9 @@ nco_xtr_dfn                          /* [fnc] Define extracted groups, variables
 
   char *grp_out_fll;                   /* [sng] Group name */
 
+  dmn_cmn_sct *dmn_cmn_out;            /* [sct] List of all dimensions in output file (used for RETAIN_ALL_DIMS) */
+  gpe_nm_sct *gpe_nm;                  /* [sct] GPE name duplicate check array */
+
   int fl_fmt;                          /* [enm] netCDF file format */
   int grp_id;                          /* [ID] Group ID in input file */
   int grp_out_id;                      /* [ID] Group ID in output file */ 
@@ -1687,10 +1713,6 @@ nco_xtr_dfn                          /* [fnc] Define extracted groups, variables
   int nbr_dmn_cmn_out;                 /* [sct] Number of all dimensions in output file (used for RETAIN_ALL_DIMS) */
 
   nco_bool PCK_ATT_CPY;                /* [flg] Copy attributes "scale_factor", "add_offset" */
-
-  gpe_nm_sct *gpe_nm;                  /* [sct] GPE name duplicate check array */
-
-  dmn_cmn_sct *dmn_cmn_out;            /* [sct] List of all dimensions in output file (used for RETAIN_ALL_DIMS) */
 
   nco_prg_id=nco_prg_id_get(); 
   nbr_gpe_nm=0;
@@ -2256,6 +2278,7 @@ nco_grp_itr                            /* [fnc] Populate traversal table by exam
   trv_tbl->lst[idx].ppc=NC_MAX_INT;               /* [nbr] Precision-preserving compression, i.e., number of total or decimal significant digits */
   trv_tbl->lst[idx].flg_nsd=True;                 /* [flg] PPC is NSD */
 
+  trv_tbl->lst[idx].is_crd_lk_var=nco_obj_typ_err; /* [flg] Is a coordinate-like variable (same as var_sct is_crd_var: crd, 2D, bounds...) */
   trv_tbl->lst[idx].is_crd_var=nco_obj_typ_err;   /* [flg] (For variables only) Is this a coordinate variable? (unique dimension exists in-scope) */
   trv_tbl->lst[idx].is_rec_var=nco_obj_typ_err;   /* [flg] (For variables only) Is a record variable? (is_crd_var must be True) */
   trv_tbl->lst[idx].var_typ=(nc_type)nco_obj_typ_err;/* [enm] (For variables only) NetCDF type  */  
@@ -2360,6 +2383,7 @@ nco_grp_itr                            /* [fnc] Populate traversal table by exam
     trv_tbl->lst[idx].ppc=NC_MAX_INT; /* [nbr] Precision-preserving compression, i.e., number of total or decimal significant digits */
     trv_tbl->lst[idx].flg_nsd=True; /* [flg] PPC is NSD */
     
+    trv_tbl->lst[idx].is_crd_lk_var=False;             
     trv_tbl->lst[idx].is_crd_var=False;             
     trv_tbl->lst[idx].is_rec_var=False; 
     trv_tbl->lst[idx].var_typ=var_typ; 
@@ -2544,7 +2568,8 @@ nco_bld_crd_rec_var_trv /* [fnc] Build dimension information for all variables *
           if(nco_crd_var_dmn_scp(&var_trv,&dmn_trv,trv_tbl)){
             /* Mark this variable as coordinate variable. NB: True coordinate variables are 1D */
             if(var_trv.nbr_dmn == 1) trv_tbl->lst[idx_var].is_crd_var=True; else trv_tbl->lst[idx_var].is_crd_var=False;
-            /* If the group dimension is a record dimension then the variable is a record variable */
+            /* 20170411: fxm this algorithm detects is_rec_crd not is_rec_var
+	       If group dimension is a record dimension then coordinate is a record coordinate */
             trv_tbl->lst[idx_var].is_rec_var=dmn_trv.is_rec_dmn;
             if(nco_dbg_lvl_get() == nco_dbg_old){
               (void)fprintf(stdout,"%s: INFO %s reports %s is ",nco_prg_nm_get(),fnc_nm,var_trv.nm_fll);
@@ -2626,7 +2651,7 @@ nco_bld_crd_var_trv /* [fnc] Build GTT "crd_sct" coordinate variable structure *
       if(var_trv.nco_typ == nco_obj_typ_var){
 
         /* Is there a variable with this dimension name anywhere? (relative name)  */
-        if(strcmp(dmn_trv.nm,var_trv.nm) == 0 ){
+        if(!strcmp(dmn_trv.nm,var_trv.nm)){
 
           /* Is variable in-scope of dimension ? */
           if(nco_crd_var_dmn_scp(&var_trv,&dmn_trv,trv_tbl)){
@@ -2652,7 +2677,7 @@ nco_bld_crd_var_trv /* [fnc] Build GTT "crd_sct" coordinate variable structure *
             /* Store relative name (same for dimension and variable) */
             trv_tbl->lst_dmn[idx_dmn].crd[crd_idx]->nm=strdup(var_trv.nm); 
 
-            /* Is a record dimension(variable) if the dimennsion is a record dimension */
+            /* Is a record dimension(variable) if the dimension is a record dimension */
             trv_tbl->lst_dmn[idx_dmn].crd[crd_idx]->is_rec_dmn=dmn_trv.is_rec_dmn;
 
             /* Size is size */
@@ -2740,7 +2765,8 @@ nco_prn_trv_tbl                      /* [fnc] Print GTT (Group Traversal Table) 
       } /* endif */
       if(var_trv.is_rec_var) (void)fprintf(stdout," (record)");
 
-      /* If record variable must be coordinate variable */
+      /* 20170411: WRONG!!! Following line confuses generic record variables with record coordinates
+	 If record variable must be coordinate variable */
       if(var_trv.is_rec_var) assert(var_trv.is_crd_var);
       (void)fprintf(stdout," %d dimensions: ",var_trv.nbr_dmn); 
 
@@ -4088,7 +4114,8 @@ nco_var_fll_trv                       /* [fnc] Allocate variable structure and f
     var->srd[idx_dmn]=1L;
     var->sz*=dmn_cnt;
     
-    /* This definition of "is_rec_var" says if any of the dimensions is a record then the variable is marked as so */
+    /* This definition of "is_rec_var" says if any of the dimensions is a record then the variable is marked as so 
+       20170411: Yes, because that IS the correct definition! */
     if(dmn_trv->is_rec_dmn) var->is_rec_var=True; else var->sz_rec*=var->cnt[idx_dmn];
 
     /* Return a completed dmn_sct, use dimension ID and name from TRV object */
@@ -4169,9 +4196,9 @@ nco_var_fll_trv                       /* [fnc] Allocate variable structure and f
   } /* Check variable for duplicate dimensions */
 
   /* Treat variables associated with "bounds", "climatology", and "coordinates" attributes as coordinates */
-  if(nco_is_spc_in_cf_att(var->nc_id,"bounds",var->id)) var->is_crd_var=True;
-  if(nco_is_spc_in_cf_att(var->nc_id,"climatology",var->id)) var->is_crd_var=True;
-  if(nco_is_spc_in_cf_att(var->nc_id,"coordinates",var->id)) var->is_crd_var=True;
+  if(nco_is_spc_in_cf_att(var->nc_id, "bounds", var->id, NULL)) var->is_crd_var=True;
+  if(nco_is_spc_in_cf_att(var->nc_id, "climatology", var->id, NULL)) var->is_crd_var=True;
+  if(nco_is_spc_in_cf_att(var->nc_id, "coordinates", var->id, NULL)) var->is_crd_var=True;
 
   /* Portions of variable structure depend on packing properties, e.g., typ_upk nco_pck_dsk_inq() fills in these portions harmlessly */
   (void)nco_pck_dsk_inq(grp_id,var);
@@ -7128,7 +7155,7 @@ nco_var_get_wgt_trv                 /* [fnc] Retrieve weighting or mask variable
  const var_sct * const var,         /* I [sct] Variable that needs weight/mask */
  const trv_tbl_sct * const trv_tbl) /* I [lst] Traversal table */
 {
-  /* Purpose: Return weight or mask variable closest in-scope to specified variable */
+  /* Purpose: Return weight or mask variable closest in scope to specified variable */
 
   int grp_id; /* [ID] Group ID */
   int var_id; /* [ID] Variable ID */
@@ -7160,7 +7187,7 @@ nco_var_get_wgt_trv                 /* [fnc] Retrieve weighting or mask variable
     wgt_trv=(trv_sct **)nco_malloc(wgt_nbr*sizeof(trv_sct *));
     idx_wgt=0;
 
-    /* Creat list of potential weight structures */
+    /* Create list of potential weight structures */
     for(unsigned tbl_idx=0;tbl_idx<trv_tbl->nbr;tbl_idx++){
       if(trv_tbl->lst[tbl_idx].nco_typ == nco_obj_typ_var && !strcmp(trv_tbl->lst[tbl_idx].nm,wgt_nm)){
         wgt_trv[idx_wgt]=&trv_tbl->lst[tbl_idx]; 
@@ -7176,9 +7203,14 @@ nco_var_get_wgt_trv                 /* [fnc] Retrieve weighting or mask variable
 	trv_sct var_trv=trv_tbl->lst[idx_var];  
 
 	/* 20150711: This is buggy, at best it returns last weight found, not closest-in-scope */
+	/* 20170620: Broken because it requires that weight and variable be in same group */
 	/* Which weight is closest-in-scope to variable? */
 	for(idx_wgt=0;idx_wgt<wgt_nbr;idx_wgt++){
-	  if(!strcmp(wgt_trv[idx_wgt]->grp_nm_fll,var_trv.grp_nm_fll)){
+	  /* 20170620: Change from strcmp() to strstr() so weight can be in any ancestor group
+	     This still does NOT have the desired behavior of selecting the _closest-in-scope_,
+	     but at least it allows weights to be in ancestor groups */
+	  //if(!strcmp(wgt_trv[idx_wgt]->grp_nm_fll,var_trv.grp_nm_fll)){
+	  if(strstr(wgt_trv[idx_wgt]->grp_nm_fll,var_trv.grp_nm_fll)){
 	    (void)nco_inq_grp_full_ncid(nc_id,wgt_trv[idx_wgt]->grp_nm_fll,&grp_id);
 	    (void)nco_inq_varid(grp_id,wgt_trv[idx_wgt]->nm,&var_id);
 	    /* Transfer from table to local variable */

@@ -43,6 +43,7 @@
    http://www.unidata.ucar.edu/software/netcdf/docs_rc/default_chunking_4_1.html */
 
 #include "nco_cnk.h" /* Chunking */
+#include "nco.h"
 
 const char * /* O [sng] Chunking map string */
 nco_cnk_map_sng_get /* [fnc] Convert chunking map enum to string */
@@ -461,6 +462,7 @@ nco_cnk_plc_get /* [fnc] Convert user-specified chunking policy to key */
   if(!strcmp(nco_cnk_plc_sng,"uck")) return nco_cnk_plc_uck;
   if(!strcmp(nco_cnk_plc_sng,"cnk_uck")) return nco_cnk_plc_uck;
   if(!strcmp(nco_cnk_plc_sng,"plc_uck")) return nco_cnk_plc_uck;
+  if(!strcmp(nco_cnk_plc_sng,"none")) return nco_cnk_plc_uck;
   if(!strcmp(nco_cnk_plc_sng,"unchunk")) return nco_cnk_plc_uck;
 
   (void)fprintf(stderr,"%s: ERROR %s reports unknown user-specified chunking policy %s\n",nco_prg_nm_get(),fnc_nm,nco_cnk_plc_sng);
@@ -963,7 +965,8 @@ nco_cnk_sz_set_trv /* [fnc] Set chunksize parameters (GTT version of nco_cnk_sz_
 
   /* Obtain variable ID */
   (void)nco_inq_varid(grp_id_out,var_nm,&var_id_out);
-  (void)nco_inq_varid(grp_id_in,var_nm,&var_id_in);
+  if(nco_inq_varid_flg(grp_id_in,var_nm,&var_id_in) !=NC_NOERR)
+    var_id_in=-1;
 
   /* Get type and number of dimensions for variable */
   (void)nco_inq_var(grp_id_out,var_id_out,(char *)NULL,&var_typ_dsk,&dmn_nbr,(int *)NULL,(int *)NULL);
@@ -995,7 +998,10 @@ nco_cnk_sz_set_trv /* [fnc] Set chunksize parameters (GTT version of nco_cnk_sz_
   if(is_rec_var || is_chk_var || is_cmp_var) must_be_chunked=True; else must_be_chunked=False;
 
   /* Is variable currently chunked? */
-  if(nco_fmt_xtn_get() != nco_fmt_xtn_hdf4 || NC_LIB_VERSION >= 433) is_chunked=nco_cnk_dsk_inq(grp_id_in,var_id_in);
+  if( var_id_in>=0 &&  (nco_fmt_xtn_get() != nco_fmt_xtn_hdf4 || NC_LIB_VERSION >= 433))
+    is_chunked=nco_cnk_dsk_inq(grp_id_in,var_id_in);
+  else
+    is_chunked=False;
 
   /* Does variable have any user-chunked dimensions? */
   for(dmn_idx=0;dmn_idx<dmn_nbr;dmn_idx++){
@@ -1092,7 +1098,7 @@ nco_cnk_sz_set_trv /* [fnc] Set chunksize parameters (GTT version of nco_cnk_sz_
 	} /* end loop over dmn_idx_in */
 	if(dmn_idx_in == dmn_nbr_in){
 	  /* Output file dimension not found in input file */
-	  assert(nco_prg_id_get() == ncecat);
+	  assert(nco_prg_id_get() == ncecat || nco_prg_id_get() == ncap );
 	  if(dmn_cmn[dmn_idx].NON_HYP_DMN){
 	    if(dmn_cmn[dmn_idx].sz == 0) cnk_sz[dmn_idx]=1UL; else cnk_sz[dmn_idx]=dmn_cmn[dmn_idx].sz;
 	  }else{ /* !NON_HYP_DMN */
@@ -1128,9 +1134,9 @@ nco_cnk_sz_set_trv /* [fnc] Set chunksize parameters (GTT version of nco_cnk_sz_
 
   /* Set "reasonable" defaults */
   for(dmn_idx=0;dmn_idx<dmn_nbr;dmn_idx++){
-
     /* Is this a record dimension? */
     if(dmn_cmn[dmn_idx].is_rec_dmn){
+
       /* Does policy specify record dimension treatment? */
       if(cnk_map == nco_cnk_map_rd1){
         cnk_sz[dmn_idx]=1UL;
@@ -1142,12 +1148,13 @@ nco_cnk_sz_set_trv /* [fnc] Set chunksize parameters (GTT version of nco_cnk_sz_
       if(dmn_cmn[dmn_idx].NON_HYP_DMN){
         /* When not hyperslabbed, use input record dimension size, except workaround zero size
 	   reported for new record dimensions before anything is written */
-	if(dmn_cmn[dmn_idx].sz == 0) cnk_sz[dmn_idx]=1UL; else cnk_sz[dmn_idx]=dmn_cmn[dmn_idx].sz;
+	if(dmn_cmn[dmn_idx].sz == 0L) cnk_sz[dmn_idx]=1UL; else cnk_sz[dmn_idx]=dmn_cmn[dmn_idx].sz;
 	/* 20140518: As of netCDF 4.3.2, employ smarter defaults for record dimension in 1-D variables
 	   20150505: This "smarter" treatment of 1-D record variables consistently leads to cnk_sz ~ 512k
 	   This seems ridiculously large since many datasets have O(1) time slices but many 1-D in time variables
 	   Perhaps lose this 1-D exception that scales chunksize with blocksize? */
-	if(dmn_nbr == 1) cnk_sz[dmn_idx]=NCO_CNK_SZ_BYT_R1D_DFL/typ_sz;
+
+	if(dmn_nbr ==1 ) cnk_sz[dmn_idx]=NCO_CNK_SZ_BYT_R1D_DFL/typ_sz;
       }else{ /* !NON_HYP_DMN */
         /* ... and when hyperslabbed, use user-specified count */
         cnk_sz[dmn_idx]=dmn_cmn[dmn_idx].dmn_cnt;
@@ -1427,14 +1434,25 @@ nco_cnk_sz_set_trv /* [fnc] Set chunksize parameters (GTT version of nco_cnk_sz_
      Loop below implements similar final safety check for ALL dimensions and ALL chunking maps
      Check trims fixed (not record) dimension chunksize to never be larger than dimension size */
   for(dmn_idx=0;dmn_idx<dmn_nbr;dmn_idx++){
-    if(cnk_sz[dmn_idx] > (size_t)dmn_cmn[dmn_idx].sz){
-      if(!dmn_cmn[dmn_idx].is_rec_dmn){
-        /* Unlike record dimensions, non-record dimensions must have cnk_sz <= dmn_sz */
+    if(cnk_sz[dmn_idx] > (size_t)dmn_cmn[dmn_idx].sz) {
+      if (dmn_cmn[dmn_idx].is_rec_dmn){
+         /* rec dmn size 0 then we can apply any cnk_sz - else cnk_sz <= dmn_sz */
+        long lcl_dmn_sz=0ll;
+        if( nco_inq_dim_flg(grp_id_out, dmn_cmn[dmn_idx].id, (char*)NULL, &lcl_dmn_sz)==NC_NOERR && lcl_dmn_sz>0)
+          cnk_sz[dmn_idx]=(size_t)dmn_cmn[dmn_idx].sz;
+
+      }else{
+        /* non-record dimensions must have cnk_sz <= dmn_sz */
         if(nco_dbg_lvl_get() >= nco_dbg_var) (void)fprintf(stderr,"%s: INFO %s final check trimming chunksize of \"%s\" dimension from %lu to %lu\n",nco_prg_nm_get(),fnc_nm,dmn_cmn[dmn_idx].nm,(unsigned long)cnk_sz[dmn_idx],(unsigned long)dmn_cmn[dmn_idx].sz);
         /* Trim else out-of-bounds sizes will fail in HDF library in nc_enddef() */
         cnk_sz[dmn_idx]=(size_t)dmn_cmn[dmn_idx].sz;
       } /* rcd_dmn_id */
     } /* end if */
+    /* 20170610: TODO nco1137 bug ncwa chunking fails with --rdd reported by Joy 20170605 because dmn_cmn[] contains zero for some dimensions */
+    if(cnk_sz[dmn_idx] == 0L){
+      if(nco_dbg_lvl_get() >= nco_dbg_var) (void)fprintf(stderr,"%s: INFO %s final check manually overriding chunksize of \"%s\" dimension from 0L to 1L as workaround to TODO nco1137: bad interaction of chunking with --rdd\n",nco_prg_nm_get(),fnc_nm,dmn_cmn[dmn_idx].nm);
+      cnk_sz[dmn_idx]=1L;
+    } /* end cnk_sz */
   } /* end loop over dmn */
 
   if(nco_dbg_lvl_get() >= nco_dbg_var && nco_dbg_lvl_get() != nco_dbg_dev){

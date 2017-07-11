@@ -13,8 +13,6 @@ ncremap
 .IR dbg_lvl ] 
 [\-d
 .IR dst_fl ] 
-[\-E
-.IR esmf_opt ] 
 [\-G
 .IR grd_sng ] 
 [\-g
@@ -26,9 +24,12 @@ ncremap
 [\-j
 .IR job_nbr ] 
 [\-M] [\-m
-.IR map_fl ] 
-[\-n
+.IR map_fl ] [\--msk_dst =
+.IR msk_dst ] [\--msk_out =
+.IR msk_out ] [\--msk_src =
+.IR msk_src ] [\-n
 .IR nco_usr ] 
+[\--no_cll_msr ] [\--no_frm_trm] [\--no_stg_grd]
 [\-O
 .IR out_drc ] 
 [\-o
@@ -40,22 +41,21 @@ ncremap
 [\-R
 .IR rgr_opt ] 
 [\-s
-.IR grd_src ] 
+.IR grd_src ] [\--stdin ]
 [\-T
-.IR tempest_opt ] 
+.IR drc_tmp ] 
 [\-t
 .IR thr_nbr ] 
-[\-U
-.IR drc_tmp ] 
-[\-u
+[\-U] [\-u
 .IR unq_sfx ] 
 [\-V
 .IR rgr_var ] 
 [\-v
 .IR var_lst ] 
-[\--verbose ] 
-.IR prn_vrb ] [\--version ] [\-w
-.IR wgt_gnr ] 
+[\--vrb_lvl = 
+.IR vrb_lvl ] [\--version ] [\-W
+.IR wgt_opt ] [\-w
+.IR wgt_cmd ] 
 [\-x
 .IR xtn_lst ] 
 

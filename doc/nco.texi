@@ -39,6 +39,7 @@ Usage:
 export TEX='tex --src-specials'
 cd ~/nco/doc;texi2dvi nco.texi;makeinfo --html --ifinfo --no-split --output=nco.html nco.texi;makeinfo nco.texi;dvips -o nco.ps nco.dvi;texi2dvi --pdf nco.texi;makeinfo --xml --ifinfo --no-split --output=nco.xml nco.texi;makeinfo --no-headers --output=nco.txt nco.texi
 cd ~/nco/doc;/usr/bin/scp index.shtml nco_news.shtml ChangeLog TODO README VERSION nco.dvi nco.html nco.info* nco.pdf nco.ps nco.texi nco.txt nco.xml nco_rfr_crd.pdf ../data/ncap.in ../data/ncap2.in zender,nco@web.sf.net:/home/project-web/nco/htdocs;cd -
+cd ~/nco/doc;/usr/bin/scp index.shtml nco_news.shtml ChangeLog TODO README VERSION nco.dvi nco.html nco.info* nco.pdf nco.ps nco.texi nco.txt nco.xml nco_rfr_crd.pdf ../data/ncap.in ../data/ncap2.in dust.ess.uci.edu:Sites/nco;cd -
 dvips -o nco.ps nco.dvi 
 dvips -Ppdf -G0 -o nco.ps nco.dvi 
 makeinfo --html --ifinfo --no-split --output=nco.html nco.texi
@@ -118,12 +119,12 @@ Octave TeXInfo manual shows clean TeXInfo structure
 @setfilename nco.info
 
 @c Define edition, date, ...
-@set nco-edition 4.6.6-alpha02
-@set doc-edition 4.6.6-alpha02
+@set nco-edition 4.6.8-alpha03
+@set doc-edition 4.6.8-alpha03
 @set copyright-years 1995--2017
 @set update-year 2017
-@set update-date 24 March 2017
-@set update-month March 2017
+@set update-date 8 July 2017
+@set update-month July 2017
 
 @settitle @acronym{NCO} @value{nco-edition} User Guide
 
@@ -297,8 +298,8 @@ notice identical to this one except for the removal of this paragraph
 @html
 <meta name="Author" content="Charlie Zender">
 <meta name="Keywords" content="NCO documentation, NCO User Guide,
-netCDF, operator, GCM, CCM, scientific data, ncbo, ncfe, ncecat,
-ncflint, ncks, ncra, ncrcat, ncrename, ncwa">
+netCDF, operator, GCM, CCM, scientific data, ncbo, ncclimo, ncfe, ncecat,
+ncflint, ncks, ncra, ncrcat, ncremap, ncrename, ncwa">
 @end html
 @html
 <body text="#000000" link="#0000EF" vlink="#008080" alink="#FF0000">
@@ -340,6 +341,18 @@ with no Invariant Sections, no Front-Cover Texts, and no Back-Cover
 Texts. The license is available online at 
 @uref{http://www.gnu.org/copyleft/fdl.html}
 @sp 2
+We gratefully acknowledge support for @acronym{NCO} development and
+maintenance provided by these institutions and programs:
+@acronym{DOE} @acronym{ACME} DE-SC0012998, 
+@acronym{NASA} @acronym{ACCESS} NNX12AF48A and NNX14AH55A, and
+@acronym{NSF} @acronym{SEI} IIS-0431203 and AGS-1541031.
+Research supported as part of the Accelerated Climate Modeling for
+Energy (@acronym{ACME}) program, funded by the U.S. Department of
+Energy, Office of Science, Office of Biological and Environmental
+Research.  
+This material is based upon work supported by the National Science
+Foundation under Grants IIS-0431203 and AGS-1541031.
+@sp 2
 The original author of this software, Charlie Zender, wants to improve it
 with the help of your suggestions, improvements, bug-reports, and patches.@*
 Charlie Zender <surname at uci dot edu> (yes, my surname is zender)@*
@@ -348,7 +361,6 @@ Department of Earth System Science@*
 University of California, Irvine@*
 Irvine, CA 92697-3100@*
 @sp 2
-@c Cover art by Robynn Rudel
 @end titlepage
 
 @c Print table of contents
@@ -529,7 +541,7 @@ Irvine, California@*
 @c 20150619 Test values automagically installed by version.texi, which is a nightmare
 @c Test print @value{EDITION}, @value{VERSION}, @value{UPDATED}, @value{UPDATED-MONTH}.
 The @acronym{NASA} @acronym{ACCESS} 2011 program generously supported 
-(Cooperative Agreement NNX12AF48A) @acronym{NCO} from 2012--2015.
+(Cooperative Agreement NNX12AF48A) @acronym{NCO} from 2012--2014.
 This allowed us to produce the first iteration of a Group-oriented 
 Data Analysis and Distribution (@acronym{GODAD}) software ecosystem. 
 Shifting more geoscience data analysis to @acronym{GODAD} is a 
@@ -553,17 +565,16 @@ June, 2015@*
 Irvine, California@*
 
 @ignore
-The @acronym{DOE} @acronym{ACME} program generously supported ...
-
-Matching @acronym{NCO} against other analysis software, and often
-besting them, has been exhilirating.
-Henry Butowsky has re-joined our efforts.
+The @acronym{DOE} @acronym{ACME} program has generously supported 
+@acronym{NCO} development in support of high-performance climate
+modeling research. 
+This has allowed Henry Butowsky to re-join our efforts.
 Without him, much of this work would have been impossible.
 
 @sp 1
 @noindent
 Charlie Zender@*
-January, 2017@*
+June, 2017@*
 Laguna Beach, California@*
 @end ignore
 
@@ -2314,12 +2325,20 @@ We commend these greedy users for pushing @acronym{NCO} to its limits!
 @cindex shared memory machines
 This section describes the memory @acronym{NCO} requires during
 operation.
-The required memory is based on the underlying algorithms.
+The required memory depends on the underlying algorithms, datatypes,
+and compression, if any. 
 The description below is the memory usage per thread.
 Users with shared memory machines may use the threaded @acronym{NCO}
 operators (@pxref{OpenMP Threading}).
 The peak and sustained memory usage will scale accordingly,
 i.e., by the number of threads.
+In all cases the memory use refers to the @emph{uncompressed} size of
+the data. 
+The netCDF4 library automatically decompresses variables during reads. 
+The filesize can easily belie the true size of the uncompressed data.
+In other words, the usage below can be taken at face value for netCDF3
+datasets only.
+Chunking will also affect memory usage on netCDF4 operations.
 Memory consumption patterns of all operators are similar, with
 the exception of @command{ncap2}.
 
@@ -2659,9 +2678,17 @@ metadata operations.
 Use the @samp{--hdr_pad} and @samp{--header_pad} switches to request
 that @var{hdr_pad} bytes be inserted into the metadata section of the
 output file.
+There is little downside to padding a header with kilobyte of space,
+since subsequent manipulation of the file will annotate the
+@code{history} attribute with all commands, let alone any explicit
+metadata additions with @command{ncatted}.
+@example
+ncks --hdr_pad=1000  in.nc out.nc # Pad header with  1 kB space
+ncks --hdr_pad=10000 in.nc out.nc # Pad header with 10 kB space
+@end example
 Future metadata expansions will not incur the netCDF3 performance
 penalty of copying the entire output file unless the expansion exceeds
-the amount of header padding exceeded.
+the amount of header padding.
 This can be beneficial when it is known that some metadata will be added
 at a future date.
 The operators which benefit most from judicious use of header padding
@@ -2903,6 +2930,7 @@ Users are expected to pick the unambiguous truncation of each option
 name that most suits their taste.
 
 @html
+<a name="MTA"></a> <!-- http://nco.sf.net/nco.html#MTA -->
 <a name="mta"></a> <!-- http://nco.sf.net/nco.html#mta -->
 <a name="multi-arguments"></a> <!-- http://nco.sf.net/nco.html#multi-arguments -->
 <a name="Multi-arguments"></a> <!-- http://nco.sf.net/nco.html#Multi-arguments -->
@@ -2910,6 +2938,7 @@ name that most suits their taste.
 @node Multi-arguments,  , Truncating Long Options, Command Line Options
 @subsection Multi-arguments
 @cindex Multi-arguments
+@cindex @acronym{MTA}
 @cindex Options, multi-argument
 @cindex @code{--gaa @var{key}=@var{val}}
 @cindex @code{--ppc @var{key}=@var{val}}
@@ -2917,7 +2946,8 @@ name that most suits their taste.
 @cindex @code{--trr @var{key}=@var{val}}
 As of @acronym{NCO} version 4.6.2 (November, 2016), @acronym{NCO} accepts
 multiple key-value pair options for a single feature to be joined
-together into a single extended argument called a @dfn{multi-argument}. 
+together into a single extended argument called a @dfn{multi-argument},
+sometimes abbreviated @acronym{MTA}. 
 Only four @acronym{NCO} features accept multiple key-value pairs that
 can be aggregated into multi-arguments. 
 These features are:
@@ -2996,6 +3026,23 @@ These special characters include @samp{:}, @samp{$}, @samp{%}, @samp{*},
 If @var{val} is a long text string that could contain the default
 delimiter, then delimit with a unique multi-character string such as
 @samp{csz} in the third example. 
+
+As of @acronym{NCO} version 4.6.7 (May, 2017), multi-argument
+flags no longer need be specified as key-value pairs.
+By definition a flag sets a boolean value to either True or False.
+Previously @acronym{MTA} flags had to employ key-value pair syntax,
+e.g., @samp{--rgr infer=Y} or @samp{--rgr no_cll_msr=anything} in order 
+to parse correctly.
+Now the @acronym{MTA} parser accepts flags in the more intuitive syntax
+where they are listed by name, i.e., the flag name alone indicates the
+flag to set, e.g., @samp{--rgr infer} or @samp{--rgr no_cll_msr} are
+valid. 
+A consequence of this is that flags in multi-argument strings appear
+as straightforward flag names, e.g.,
+@samp{--rgr infer#no_cll_msr#latlon=129,256}.
+It is also valid to prefix flags in multi-arument strings with
+single or double-dashes to make the flags more visible, e.g.,
+@samp{--rgr latlon=129,256#--infer#-no_cll_msr}. 
 
 @html
 <a name="fl_in"></a> <!-- http://nco.sf.net/nco.html#fl_in -->
@@ -4851,10 +4898,10 @@ availale is to use @command{ncrename} (@pxref{ncrename netCDF Renamer}).
 <a name="xmp_flt"></a> <!-- http://nco.sf.net/nco.html#xmp_flt -->
 @end html
 One may wish to flatten hierarchical group files for many reasons.
-These include @w{1. Obtaining} flat netCDF3 files for use with tools
-that do not work with netCDF4 files, @w{2. Splitting} apart
+These include @w{1. To} obtain flat netCDF3 files for use with tools
+that do not work with netCDF4 files, @w{2. To} split-apart
 hierarchies to re-assemble into different hierarchies, and
-@w{3. Providing} a subset of a hierarchical file with the simplest
+@w{3. To} provide a subset of a hierarchical file with the simplest
 possible storage structure.
 @example
 ncks -O -G : -g cesm -3 ~/nco/data/cmip5.nc ~/cesm.nc # Extract /cesm to /
@@ -6017,7 +6064,13 @@ hyperslab and multi-slab options.
 Also @samp{--auxiliary}.
 This switch supports hyperslabbing cell-based grids (aka unstructured
 grids) over coordinate ranges. 
-This works on datasets that associate coordinate variables to
+When these grids are stored as 1D-arrays of cell data, this feature is
+helpful at hyperslabbing and/or performing arithmetic on selected
+geographic regions.
+This feature cannot be used to select regions of 2D grids (instead use
+the @command{ncap2} @code{where} statement for such grids 
+@ref{Where statement}).
+This feature works on datasets that associate coordinate variables to 
 grid-mappings using the @acronym{CF}-convention (@pxref{CF Conventions})   
 @code{coordinates} and @code{standard_name} attributes described 
 @uref{http://cfconventions.org/1.6.html#coordinate-system, here}. 
@@ -6144,6 +6197,7 @@ to avoid confusion.
 @cindex Gaussian grid
 @cindex Equi-Angular grid
 @cindex FV grid
+@cindex FV grid
 @cindex CAM-FV grid
 @cindex grid, Fixed
 @cindex grid, Offset
@@ -6223,16 +6277,17 @@ gridfile.
 A human-readable grid description should be placed in @var{grd_ttl}.
 Examples include ``CAM-FV scalar grid 129x256'' and ``T42 Gaussian grid''. 
 
-@cindex @var{grid}
-@cindex @samp{--rgr grid=@var{grid}}
-@item Grid File: @var{grid}
+@cindex @var{scrip_grid}
+@cindex @samp{--rgr grid=@var{scrip_grid}}
+@cindex @samp{--rgr scrip=@var{scrip_grid}}
+@item Grid File: @var{scrip_grid}
 The grid-generation @acronym{API} was bolted-on to @acronym{NCO}
-and is somewhat primitive, e.g., having to repeat the @samp{--rgr}
-option. 
-Another aspect of this is that the output grid filename is distinct
-from the output filename of the host @command{ncks} command. 
-Specify the output gridfile name with @var{grid}, e.g., 
-@file{t42_SCRIP.20150901.nc}.
+and contains some temporary kludges.
+For example, the output grid filename is distinct from the output
+filename of the host @command{ncks} command.  
+Specify the output gridfile name @var{scrip_grid} with keywords
+@code{grid} or @code{scrip}, e.g., @samp{--rgr grid=@var{scrip_grid}} or  
+@samp{--rgr scrip=@file{t42_SCRIP.20150901.nc}}.
 It is conventional to include a datestamp in the gridfile name.
 This helps users identify up-to-date and out-of-date grids.
 Any valid netCDF file may be named as the source (e.g., @file{in.nc}). 
@@ -6411,43 +6466,57 @@ Generating common grids:
 @example
 @verbatim
 # 180x360 (1x1 degree) Equi-Angular grid, first longitude centered at Greenwich
-ncks --rgr grd_ttl='Equi-Angular grid 180x360' --rgr grid=${DATA}/grids/180x360_SCRIP.20150901.nc \
-     --rgr latlon=180,360 --rgr lat_typ=uni --rgr lon_typ=grn_ctr ~zender/nco/data/in.nc ~/foo.nc
+ncks --rgr grd_ttl='Equi-Angular grid 180x360'#latlon=180,360#lat_typ=uni#lon_typ=grn_ctr \
+     --rgr scrip=${DATA}/grids/180x360_SCRIP.20150901.nc ~zender/nco/data/in.nc ~/foo.nc
 
 # 129x256 CAM-FV grid, first longitude centered at Greenwich
-ncks --rgr grd_ttl='CAM-FV scalar grid 129x256' --rgr grid=${DATA}/grids/129x256_SCRIP.20150901.nc \
-     --rgr latlon=129,256 --rgr lat_typ=fv --rgr lon_typ=grn_ctr ~zender/nco/data/in.nc ~/foo.nc
+ncks --rgr grd_ttl='CAM-FV scalar grid 129x256'#latlon=129,256#lat_typ=fv#lon_typ=grn_ctr \
+     --rgr scrip=${DATA}/grids/129x256_SCRIP.20150901.nc ~zender/nco/data/in.nc ~/foo.nc
 
 # 91x180 CAM-FV grid, first longitude centered at Greenwich (2 degree grid)
 ncks --rgr grd_ttl='CAM-FV scalar grid 91x180'#latlon=91,180#lat_typ=fv#lon_typ=grn_ctr \
-     --rgr grid=${DATA}/grids/91x180_SCRIP.20170401.nc ~zender/nco/data/in.nc ~/foo.nc
+     --rgr scrip=${DATA}/grids/91x180_SCRIP.20170401.nc ~zender/nco/data/in.nc ~/foo.nc
 
 # 25x48 CAM-FV grid, first longitude centered at Greenwich (7.5 degree grid)
 ncks --rgr grd_ttl='CAM-FV scalar grid 25x48'#latlon=25,48#lat_typ=fv#lon_typ=grn_ctr \
-     --rgr grid=${DATA}/grids/25x48_SCRIP.20170401.nc ~zender/nco/data/in.nc ~/foo.nc
+     --rgr scrip=${DATA}/grids/25x48_SCRIP.20170401.nc ~zender/nco/data/in.nc ~/foo.nc
 
 # 128x256 Equi-Angular grid, Greenwich west edge of first longitude
 # This is the CAM-FV offset grid for the 129x256 CAM-FV scalar grid above
-ncks --rgr grd_ttl='Equi-Angular grid 128x256' --rgr grid=${DATA}/grids/128x256_SCRIP.20150901.nc \
-     --rgr latlon=128,256 --rgr lat_typ=uni --rgr lon_typ=grn_wst ~zender/nco/data/in.nc ~/foo.nc
+ncks --rgr grd_ttl='Equi-Angular grid 128x256'#latlon=128,256#lat_typ=uni#lon_typ=grn_wst \
+     --rgr scrip=${DATA}/grids/128x256_SCRIP.20150901.nc ~zender/nco/data/in.nc ~/foo.nc
 
 # T42 Gaussian grid, first longitude centered at Greenwich
-ncks --rgr grd_ttl='T42 Gaussian grid' --rgr grid=${DATA}/grids/t42_SCRIP.20150901.nc \
-     --rgr latlon=64,128 --rgr lat_typ=gss --rgr lon_typ=grn_ctr ~zender/nco/data/in.nc ~/foo.nc
+ncks --rgr grd_ttl='T42 Gaussian grid'latlon=64,128#lat_typ=gss#lon_typ=grn_ctr \
+     --rgr scrip=${DATA}/grids/t42_SCRIP.20150901.nc ~zender/nco/data/in.nc ~/foo.nc
 
 # NASA Climate Modeling Grid (CMG) 3600x7200 (0.05x0.05 degree) Equi-Angular grid
 # Date-line west edge of first longitude, east edge of last longitude
-ncks --rgr grd_ttl='Equi-Angular grid 3600x7200 (NASA CMG)' --rgr grid=${DATA}/grids/3600x7200_SCRIP.20160301.nc \
-     --rgr latlon=3600,7200 --rgr lat_typ=uni --rgr lon_typ=180_wst ~zender/nco/data/in.nc ~/foo.nc
+# Write to compressed netCDF4-classic file to reduce filesize ~140x from 2.2 GB to 16 MB
+ncks -7 -L 1 \
+     --rgr grd_ttl='Equi-Angular grid 3600x7200 (NASA CMG)'#latlon=3600,7200#lat_typ=uni#lon_typ=180_wst \
+     --rgr scrip=${DATA}/grids/3600x7200_SCRIP.20160301.nc ~zender/nco/data/in.nc ~/foo.nc
+
+# DOE ACME High Resolution Topography (1 x 1 km grid) for Elevation Classes
+# Write to compressed netCDF4-classic file to reduce filesize from ~85 GB to 607 MB
+ncks -O -7 -L 1 \
+     --rgr grd_ttl='Global latxlon = 18000x36000 ~ 1 x 1 km'#latlon=18000,36000#lat_typ=uni#lon_typ=grn_ctr \
+     --rgr scrip=${DATA}/grids/grd_18000x36000_SCRIP.nc ~zender/nco/data/in.nc ~/foo.nc
+
+# 1x1 degree Equi-Angular Regional grid over Greenland, centered longitudes
+ncks --rgr grd_ttl='Equi-Angular Greenland grid'#latlon=30,90#snwe=55.0,85.0,-90.0,0.0#lat_typ=uni#lon_typ=grn_ctr \
+     --rgr scrip=${HOME}/greenland_SCRIP.nc ~zender/nco/data/in.nc ~/foo.nc
 @end verbatim
 @end example
 
 @html
 <a name="nfr"></a> <!-- http://nco.sf.net/nco.html#nfr -->
 <a name="infer"></a> <!-- http://nco.sf.net/nco.html#infer -->
+<a name="ugrid"></a> <!-- http://nco.sf.net/nco.html#ugrid -->
 @end html
 @cindex infer
 @cindex @code{--rgr nfr}
+@cindex @code{--rgr infer}
 Often researchers face the problem not of generating a known, idealized
 grid but of understanding an unknown, possibly irregular or curvilinear
 grid underlying a dataset produced elsewhere.
@@ -6456,7 +6525,7 @@ coordinates (and boundaries, if available), reformat that information
 as necessary to diagnose gridcell areas, and output the results in
 @acronym{SCRIP} format.
 As of @acronym{NCO} @w{version 4.5.3}, released in October, 2015,
-the @samp{--rgr nfr='y'} switch activates the machinery to infer the grid
+the @samp{--rgr infer} flag activates the machinery to infer the grid
 rather than construct the grid from other user-specified switches.
 To infer the grid properties, @acronym{NCO} interrogates
 @var{input-file} for horizontal coordinate information, such as the
@@ -6469,14 +6538,131 @@ comprises quadrilateral cells whose edges are midway between cell
 centers, for both rectilinear and curvilinear grids. 
 @example
 @verbatim
-# Infer the grid of the AIRS swath from input, write it to grd_airs.nc
-ncks --rgr nfr=y --rgr grid=${DATA}/sld/rgr/grd_airs.nc \
+# Infer AIRS swath grid from input, write it to grd_scrip.nc
+ncks --rgr infer --rgr scrip=${DATA}/sld/rgr/grd_scrip.nc \
      ${DATA}/sld/raw/AIRS.2014.10.01.202.L2.TSurfStd.Regrid010.1DLatLon.nc ~/foo.nc
 @end verbatim
 @end example
-When inferring grids, the grid file (@file{grd_airs.nc}) is written,
-the input file (@file{AIRS...nc}) is read, and the output file
-(@file{foo.nc}) is overwritten (its contents are immaterial).
+When inferring grids, the grid file (@file{grd_scrip.nc}) is written
+in @acronym{SCRIP} format, the input file (@file{AIRS...nc}) is read,
+and the output file (@file{foo.nc}) is overwritten (its contents are
+immaterial). 
+
+@cindex @acronym{UGRID}
+@cindex @code{--rgr ugrid}
+As of @acronym{NCO} @w{version 4.6.6}, released in April, 2017,
+inferred 2D rectangular grids may also be written in
+@acronym{UGRID}-format (defined
+@uref{http://ugrid-conventions.github.io/ugrid-conventions, here}).
+Request a @acronym{UGRID} mesh with the option
+@samp{--rgr ugrid=@var{fl_ugrid}}.
+Currently both @acronym{UGRID} and @acronym{SCRIP} grids must be
+requested in order to produce the @acronym{UGRID} output, e.g., 
+@example
+@verbatim
+ncks --rgr infer --rgr ugrid=${HOME}/grd_ugrid.nc \
+     --rgr scrip=${HOME}/grd_scrip.nc ~/skl_180x360.nc ~/foo.nc
+@end verbatim
+@end example
+
+The @acronym{SCRIP} gridfile and @acronym{UGRID} meshfile metadata
+produced for the equiangular @w{1-by-1 degree} global grid are:
+@example
+@verbatim
+zender@aerosol:~$ ncks --cdl -m ~/grd_scrip.nc 
+netcdf grd_scrip {
+  dimensions:
+    grid_corners = 4 ;
+    grid_rank = 2 ;
+    grid_size = 64800 ;
+
+  variables:
+    double grid_area(grid_size) ;
+      grid_area:units = "steradian" ;
+
+    double grid_center_lat(grid_size) ;
+      grid_center_lat:units = "degrees" ;
+
+    double grid_center_lon(grid_size) ;
+      grid_center_lon:units = "degrees" ;
+
+    double grid_corner_lat(grid_size,grid_corners) ;
+      grid_corner_lat:units = "degrees" ;
+
+    double grid_corner_lon(grid_size,grid_corners) ;
+      grid_corner_lon:units = "degrees" ;
+
+    int grid_dims(grid_rank) ;
+
+    int grid_imask(grid_size) ;
+} // group /
+
+zender@aerosol:~$ ncks --cdl -m ~/grd_ugrid.nc 
+netcdf grd_ugrid {
+  dimensions:
+    maxNodesPerFace = 4 ;
+    nEdges = 129240 ;
+    nFaces = 64800 ;
+    nNodes = 64442 ;
+    two = 2 ;
+
+  variables:
+    int mesh ;
+      mesh:cf_role = "mesh_topology" ;
+      mesh:standard_name = "mesh_topology" ;
+      mesh:long_name = "Topology data" ;
+      mesh:topology_dimension = 2 ;
+      mesh:node_coordinates = "mesh_node_x mesh_node_y" ;
+      mesh:face_node_connectivity = "mesh_face_nodes" ;
+      mesh:face_coordinates = "mesh_face_x mesh_face_y" ;
+      mesh:face_dimension = "nFaces" ;
+      mesh:edge_node_connectivity = "mesh_edge_nodes" ;
+      mesh:edge_coordinates = "mesh_edge_x mesh_edge_y" ;
+      mesh:edge_dimension = "nEdges" ;
+
+    int mesh_edge_nodes(nEdges,two) ;
+      mesh_edge_nodes:cf_role = "edge_node_connectivity" ;
+      mesh_edge_nodes:long_name = "Maps every edge to the two nodes that it connects" ;
+      mesh_edge_nodes:start_index = 0 ;
+
+    double mesh_edge_x(nEdges) ;
+      mesh_edge_x:standard_name = "longitude" ;
+      mesh_edge_x:long_name = "Characteristic longitude of 2D mesh face" ;
+      mesh_edge_x:units = "degrees_east" ;
+
+    double mesh_edge_y(nEdges) ;
+      mesh_edge_y:standard_name = "latitude" ;
+      mesh_edge_y:long_name = "Characteristic latitude of 2D mesh face" ;
+      mesh_edge_y:units = "degrees_north" ;
+
+    int mesh_face_nodes(nFaces,maxNodesPerFace) ;
+      mesh_face_nodes:cf_role = "face_node_connectivity" ;
+      mesh_face_nodes:long_name = "Maps every face to its corner nodes" ;
+      mesh_face_nodes:start_index = 0 ;
+      mesh_face_nodes:_FillValue = -2147483648 ;
+
+    double mesh_face_x(nFaces) ;
+      mesh_face_x:standard_name = "longitude" ;
+      mesh_face_x:long_name = "Characteristic longitude of 2D mesh edge" ;
+      mesh_face_x:units = "degrees_east" ;
+
+    double mesh_face_y(nFaces) ;
+      mesh_face_y:standard_name = "latitude" ;
+      mesh_face_y:long_name = "Characteristic latitude of 2D mesh edge" ;
+      mesh_face_y:units = "degrees_north" ;
+
+    double mesh_node_x(nNodes) ;
+      mesh_node_x:standard_name = "longitude" ;
+      mesh_node_x:long_name = "Longitude of mesh nodes" ;
+      mesh_node_x:units = "degrees_east" ;
+
+    double mesh_node_y(nNodes) ;
+      mesh_node_y:standard_name = "latitude" ;
+      mesh_node_y:long_name = "Latitude of mesh nodes" ;
+      mesh_node_y:units = "degrees_north" ;
+} // group /
+@end verbatim
+@end example
 
 @html
 <a name="skl"></a> <!-- http://nco.sf.net/nco.html#skl -->
@@ -6501,8 +6687,8 @@ datasets of the same geometry.
 @example
 @verbatim
 # Generate T42 Gaussian grid file t42_SCRIP.nc and skeleton file t42_skl.nc
-ncks --rgr skl=${DATA}/grids/t42_skl.nc --rgr grid=${DATA}/grids/t42_SCRIP.nc \
-     --rgr latlon=64,128 --rgr lat_typ=gss --rgr lon_typ=Grn_ctr \
+ncks --rgr skl=${DATA}/grids/t42_skl.nc --rgr scrip=${DATA}/grids/t42_SCRIP.nc \
+     --rgr latlon=64,128#lat_typ=gss#lon_typ=Grn_ctr \
      ~zender/nco/data/in.nc ~/foo.nc
 @end verbatim
 @end example
@@ -6616,6 +6802,7 @@ regionally refined grids.
 Support for irregular 2D- and regional grids (e.g., swath-like data) is
 planned.  
 
+@unnumberedsubsec Renormalization
 @html
 <a name="rnr"></a> <!-- http://nco.sf.net/nco.html#rnr -->
 <a name="renormalize"></a> <!-- http://nco.sf.net/nco.html#renormalize -->
@@ -6652,6 +6839,16 @@ Input and output integrals are unequal and renormalized regridding is
 not conservative. 
 Both algorithms produce identical answers when no missing data maps to 
 the destination gridcell.
+
+The renormalized algorithm is useful because it solves some problems,
+like producing physically unrealistic temperature values, at the expense
+of incurring others, like non-conservation.
+Many land and ocean modelers eschew unrealistic gridpoint values, and
+conservative regridding often produces ``weird'' values along coastlines  
+or missing data gaps where state variables are regridded to/from small
+fractions of a gridcell.
+Renormalization ensures the output values are physically consistent,
+although the integral of their value times area is not conservative.
 
 @cindex @var{wgt_thr}
 By default, @acronym{NCO} implements the ``conservative'' algorithm
@@ -6695,9 +6892,9 @@ algorithm when performing conservative regridding, and the
 bilinear interpolation or nearest-neighbor.
 Another consideration is whether the fields being regridded are fluxes
 or state variables. 
-For example, temperature (unlike heat) or concentrations (amount per
+For example, temperature (unlike heat) and concentrations (amount per
 unit volume) are not physically conserved quantities under
-areal-regridding so it often makes sense to interpolate them in a
+areal-regridding so it often makes sense to interpolate them in a 
 non-conservative fashion, to preserve their fine-scale structure. 
 Few researchers can digest the unphysical values of temperature that the  
 ``conservative'' option will produce in regions rife with missing
@@ -6705,7 +6902,7 @@ values.
 A counter-example is fluxes, which should be physically conserved under 
 areal-regridding.
 One should consider both the type of field and its conservation
-properties before choosing a regridding strategy.
+properties when choosing a regridding strategy.
 
 @acronym{NCO} automatically annotates the output with relevant metadata
 such as coordinate bounds, axes, and vertices (@w{@`{a} la} @acronym{CF}). 
@@ -6826,14 +7023,17 @@ These annotations include
 @cindex @code{cell_methods}
 @cindex @code{cell_area}
 @cindex @code{steradian}
-@cindex @samp{--rgr area_nm=@var{area_nm}}
+@cindex @samp{--no_cll_msr}
+@cindex @samp{--rgr no_area_out}
+@cindex @samp{--rgr no_area}
+@cindex @samp{--rgr area_out=@var{area_nm}}
 @cindex @var{area_nm}
 @cindex @acronym{SI}
 @cindex solid angle
 @cindex extensive variable
 @item Gridcell Area: @var{area}
-    The variable @var{area_nm} (which defaults to @code{area}) is
-    always (re-)created in the @var{output_file} to hold the gridcell
+    The variable @var{area_nm} (which defaults to @code{area}) is, by 
+    default, (re-)created in the @var{output_file} to hold the gridcell 
     area in steradians.     
     To store the area in a different variable, use the option
     @samp{--rgr area=@var{area_nm}}.
@@ -6845,6 +7045,10 @@ These annotations include
     that its value depends on the gridcell boundaries.  
     Since @var{area_nm} is a property of the grid, it is read directly
     from the @var{map-file} rather than regridded itself. 
+    To omit the area variable from the output file, set the
+    @var{no_area_out} flag.
+    The @code{--no_cll_msr} switch to @command{ncremap} and
+    @command{ncclimo} does this automatically.
 @cindex @code{frc}
 @cindex @samp{--rgr frc_nm=@var{frc_nm}}
 @cindex @var{frc_nm}
@@ -6865,6 +7069,38 @@ These annotations include
     boundaries.   
     Since @var{frc_nm} is a property of the grid, it is read directly
     from the @var{map-file} rather than regridded itself. 
+@cindex @code{mask}
+@cindex @samp{--no_msk}
+@cindex @samp{--no_mask}
+@cindex @samp{--msk_out}
+@cindex @samp{--mask_out}
+@cindex @samp{--rgr no_msk_out}
+@cindex @samp{--rgr no_mask}
+@cindex @samp{--rgr msk_nm=@var{msk_nm}}
+@cindex infer
+@cindex @var{msk_nm}
+@item Gridcell Mask: @var{mask}
+    The variable @var{msk_nm} (which defaults to @code{mask}) can, if
+    present, be copied from the @var{map-file} to hold the gridcell mask 
+    on the destination grid in @var{output-file}.
+    To store the mask in a different variable, use the option
+    @samp{--rgr msk_nm=@var{msk_nm}}.
+    Since @var{msk_nm} is a property of the grid, it is read directly
+    from the @var{map-file} rather than regridded itself. 
+    To include the mask variable in the output file, set the
+    @var{msk_out} flag.
+    To omit the mask variable from the output file, set the
+    @var{no_msk_out} flag.
+    In grid inferral and map-generation modes, this option tells the
+    regridder to generate an integer mask map from the variable
+    @var{msk_nm}. 
+    The mask will be one (i.e., points at that location will contribute
+    to regridding weights) where @var{msk_nm} has valid values. 
+    The mask will be zero (i.e., points at that location will not
+    contribute to regridding weights) where @var{msk_nm} has a missing
+    value.
+    This feature is useful when creating weights between masked grids,
+    e.g., ocean-only points or land-only points.
 @cindex @code{gw}
 @cindex @samp{--rgr lat_weight=@var{lat_wgt_nm}}
 @cindex @var{lat_wgt_nm}
@@ -6888,6 +7124,47 @@ These annotations include
     The @var{map-file} and @var{input-file} names are stored in the
     @var{output-file} global attributes @code{mapping_file} and
     @code{source_file}, respectively.
+@html
+<a name="slat"></a> <!-- http://nco.sf.net/nco.html#slat -->
+<a name="slon"></a> <!-- http://nco.sf.net/nco.html#slon -->
+<a name="stg"></a> <!-- http://nco.sf.net/nco.html#stg -->
+<a name="stagger"></a> <!-- http://nco.sf.net/nco.html#stagger -->
+<a name="no_stagger"></a> <!-- http://nco.sf.net/nco.html#no_stagger -->
+@end html
+@cindex @code{--no_stg}
+@cindex @code{--no_stagger}
+@cindex @code{--no_stg_grd}
+@cindex @code{slat}
+@cindex @code{slon}
+@cindex @code{w_stag}
+@cindex @acronym{CAM}
+@cindex @acronym{FV}
+@cindex @acronym{AMWG}
+@cindex staggered-grid
+@cindex no stagger
+@item Staggered Grid Coordinates and Weights
+    Owing to its heritage as an early @acronym{CCM} analysis tool,
+    @acronym{NCO} tries to create output interoperable with other
+    @acronym{CESM} analysis tools. 
+    Like many models, @acronym{CAM} computes and archives thermodynamic
+    state variables on gridcell centers, while dynamics variables
+    (@var{U}, @var{V}) are on gridcell edges (interfaces).
+    The dual-grid, sometimes called the ``staggered grid'', formed
+    by connecting edge centers is thus the natural location for 
+    storing output dynamics variables.
+    Some analysis packages, such as the @acronym{AMWG} diagnostics, 
+    require access to these dual-grid coordinates with the names
+    @code{slat} and @code{slon} (for ``staggered'' latitude and
+    longitude).
+    By default the @acronym{NCO} regridder outputs these coordinates,
+    along with the latitude weights (called @code{w_stag}), when
+    the input is on a cap (aka @acronym{FV}) grid so that the result
+    can be processed by @acronym{AMWG} diagnostics. 
+    Turn-off archiving the staggered grid (i.e., @code{slat},
+    @code{slon}, and @code{w_stag}) by setting the @var{no_stagger}
+    flag. 
+    The @code{--no_stg_grd} flag in @command{ncremap} and
+    @command{ncclimo} sets this @code{--no_stagger} flag.
 @end table
 
 One may supply muliple @samp{--rgr @var{key}=@var{value}} options
@@ -7414,8 +7691,9 @@ Use @samp{--mrd} to override this.
 @cindex @code{missing_value}
 @cindex @code{_FillValue}
 @cartouche
-Availability: @command{ncap2}, @command{ncbo}, @command{nces},
-@command{ncflint}, @command{ncpdq}, @command{ncra}, @command{ncwa}@* 
+Availability: @command{ncap2}, @command{ncbo}, @command{ncclimo},
+@command{nces}, @command{ncflint}, @command{ncpdq}, @command{ncra},  
+@command{ncremap}, @command{ncwa}@* 
 Short options: None@*
 @end cartouche
 
@@ -7423,7 +7701,7 @@ The phrase @dfn{missing data} refers to data points that are missing,
 invalid, or for any reason not intended to be arithmetically processed
 in the same fashion as valid data.  
 @cindex arithmetic operators
-The @acronym{NCO} arithmetic operators attempt to handle missing data in
+All @acronym{NCO} arithmetic operators attempt to handle missing data in 
 an intelligent fashion. 
 There are four steps in the @acronym{NCO} treatment of missing data:
 @enumerate
@@ -7799,7 +8077,7 @@ variables that contain at least one record dimension) must be chunked.
 Also variables that are compressed or use checksums must be chunked.
 Such variables cannot be unchunked.@*  
 Alternate invocation: @code{ncunchunk}@*
-@var{cnk_plc} key values: @samp{uck}, @samp{cnk_uck}, @samp{plc_uck}, @samp{unchunk}@*
+@var{cnk_plc} key values: @samp{uck}, @samp{cnk_uck}, @samp{plc_uck}, @samp{none}, @samp{unchunk}@*
 Mnemonic: @emph{U}n@emph{C}hun@emph{K}@*
 @end table
 @noindent
@@ -11480,7 +11758,7 @@ in-depth examples of @command{ncap2} solutions to complex problems.
 @noindent
 SYNTAX
 @example
-ncap2 [-3] [-4] [-6] [-7] [@uref{http://nco.sf.net/nco.html#-A,,-A}] [-C] [-c] 
+ncap2 [-3] [-4] [-5] [-6] [-7] [@uref{http://nco.sf.net/nco.html#-A,,-A}] [-C] [-c] 
 [-D @var{dbg}] [-F] [-f] [--glb ...] [-h] [--hdf] [--hdr_pad @var{nbr}] [-L @var{dfl_lvl}] [-l @var{path}]
 [--no_tmp_fl] [-O] [-o @var{output-file}] [-p @var{path}] [-R] [-r] [--ram_all]
 [-s @var{algebra}] [-S @var{fl.nco}] [-t @var{thr_nbr}] [-v]
@@ -12067,43 +12345,41 @@ Spacing (or increment) between elements.
 Variable from which the array can derive its shape 1D or nD
 @end table
 
-@noindent @strong{ One-Dimensional Arrays@*}
+@noindent @strong{One-Dimensional Arrays@*}
 Use form (A) or (B)  for 1D arrays 
 @example
-In the following var_out is of type NC_DOUBLE
-var_out=array(10.0, 2, $time)  //10.5,12.5,14.5,16.5,18.5,20.5,22.5,24.5,26.5,28.5
+# var_out will be NC_DOUBLE:
+var_out=array(10.0,2,$time) // 10.5,12.5,14.5,16.5,18.5,20.5,22.5,24.5,26.5,28.5
 
-The following is also ID 
-It gets its "shape" from the var "ilev" and is of type NC_UINT
-var_out=array( 0ul, 2, ilev)    // 0,2,4,6
+// var_out will be NC_UINT, and "shape" will duplicate "ilev"
+var_out=array(0ul,2,ilev) // 0,2,4,6
 
-The following is of type NC_FLOAT
-var_out=array(99.0f, 2.5, $lon) // 99,101.5,104,106.5
+// var_out will be NC_FLOAT
+var_out=array(99.0f,2.5,$lon) // 99,101.5,104,106.5
 
-// create an array of zeros 
-var_out=array(0, 0, $time) // 0,0,0,0,0,0,0,0,0,0 
+// Create an array of zeros 
+var_out=array(0,0,$time) // 0,0,0,0,0,0,0,0,0,0 
 
-// create an array of ones
-var_out=array(1.0, 0.0, $lon) // 1.0,1.0,1.0,1.0 
+// Create array of ones
+var_out=array(1.0,0.0,$lon) // 1.0,1.0,1.0,1.0 
 @end example
 
 @noindent @strong{ n-Dimensional Arrays@*}
 Use form (B) or (C) for creating n-D arrays.@* 
-nb In (C) the final argument is a list of dimensions
+NB: In (C) the final argument is a list of dimensions
 
 @example
-The following two are equivalent
+// These are equivalent
 var_out=array(1.0, 2.0, three_dmn_var)
 var_out=array(1.0, 2.0,/$lat, $lev, $lon/)
 
-Below the type is NC_BYTE
+// var_out is NC_BYTE
 var_out=array(20b, -4, /$lat,$lon/)  // 20,16,12,8,4,0,-4,-8  
 
 srt=3.14159f; inc=srt/2.0f
 var_out(srt,inc, var_2D_rrg)  
 // 3.14159, 4.712385, 6.28318, 7.853975, 9.42477, 10.99557, 12.56636, 14.13716 ; 
 @end example
-
 
 @cindex hyperslabs
 Hyperslabs in @command{ncap2} are more limited than hyperslabs with the
@@ -12794,6 +13070,9 @@ n2=-999,-999,11,11,11,11,11,11,999,-999;
 @end example
 
 @html
+<a name="mask_miss"></a> <!-- http://nco.sf.net/nco.html#mask_miss -->
+<a name="has_miss"></a> <!-- http://nco.sf.net/nco.html#has_miss -->
+<a name="delete_miss"></a> <!-- http://nco.sf.net/nco.html#delete_miss -->
 <a name="set_miss"></a> <!-- http://nco.sf.net/nco.html#set_miss -->
 <a name="get_miss"></a> <!-- http://nco.sf.net/nco.html#get_miss -->
 <a name="change_miss"></a> <!-- http://nco.sf.net/nco.html#change_miss -->
@@ -12840,6 +13119,11 @@ with a variable. The methods that ``manipulate'' will only succeed on variables 
 @cindex @code{has_miss()}
 Returns 1 (True) if the variable has a missing value associated with it. 
 else returns 0 (False)
+@item missing()
+@cindex @code{missing(), mask_miss()}
+This function creates a True/False mask array of where the missing value is set.
+It is syntatically equivalent to ( var_in == var_in.get_miss()). except that cant do this
+unless you delete the missing value before-hand!!
 @end table
 
 @example
@@ -12865,8 +13149,28 @@ print(three_dmn_var_dbl@_FillValue);
 print("Number of missing values in three_dmn_var_dbl: ");
 print(mss_val_nbr,"%d");
 print(three_dmn_var_dbl);
+
+// find the total number of missing values along dims $lat and $lon
+mss_ttl=three_mn_var_dbl.missing().ttl($lat,$lon);
+print(mss_ttl); // 0, 0, 0, 8, 0, 0, 0, 1, 0, 2 ;
 @end verbatim
 @end example
+
+@table @code
+@item simple_fill_miss(var)
+@cindex @code{simple_fill_miss()}
+This function takes a variable and attempts to fill missing values using an average
+of up to the 4 nearest neighbour grid points. The method used is iterative (up to 1000 cycles).
+For very large areas of missing values results can be unpredictable.
+The given variable must be at least 2D; and the algorithm assumes that the last two dims are lat/lon
+or y/x
+@item weighted_fill_miss(var)
+@cindex @code{weighted_fill_miss()}
+Weighted_fill_miss is more sophisticated. Up to 8 nearest neighbours  are used to calculate a weighted average.
+The weighting used is the inverse  square of distance. Again the method is iterative (up to 1000 cycles).
+The area filled is defined by the final  two dims of the variable. In addition this function assumes the existance of
+coordinate vars the same name as the last two dims. if it doesn't find these dims it will gently exit with warning.
+@end table
 
 @html
 <a name="ncap_mth"></a> <!-- http://nco.sf.net/nco.html#ncap_mth -->
@@ -13125,7 +13429,7 @@ Variables that are frequently accessed within @code{for} or @code{where}
 clauses provide the greatest opportunities for optimization. 
 To declare and define a @acronym{RAM} variable simply prefix the variable name
 with an asterisk (@code{*}) when the variable is declared/initialized.
-To delete a @acronym{RAM} variables (and recover their memory) use the
+To delete @acronym{RAM} variables (and recover their memory) use the
 @code{ram_delete()} method. 
 To write a @acronym{RAM} variable to disk (like a regular variable) use
 @code{ram_write()}. 
@@ -13204,7 +13508,7 @@ Consider the variables @code{float lon_2D_rct(lat,lon);} and
 Suppose we wish to multiply by two the elements for which @code{var_msk} 
 @w{equals 1}: 
 @example
-where(var_msk==1) lon_2D_rct=2*lon_2D_rct;
+where(var_msk == 1) lon_2D_rct=2*lon_2D_rct;
 @end example
 Suppose that we have the variable @code{int RDM(time)} and that we want
 to set its values less than 8 or greater than 80 @w{to 0}:
@@ -13376,8 +13680,6 @@ As of @acronym{NCO} version 4.6.3 (December, 2016), The user can specify the dir
 @example
 export NCO_PATH=":/home/henryb/bin/:/usr/local/scripts:/opt/SOURCES/nco/data:"
 @end example
-
-
 
 @html
 <a name="srt"></a> <!-- http://nco.sf.net/nco.html#srt -->
@@ -14716,7 +15018,6 @@ double gsl_stats_wmean (double w[], size_t wstride, double data[], size_t stride
 double gsl_stats_quantile_from_sorted_data (double sorted_data[], size_t stride, size_t n, double f) ;
 @end example
 
-
 @noindent Equivalent ncap2 wrapper functions
 @example
 short gsl_stats_max (var_data, data_stride, n);
@@ -14726,10 +15027,7 @@ double gsl_stats_wmean (var_weight, weight_stride, var_data, data_stride, n, var
 double gsl_stats_quantile_from_sorted_data (var_sorted_data, data_stride, n, var_f) ;
 @end example
 
-@noindent @acronym{GSL} has no notion of missing values or dimensionality beyond one. If your data has missing values which you want ignored in the calculations then use the @command{ncap2} built in aggregate functions( @ref{Methods and functions} ). The @acronym{GSL} functions operate on a vector of values created from the var_data/stride/n arguments. The ncap wrappers check that there is no bounding error with regard to the size of the data and the final value in the vector. 
-
-Some examples
-
+@noindent @acronym{GSL} has no notion of missing values or dimensionality beyond one. If your data has missing values which you want ignored in the calculations then use the @command{ncap2} built in aggregate functions(@ref{Methods and functions}). The @acronym{GSL} functions operate on a vector of values created from the var_data/stride/n arguments. The ncap wrappers check that there is no bounding error with regard to the size of the data and the final value in the vector. 
 @example
 @verbatim
 a1[time]={1,2,3,4,5,6,7,8,9,10};
@@ -16172,8 +16470,10 @@ ncatted -a long_name,T,o,c,temperature in.nc
 @cindex @code{_FillValue}
 Many model and observational datasets use missing values that are not
 annotated in the standard manner.
-For example, the MPAS ocean and ice models use
-@math{-9.99999979021476795361e+33} as the missing value.
+For example, at the time (2015--2016) of this writing,
+the @acronym{MPAS} ocean and ice models use
+@math{-9.99999979021476795361e+33} as the missing value, yet do not
+store a @code{_FillValue} attribute with any variables.
 To prevent arithmetic from treating these values as normal, designate
 this value as the @code{_FillValue} attribute:
 @example
@@ -16378,7 +16678,7 @@ omitted in batch scripts.
 @noindent
 SYNTAX
 @example 
-ncbo [-3] [-4] [-6] [-7] [-A] [-C] [-c]
+ncbo [-3] [-4] [-5] [-6] [-7] [-A] [-C] [-c]
 [--cnk_byt @var{sz_byt}] [--cnk_csh @var{sz_byt}] [--cnk_dmn @var{nm},@var{sz_lmn}] [--cnk_map @var{map}]
 [--cnk_min @var{sz_byt}] [--cnk_plc @var{plc}] [--cnk_scl @var{sz_lmn}]
 [-D @var{dbg}] [-d @var{dim},[@var{min}][,[@var{max}][,[@var{stride}]]] [-F] 
@@ -16796,6 +17096,7 @@ ncrcat t_anm_8589_??.nc t_anm_8589_0112.nc
 @html
 <a name="ncclimo"></a> <!-- http://nco.sf.net/nco.html#ncclimo -->
 <a name="ncsplit"></a> <!-- http://nco.sf.net/nco.html#ncsplit -->
+<a name="ncsplit"></a> <!-- http://nco.sf.net/nco.html#splitter -->
 @end html
 @node ncclimo netCDF Climatology Generator, ncecat netCDF Ensemble Concatenator, ncbo netCDF Binary Operator, Reference Manual
 @section @command{ncclimo} netCDF Climatology Generator
@@ -16809,7 +17110,8 @@ SYNTAX
 ncclimo [-a @var{dec_md}] [-C @var{clm_md}] [-c @var{caseid}] [-d @var{dbg_lvl}]
 [-E @var{yr_prv}] [-e @var{yr_end}] [-f @var{fml_nm}] [-h @var{hst_nm}] [-i @var{drc_in}]
 [-j @var{job_nbr}] [-l @var{lnk_flg}] [-m @var{mdl_nm}] [-n @var{nco_opt}] 
-[-O @var{drc_rgr}] [-o @var{drc_out}] [-p @var{par_typ}] [-R @var{rgr_opt}] [-r @var{rgr_map}] 
+[--no_cll_msr ] [--no_frm_trm] [--no_ntv_tms] [--no_stg_grd]
+[-O @var{drc_rgr}] [-o @var{drc_out}] [-p @var{par_typ}] [-R @var{rgr_opt}] [-r @var{rgr_map}]
 [-S @var{yr_prv}] [-s @var{yr_srt}] [--stdin] [-t @var{thr_nbr}] [--tpd=@var{tpd_dly}]
 [-v @var{var_lst}] [--version] [-x @var{cf_flg}] [-X @var{drc_xtn}] [-x @var{drc_prv}] 
 [-Y @var{rgr_xtn}] [-y @var{rgr_prv}] [--ypf=@var{ypf_max}]
@@ -17083,6 +17385,67 @@ Directory to hold regridded climo files.
 Regridded climos are placed in @var{drc_out} unless a separate
 directory for them is specified with @samp{-O} (NB: capital ``O''). 
 
+@cindex @code{--no_cll_msr}
+@cindex @code{--no_cll}
+@cindex @code{--no_cell_measures}
+@cindex @code{--no_area}
+@cindex @code{cell_measures} attribute
+@item --no_cll_msr (@code{--no_cll_msr}, @code{--no_cll}, @code{--no_cell_measures}, @code{--no_area})
+This switch (which takes no argument) controls whether @command{ncclimo}
+and @command{ncremap} add measures variables to the extraction list
+along with the primary variable and other associated variables. 
+See @ref{CF Conventions} for a detailed description.
+
+@cindex @code{--no_frm_trm}
+@cindex @code{--no_frm}
+@cindex @code{--no_formula_terms}
+@cindex @code{formula_terms} attribute
+@item --no_frm_trm (@code{--no_frm_trm}, @code{--no_frm}, @code{--no_formula_terms})
+This switch (which takes no argument) controls whether @command{ncclimo}
+and @command{ncremap} add formula variables to the extraction list along
+with the primary variable and other associated variables. 
+See @ref{CF Conventions} for a detailed description.
+
+@html
+<a name="no_ntv_tms"></a> <!-- http://nco.sf.net/nco.html#no_ntv_tms -->
+<a name="no_ntv"></a> <!-- http://nco.sf.net/nco.html#no_ntv -->
+<a name="no_native"></a> <!-- http://nco.sf.net/nco.html#no_native -->
+@end html
+@cindex @code{--no_ntv_tms}
+@cindex @code{--no_ntv}
+@cindex @code{--no_native}
+@cindex @code{--remove_native}
+@item --no_ntv_tms (@code{--no_ntv_tms}, @code{--no_ntv}, @code{--no_native}, @code{--remove_native})
+This switch (which takes no argument) controls whether the splitter
+retains native grid split files, which it does by default, or deletes them.
+@command{ncclimo} can split model output from multi-variable native grid
+files into per-variable timeseries files and regrid those onto a
+so-called analysis grid. 
+That is the typical format in which Model Intercomparison Projects
+(@acronym{MIP}s) request and disseminate contributions.
+When the data producer has no use for the split timeseries on the native
+grid, he/she can invoke this flag to cause @command{ncclimo} to
+delete the native grid timeseries (not the raw native grid datafiles). 
+
+@html
+<a name="no_stg_grd"></a> <!-- http://nco.sf.net/nco.html#no_stg_grd -->
+<a name="no_stg"></a> <!-- http://nco.sf.net/nco.html#no_stg -->
+@end html
+@cindex @code{slat}
+@cindex @code{slon}
+@cindex @code{w_stag}
+@cindex @code{--no_stg_grd}
+@cindex @code{--no_stg}
+@cindex @code{--no_stagger}
+@cindex @code{--no_staggered_grid}
+@item --no_stg_grd (@code{--no_stg_grd}, @code{--no_stg}, @code{--no_stagger}, @code{--no_staggered_grid})
+This switch (which takes no argument) controls whether
+regridded output will contain the staggered grid coordinates 
+@code{slat}, @code{slon}, and @code{w_stag} (@pxref{Regridding}). 
+By default the staggered grid is output for all files regridded from 
+a Cap (aka @acronym{FV}) grid, except when the regridding is performed
+as part of splitting (reshaping) into timeseries.
+
 @cindex @code{-o @var{drc_out}}
 @cindex @var{drc_out}
 @cindex @code{--drc_out}
@@ -17215,15 +17578,19 @@ This option only takes effect in daily-average climatology mode.
 @cindex @code{--variables}
 @cindex @code{--variable_list}
 @item -v @var{var_lst} (@code{--var_lst}, @code{--var}, @code{--vars}, @code{--variables}, @code{--variable_list})
-Variables to subset or split.
+Variables to subset or to split.
 Same behavior as @ref{Subsetting Files}.
-The use of @var{var_lst} is optional in climate generation mode but is 
-mandatory in timeseries reshaping mode (to prevent inadvertently copying 
-the results of an entire model simulation).
+The use of @var{var_lst} is optional in climate generation mode.
+Invoking this switch was required in the original splitter released in 
+version 4.6.5 (March, 2017), and became optional as of version 4.6.6
+(May, 2017). 
+This option is recommended in timeseries reshaping mode to prevent
+inadvertently copying the results of an entire model simulation. 
 Regular expressions are allowed so, e.g., @samp{PREC.?} extracts
 the variables @samp{PRECC,PRECL,PRECSC,PRECSL} if present.
-Note that in reshaping mode all matches to a regular expression are
+Current in reshaping mode all matches to a regular expression are
 placed in the same output file.
+We hope to remove this limitation in the future.
 
 @cindex @code{--version}
 @cindex @code{--vrs}
@@ -18109,7 +18476,7 @@ Moreover, the climatologies can be generated in parallel.
 @noindent
 SYNTAX
 @example
-ncecat [-3] [-4] [-6] [-7] [-A] [-C] [-c]
+ncecat [-3] [-4] [-5] [-6] [-7] [-A] [-C] [-c]
 [--cnk_byt @var{sz_byt}] [--cnk_csh @var{sz_byt}] [--cnk_dmn @var{nm},@var{sz_lmn}] [--cnk_map @var{map}]
 [--cnk_min @var{sz_byt}] [--cnk_plc @var{plc}] [--cnk_scl @var{sz_lmn}]
 [-D @var{dbg}] [-d @var{dim},[@var{min}][,[@var{max}][,[@var{stride}]]] [-F]
@@ -18173,7 +18540,7 @@ the record dimension size if the requested record hyperslab
 (@pxref{Hyperslabs}) resolves to the same size for all files. 
 @cindex @acronym{CMIP}
 This allows easier gluing/averaging of unequal length timeseries from 
-simulation ensembles (e.g., the @acronym{CMIP} rchive). 
+simulation ensembles (e.g., the @acronym{CMIP} archive). 
 
 @cindex fixed dimension
 @cindex fix record dimension
@@ -18329,7 +18696,7 @@ To add a new record dimension named ``time'' to all variables
 ncecat -u time in.nc out.nc
 @end example
 To glue together multiple files with a new record variable named
-``reaalization'' 
+``realization'' 
 @example
 ncecat -u realization 85_0[1-5].nc 85.nc
 @end example
@@ -18349,7 +18716,7 @@ and suppose the user wishes to convert @code{time} from a record
 dimension to a non-record dimension.
 This may be useful, for example, when the user has another use for the
 record variable.
-The simplest method is to use @samp{ncks --fix_rec_dmn} but another
+The simplest method is to use @samp{ncks --fix_rec_dmn}, and another
 possibility is to use @command{ncecat} followed by 
 @command{ncwa}: 
 @cindex degenerate dimension
@@ -18377,7 +18744,7 @@ of changing variable dimensionality, including the record dimension.
 @noindent
 SYNTAX
 @example
-nces [-3] [-4] [-6] [-7] [-A] [-C] [-c]
+nces [-3] [-4] [-5] [-6] [-7] [-A] [-C] [-c]
 [--cnk_byt @var{sz_byt}] [--cnk_csh @var{sz_byt}] [--cnk_dmn @var{nm},@var{sz_lmn}] [--cnk_map @var{map}]
 [--cnk_min @var{sz_byt}] [--cnk_plc @var{plc}] [--cnk_scl @var{sz_lmn}]
 [-D @var{dbg}] [-d @var{dim},[@var{min}][,[@var{max}][,[@var{stride}]]] [-F]
@@ -18606,7 +18973,7 @@ member in the first file.
 @noindent
 SYNTAX
 @example
-ncflint [-3] [-4] [-6] [-7] [-A] [-C] [-c]
+ncflint [-3] [-4] [-5] [-6] [-7] [-A] [-C] [-c]
 [--cnk_byt @var{sz_byt}] [--cnk_csh @var{sz_byt}] [--cnk_dmn @var{nm},@var{sz_lmn}] [--cnk_map @var{map}]
 [--cnk_min @var{sz_byt}] [--cnk_plc @var{plc}] [--cnk_scl @var{sz_lmn}]
 [-D @var{dbg}] [-d @var{dim},[@var{min}][,[@var{max}][,[@var{stride}]]]
@@ -18660,7 +19027,7 @@ computed as @math{@var{wgt2} = 1 @minus{} @var{wgt1}}.
 Note that weights larger @w{than 1} are allowed. 
 Thus it is possible to specify @math{@var{wgt1} = 2} and
 @math{@var{wgt2} = -3}.
-One can use this functionality to multiply all the values in a given
+One can use this functionality to multiply all values in a given
 file by a constant.
 
 @cindex normalization
@@ -18929,6 +19296,9 @@ then writes in netCDF format to @var{output-file}, and
 optionally writes it in flat binary format to @file{fl_bnr}, and
 optionally prints it to screen.
 
+@cindex @code{--trd}
+@cindex @code{--traditional}
+@cindex traditional
 @command{ncks} prints netCDF input data in @acronym{ASCII},
 @acronym{CDL}, @acronym{JSON}, or @acronym{NcML/XML} text formats to
 @code{stdout}, like (an extended version of) @command{ncdump}.
@@ -18940,14 +19310,16 @@ Option @samp{-s} (or long options @samp{--sng_fmt} and @samp{--string})
 permits the user to format data using C-style format strings, while
 option @samp{--cdl} outputs @acronym{CDL},
 option @samp{--jsn} (or @samp{json}) outputs @acronym{JSON},
+option @samp{--trd} (or @samp{traditional}) outputs ``traditional'' format,
 and option @samp{--xml} (or @samp{ncml}) outputs @acronym{NcML}. 
 @command{ncks} exposes many flexible controls over printed output,
 including @acronym{CDL}, @acronym{JSON}, and @acronym{NcML}.
 
 Options @samp{-a}, @samp{--cdl}, @samp{-F} , @samp{-H},
 @samp{--hdn}, @samp{--jsn}, @samp{-M}, @samp{-m}, @samp{-P}, @samp{-Q},
-@samp{-q}, @samp{-s}, @samp{-u}, @samp{-V}, and @samp{--xml} (and their
-long option counterparts) control the formatted appearance of the data.
+@samp{-q}, @samp{-s}, @samp{--trd}, @samp{-u}, @samp{-V}, and
+@samp{--xml} (and their long option counterparts) control the formatted
+appearance of the data. 
 
 @cindex global attributes
 @cindex attributes, global
@@ -19060,7 +19432,8 @@ variables.
 Specifying @code{-a} results in the variables being extracted, printed,
 and written to disk in the order in which they were saved in the input
 file.
-Thus @code{-a} retains the original ordering of the variables.
+Thus @code{-a} retains the original (often non-alphabetic) variable
+ordering.
 Also @samp{--abc} and @samp{--alphabetize}.
 
 @html
@@ -19212,12 +19585,14 @@ detailed descriptions of the meanings of these hidden attributes.
 <a name="cdl"></a> <!-- http://nco.sf.net/nco.html#cdl -->
 <a name="hdp"></a> <!-- http://nco.sf.net/nco.html#hdp -->
 <a name="hncgen"></a> <!-- http://nco.sf.net/nco.html#hncgen -->
+<a name="h4_ncgen"></a> <!-- http://nco.sf.net/nco.html#h4_ncgen -->
 <a name="ncgen-hdf"></a> <!-- http://nco.sf.net/nco.html#ncgen-hdf -->
 @end html
 @cindex @command{hdp}
 @cindex @command{ncgen}
 @cindex @command{ncgen-hdf}
 @cindex @command{hncgen}
+@cindex @command{h4_ncgen}
 @cindex @command{ncdump}
 @cindex @code{--cdl}
 @cindex @acronym{CDL}
@@ -19259,20 +19634,22 @@ ncgen -k netCDF-4 -b -o ~/in.nc ~/in.cdl
 ncks -v one ~/in.nc
 @end example
 The @acronym{HDF} version of @command{ncgen}, often named
-@command{hncgen} or @command{ncgen-hdf}, converts netCDF3 @acronym{CDL}
+@command{hncgen}, @command{h4_ncgen}, or @command{ncgen-hdf}, converts netCDF3 @acronym{CDL}
 into an @acronym{HDF} file:  
 @example
 /usr/hdf4/bin/ncgen -b -o ~/in.hdf ~/in.cdl # HDF ncgen (local builds)
 /usr/bin/hncgen     -b -o ~/in.hdf ~/in.cdl # Same as HDF ncgen (RPM packages?)
+/usr/bin/h4_ncgen   -b -o ~/in.hdf ~/in.cdl # Same as HDF ncgen (Anaconda)
 /usr/bin/ncgen-hdf  -b -o ~/in.hdf ~/in.cdl # Same as HDF ncgen (Debian packages?)
 hdp dumpsds ~/in.hdf                        # ncdump/h5dump-equivalent for HDF4
+h4_ncdump dumpsds ~/in.hdf                  # ncdump/h5dump-equivalent for HDF4
 @end example
 Note that @acronym{HDF4} does not support netCDF-style groups, so the
 above commands fail when the input file contains groups.
 Only netCDF4 and @acronym{HDF5} support groups.
 In our experience the @acronym{HDF} @command{ncgen} command, by whatever 
-name installed, is not robust and can fail on valid netCDF3
-@acronym{CDL}.  
+name installed, is not robust and fails on many valid netCDF3
+@acronym{CDL} constructs.
 
 @html
 <a name="dmn_rec_mk"></a> <!-- http://nco.sf.net/nco.html#dmn_rec_mk -->
@@ -19457,7 +19834,7 @@ rather than as more complex objects:
 % ncks --jsn_fmt=0 -v att_var ~/nco/data/in_grp.nc
 ...
 "att_var": {
-  "dims": ["time"],
+  "shape": ["time"],
   "type": "float",
   "attributes": {
     "byte_att": [0, 1, 2, 127, -128, -127, -2, -1],
@@ -19509,7 +19886,7 @@ as in the @math{@var{lvl} = 0} above:
 % ncks --jsn_fmt=1 -v att_var ~/nco/data/in.nc
 ...
 "att_var": {
-  "dims": ["time"],
+  "shape": ["time"],
   "type": "float",
   "attributes": {
     "byte_att": { "type": "byte", "data": [0, 1, 2, 127, -128, -127, -2, -1]},
@@ -19548,7 +19925,7 @@ exact reproduction of the original dataset:
 % ncks --jsn_fmt=2 -v att_var ~/nco/data/in.nc
 ...
 "att_var": {
-  "dims": ["time"],
+  "shape": ["time"],
   "type": "float",
   "attributes": {
     "byte_att": { "type": "byte", "data": [0, 1, 2, 127, -128, -127, -2, -1]},
@@ -19786,6 +20163,28 @@ This demonstrates conclusively that I cannot keep a secret.
 Also @samp{--ssh} and @samp{--scr}. 
 
 @html
+<a name="trd"></a> <!-- http://nco.sf.net/nco.html#trd -->
+<a name="traditional"></a> <!-- http://nco.sf.net/nco.html#traditional -->
+@end html
+@cindex @code{--trd}
+@cindex @code{--traditional}
+@item --trd, --traditional
+From 1995--2017 @command{ncks} dumped the @acronym{ASCII} text
+representation of netCDF files in what we now call ``traditional''
+mode. 
+Much of this manual contains output printed in traditional mode,
+which places one value per line, with complete dimensional
+information.
+Tradiational-mode metadata output includes lower-level information,
+such as @acronym{RAM} usage and internal variable IDs, than
+@acronym{CDL}.  
+However, @acronym{CDL} is more useful than traditional mode for most
+users.  
+In summer 2017 @acronym{CDL} will become the default printing mode.
+Traditional mode will still be accessible using the @samp{--trd}
+option. 
+
+@html
 <a name="units"></a> <!-- http://nco.sf.net/nco.html#units -->
 <a name="u"></a> <!-- http://nco.sf.net/nco.html#u -->
 @end html
@@ -19929,6 +20328,7 @@ include an NcML formatting characters (e.g., commas, angles, quotes).
 <a name="nclist"></a> <!-- http://nco.sf.net/nco.html#nclist -->
 <a name="ncdmnlist"></a> <!-- http://nco.sf.net/nco.html#ncdmnlist -->
 <a name="ncdmnsz"></a> <!-- http://nco.sf.net/nco.html#ncdmnsz -->
+<a name="ncgrplist"></a> <!-- http://nco.sf.net/nco.html#ncgrplist -->
 <a name="ncrecsz"></a> <!-- http://nco.sf.net/nco.html#ncrecsz -->
 <a name="ncmax"></a> <!-- http://nco.sf.net/nco.html#ncmax -->
 <a name="ncmdn"></a> <!-- http://nco.sf.net/nco.html#ncmdn -->
@@ -19951,6 +20351,7 @@ include an NcML formatting characters (e.g., commas, angles, quotes).
 @cindex @command{ncavg}
 @cindex @command{ncdmnlist}
 @cindex @command{ncdmnsz}
+@cindex @command{ncgrplist}
 @cindex @command{nclist}
 @cindex @command{ncmax}
 @cindex @command{ncmdn}
@@ -20059,6 +20460,8 @@ function ncavg { ncap2 -O -C -v -s "foo=${1}.avg();print(foo)" ${2} ~/foo.nc | c
 ncdmnlist { ncks --cdl -m ${1} | cut -d ':' -f 1 | cut -d '=' -s -f 1 ; }
 # ncdmnsz $dmn_nm $fl_nm : What is dimension size?
 function ncdmnsz { ncks -m -M ${2} | grep -E -i ": ${1}, size =" | cut -f 7 -d ' ' | uniq ; }
+# ncgrplist $fl_nm : What groups are in file?
+function ncgrplist { ncks --cdl -m ${1} | grep 'group:' | cut -d ':' -f 2 | cut -d ' ' -f 2 | sort ; }
 # nclist $fl_nm : What variables are in file?
 function nclist { ncks -m ${1} | grep -E ': type' | cut -f 1 -d ' ' | sed 's/://' | sort ; }
 # ncmax $var_nm $fl_nm : What is maximum of variable?
@@ -20376,7 +20779,7 @@ For more details @xref{Wrapped Coordinates}.
 @noindent
 SYNTAX
 @example
-ncpdq [-3] [-4] [-6] [-7] [-A] [-a [-]@var{dim}[,@dots{}]] [-C] [-c]
+ncpdq [-3] [-4] [-5] [-6] [-7] [-A] [-a [-]@var{dim}[,@dots{}]] [-C] [-c]
 [--cnk_byt @var{sz_byt}] [--cnk_csh @var{sz_byt}] [--cnk_dmn @var{nm},@var{sz_lmn}] [--cnk_map @var{map}]
 [--cnk_min @var{sz_byt}] [--cnk_plc @var{plc}] [--cnk_scl @var{sz_lmn}]
 [-D @var{dbg}] [-d @var{dim},[@var{min}][,[@var{max}][,[@var{stride}]]]
@@ -20975,7 +21378,7 @@ changing variable dimensionality, including the record dimension.
 @noindent
 SYNTAX
 @example
-ncra [-3] [-4] [-6] [-7] [-A] [-C] [-c] [--cb]
+ncra [-3] [-4] [-5] [-6] [-7] [-A] [-C] [-c] [--cb]
 [--cnk_byt @var{sz_byt}] [--cnk_csh @var{sz_byt}] [--cnk_dmn @var{nm},@var{sz_lmn}] [--cnk_map @var{map}]
 [--cnk_min @var{sz_byt}] [--cnk_plc @var{plc}] [--cnk_scl @var{sz_lmn}]
 [-D @var{dbg}] [-d @var{dim},[@var{min}][,[@var{max}][,[@var{stride}][,[@var{subcycle}]]]] [-F]
@@ -21224,7 +21627,7 @@ The last example
 @noindent
 SYNTAX
 @example
-ncrcat [-3] [-4] [-6] [-7] [-A] [-C] [-c]
+ncrcat [-3] [-4] [-5] [-6] [-7] [-A] [-C] [-c]
 [--cnk_byt @var{sz_byt}] [--cnk_csh @var{sz_byt}] [--cnk_dmn @var{nm},@var{sz_lmn}] [--cnk_map @var{map}]
 [--cnk_min @var{sz_byt}] [--cnk_plc @var{plc}] [--cnk_scl @var{sz_lmn}]
 [-D @var{dbg}] [-d @var{dim},[@var{min}][,[@var{max}][,[@var{stride}][,[@var{subcycle}]]]] [-F]
@@ -21360,13 +21763,16 @@ ncrcat -d time,6.,54. ??.nc 8506_8906.nc
 @noindent
 SYNTAX
 @example
-ncremap [-a @var{alg_typ}] [-D @var{dbg_lvl}] [-d @var{dst_fl}] [-E @var{esmf_opt}]
+ncremap [-a @var{alg_typ}] [-D @var{dbg_lvl}] [-d @var{dst_fl}]
 [-G @var{grd_sng}] [-g @var{grd_dst}] [-I @var{drc_in}] [-i @var{input-file}] [-j @var{job_nbr}]
-[-M] [-m @var{map_fl}] [-n @var{nco_opt}] [-O @var{drc_out}] [-o @var{output-file}]
-[-P @var{pdq_typ}] [-p @var{par_typ}] [-R @var{rgr_opt}] [-s @var{grd_src}] 
-[-T @var{tempest_opt}] [-t @var{thr_nbr}] [-U @var{drc_tmp}] [-u @var{unq_sfx}] 
+[-M] [-m @var{map_fl}] [--msk_dst=@var{msk_dst}] [--msk_out=@var{msk_out}] [--msk_src=@var{msk_src}]
+[-n @var{nco_opt}] [--no_cll_msr ] [--no_frm_trm] [--no_stg_grd]
+[-O @var{drc_out}] [-o @var{output-file}]
+[-P @var{prc_typ}] [-p @var{par_typ}] [-R @var{rgr_opt}] [--rgn_dst] [--rgn_src]
+[-s @var{grd_src}] [--sgs_frc=@var{sgs_frc}] [--sgs_msk=@var{sgs_msk}] [--sgs_nrm=@var{sgs_nrm}]
+[--stdin] [-T @var{drc_tmp}] [-t @var{thr_nbr}] [-U] [-u @var{unq_sfx}] [--ugrid=@var{ugrid-file}]
 [-V @var{rgr_var}] [-v @var{var_lst}[,@dots{}]] [--version] [--vrb=@var{vrb_lvl}] 
-[-w @var{wgt_gnr}] [-x @var{xtn_lst}[,@dots{}]] 
+[-W @var{wgt_opt}] [-w @var{wgt_cmd}] [-x @var{xtn_lst}[,@dots{}]] 
 @end example
 
 @noindent
@@ -21473,13 +21879,13 @@ Features common to many operators are described in
 @cindex @code{--regrid_algorithm}
 @item -a @var{alg_typ} (@code{--alg_typ}, @code{--algorithm}, @code{--regrid_algorithm})
 Specifies the interpolation algorithm for weight-generation for use by
-@command{ESMF_RegridWeightGen} (@acronym{ERWG}).
+@command{ESMF_RegridWeightGen} (@acronym{ERWG}) and/or TempestRemap.
 @command{ncremap} unbundles this algorithm choice from the rest of
-the @acronym{ERWG} invocation syntax because interpolation algorithms
-are more frequently change by users than other @acronym{ERWG} options
+the weight-generator invocation syntax because user more frequently
+change interpolation algorithms than other options
 (that can be changed with @samp{-E @var{esmf_opt}}).
-The @var{alg_typ} argument must be one of @acronym{ERWG}'s five
-interpolation algorithms: 
+The @var{alg_typ} argument must be @code{tempest} or one of
+@acronym{ERWG}'s five interpolation algorithms:
 @code{bilinear} (default, acceptable abbreviation is @code{bln}), 
 @code{conserve} (or @code{conservative} or @code{cns}), 
 @code{nearestdtos} (or @code{nds} or @code{dtos}), 
@@ -21487,8 +21893,8 @@ interpolation algorithms:
 and @code{patch} (or @code{pch} or @code{ptc}). 
 See @acronym{ERWG} documentation
 @uref{http://www.earthsystemmodeling.org/esmf_releases/public/ESMF_6_3_0rp1/ESMF_refdoc/node3.html#SECTION03020000000000000000, here}
-for detailed descriptions of each algorithm. 
-This option currently has no effect on TempestRemap weight-generation. 
+for detailed descriptions of @acronym{ERWG} algorithms.
+Specifying @code{tempest} invokes TempestRemap weight-generation.
 
 @html
 <a name="dbg_lvl"></a> <!-- http://nco.sf.net/nco.html#dbg_lvl -->
@@ -21535,22 +21941,6 @@ be interpolated or guessed-at.
 @acronym{NCO} only reads coordinate and grid data and metadata from
 @var{dst_fl}. 
 @var{dst_fl} is not modified, and may have read-only permissions.
-
-@html
-<a name="esmf_opt"></a> <!-- http://nco.sf.net/nco.html#esmf_opt -->
-@end html
-@cindex @code{-E @var{esmf_opt}}
-@cindex @var{esmf_opt}
-@cindex @code{--esmf_opt}
-@cindex @code{--esmf}
-@cindex @code{--esmf_options}
-@item -E @var{esmf_opt} (@code{--esmf_opt}, @code{--esmf}, @code{--esmf_options})
-@command{ncremap} passes @var{esmf_opt} directly through to
-@acronym{ERWG}. 
-The user-specified contents of @var{esmf_opt} supercede its default
-contents (@samp{--ignore_unmapped}).
-Sometimes users may wish @acronym{ERWG} to assume regional grids,
-in which case @var{esmf_opt} could be @samp{-r --ignore_upmapped}.
 
 @html
 <a name="grd_dst"></a> <!-- http://nco.sf.net/nco.html#grd_dst -->
@@ -21766,6 +22156,100 @@ batches of data on different grids (e.g., swath-like data), and slow,
 tedious, and unnecessary when batch processing data on the same grids.
 
 @html
+<a name="msk_dst"></a> <!-- http://nco.sf.net/nco.html#msk_dst -->
+@end html
+@cindex @code{--msk_dst=@var{msk_dst}}
+@cindex @var{msk_dst}
+@cindex @code{--msk_dst}
+@cindex @code{--dst_msk}
+@cindex @code{--mask_destination}
+@cindex @code{--mask_dst}
+@item --msk_dst=@var{msk_dst} (@code{--msk_dst}, @code{--dst_msk}, @code{--mask_destination}, @code{--mask_dst})
+Specifies a template variable to use for the integer mask of the
+destination grid when inferring grid files and/or creating
+map-files (i.e., generating weights). 
+Any variable on the same horizontal grid as a data file can serve as a
+mask template for that grid. 
+The mask will be one (i.e., gridcells will participate in regridding) 
+where @var{msk_dst} has valid values in the data file from which
+@acronym{NCO} infers the destination grid.   
+The mask will be zero (i.e., gridcells will not participate in
+regridding) where @var{msk_nm} has a missing value.  
+A typical example of this option would be to use Sea-surface Temperature
+(SST) as a template variable for an ocean mask because SST is often
+defined only over ocean, and missing values might denote locations to
+which regridded quantities should never be placed.
+@var{msk_dst}, @var{msk_out}, and @var{msk_src} are related yet distinct:
+@var{msk_dst} is the mask template variable in the destination file (whose grid will be inferred),
+@var{msk_out} is the name to give the destination mask in any regridded file, and
+@var{msk_src} is the mask template variable in the source file (whose grid will be inferred).
+
+@html
+<a name="msk_out"></a> <!-- http://nco.sf.net/nco.html#msk_out -->
+@end html
+@cindex @code{--msk_out=@var{msk_out}}
+@cindex @var{msk_out}
+@cindex @code{--msk_out}
+@cindex @code{--out_msk}
+@cindex @code{--mask_destination}
+@cindex @code{--mask_out}
+@item --msk_out=@var{msk_out} (@code{--msk_out}, @code{--out_msk}, @code{--mask_destination}, @code{--mask_out})
+Use of this option tells @command{ncremap} to include a variable named 
+@var{msk_out} in any regridded file.
+The variable @var{msk_out} will contain the integer-valued
+regridding mask on the destination grid.
+The mask will be one (i.e., fields may have valid values in this
+gridcell) or zero (i.e., fields will have missing values in this
+gridcell). 
+By default, @command{ncremap} does not output the destination mask to
+the regridded file.
+This option changes that default behavior and causes @command{ncremap}
+to ingest the default destination mask variable contained in the
+@var{map-file}. 
+@acronym{ERWG} generates @acronym{SCRIP}-format map-files that contain
+the destination mask in the variable named @code{mask_b}.
+@acronym{SCRIP} generates map-files that contain the destination mask in
+the variable named @code{dst_grid_imask}. 
+The @code{msk_out} option works with map-files that adhere to either of
+these conventions. 
+Tempest generates map-files that do not typically contain the
+destination mask, and so the @code{msk_out} option has no effect on
+files that Tempest regrids.
+@var{msk_dst}, @var{msk_out}, and @var{msk_src} are related yet distinct:
+@var{msk_dst} is the mask template variable in the destination file (whose grid will be inferred),
+@var{msk_out} is the name to give the destination mask in any regridded file, and
+@var{msk_src} is the mask template variable in the source file (whose grid will be inferred).
+
+@html
+<a name="msk_src"></a> <!-- http://nco.sf.net/nco.html#msk_src -->
+@end html
+@cindex @code{--msk_src=@var{msk_src}}
+@cindex @var{msk_src}
+@cindex @code{--msk_src}
+@cindex @code{--src_msk}
+@cindex @code{--mask_source}
+@cindex @code{--mask_src}
+@item --msk_src=@var{msk_src} (@code{--msk_src}, @code{--src_msk}, @code{--mask_source}, @code{--mask_src})
+Specifies a template variable to use for the integer mask of the
+source grid when inferring grid files and/or creating
+map-files (i.e., generating weights). 
+Any variable on the same horizontal grid as a data file can serve as a
+mask template for that grid. 
+The mask will be one (i.e., gridcells will participate in regridding) 
+where @var{msk_src} has valid values in the data file from which
+@acronym{NCO} infers the source grid.   
+The mask will be zero (i.e., gridcells will not participate in
+regridding) where @var{msk_nm} has a missing value.  
+A typical example of this option would be to use Sea-surface Temperature
+(SST) as a template variable for an ocean mask because SST is often
+defined only over ocean, and missing values might denote locations from
+which regridded quantities should emanate.
+@var{msk_dst}, @var{msk_out}, and @var{msk_src} are related yet distinct:
+@var{msk_dst} is the mask template variable in the destination file (whose grid will be inferred),
+@var{msk_out} is the name to give the destination mask in any regridded file, and
+@var{msk_src} is the mask template variable in the source file (whose grid will be inferred).
+
+@html
 <a name="nco_opt"></a> <!-- http://nco.sf.net/nco.html#nco_opt -->
 @end html
 @cindex @code{-n @var{nco_opt}}
@@ -21777,6 +22261,42 @@ tedious, and unnecessary when batch processing data on the same grids.
 Specifies a string of options to pass-through unaltered to
 @command{ncks}. 
 @var{nco_opt} defaults to @samp{-O --no_tmp_fl}.
+
+@cindex @code{--no_cll_msr}
+@cindex @code{--no_cll}
+@cindex @code{--no_cell_measures}
+@cindex @code{--no_area}
+@cindex @code{cell_measures} attribute
+@item --no_cll_msr (@code{--no_cll_msr}, @code{--no_cll}, @code{--no_cell_measures}, @code{--no_area})
+This switch (which takes no argument) controls whether @command{ncclimo}
+and @command{ncremap} add measures variables to the extraction list
+along with the primary variable and other associated variables. 
+See @ref{CF Conventions} for a detailed description.
+
+@cindex @code{--no_frm_trm}
+@cindex @code{--no_frm}
+@cindex @code{--no_formula_terms}
+@cindex @code{formula_terms} attribute
+@item --no_frm_trm (@code{--no_frm_trm}, @code{--no_frm}, @code{--no_formula_terms})
+This switch (which takes no argument) controls whether @command{ncclimo}
+and @command{ncremap} add formula variables to the extraction list along
+with the primary variable and other associated variables. 
+See @ref{CF Conventions} for a detailed description.
+
+@cindex @code{slat}
+@cindex @code{slon}
+@cindex @code{w_stag}
+@cindex @code{--no_stg_grd}
+@cindex @code{--no_stg}
+@cindex @code{--no_stagger}
+@cindex @code{--no_staggered_grid}
+@item --no_stg_grd (@code{--no_stg_grd}, @code{--no_stg}, @code{--no_stagger}, @code{--no_staggered_grid})
+This switch (which takes no argument) controls whether
+regridded output will contain the staggered grid coordinates 
+@code{slat}, @code{slon}, and @code{w_stag} (@pxref{Regridding}). 
+By default the staggered grid is output for all files regridded from 
+a Cap (aka @acronym{FV}) grid, except when the regridding is performed
+as part of splitting (reshaping) into timeseries.
 
 @html
 <a name="out_drc"></a> <!-- http://nco.sf.net/nco.html#out_drc -->
@@ -21816,29 +22336,191 @@ using @samp{-I @var{in_drc}} or standard input) generates an error
 (output files will be named the same as input files).
 
 @html
+<a name="prc_typ"></a> <!-- http://nco.sf.net/nco.html#prc_typ -->
 <a name="pdq_typ"></a> <!-- http://nco.sf.net/nco.html#pdq_typ -->
+<a name="sgs"></a> <!-- http://nco.sf.net/nco.html#sgs -->
+<a name="alm"></a> <!-- http://nco.sf.net/nco.html#alm -->
+<a name="sgs_frc"></a> <!-- http://nco.sf.net/nco.html#sgs_frc -->
+<a name="sgs_msk"></a> <!-- http://nco.sf.net/nco.html#sgs_msk -->
+<a name="sub-gridscale"></a> <!-- http://nco.sf.net/nco.html#sub-gridscale -->
+<a name="sub-grid"></a> <!-- http://nco.sf.net/nco.html#sub-grid -->
+<a name="subgrid"></a> <!-- http://nco.sf.net/nco.html#subgrid -->
 @end html
-@cindex @code{-P @var{pdq_typ}}
-@cindex @var{pdq_typ}
+@cindex @code{-P @var{prc_typ}}
+@cindex @var{prc_typ}
+@cindex @code{--prc_typ}
 @cindex @code{--pdq_typ}
 @cindex @code{--prm_typ}
-@cindex @code{--permutation}
-@cindex @code{--permute}
-@item -P @var{pdq_typ} (@code{--pdq_typ}, @code{--prm_typ}, @code{--permutation}, @code{--permute})
+@cindex @code{--procedure}
+@item -P @var{prc_typ} (@code{--prc_typ}, @code{--pdq_typ}, @code{--prm_typ}, @code{--procedure})
 Specifies the permutation mode desired.
-As of January~15, 2016, one can tell @command{ncremap} to automatically
-tagpermute the dimensions in the data file prior to regridding for a
-limited (though growning) number of data-file types that suffer from
-the @command{ncremap} limitation concerning dimension ordering.
-Valid types are @samp{airs} (for @acronym{NASA AIRS} satellite data), 
-@samp{mpas} (for @acronym{MPAS} ocean/ice model data), and @samp{nil} (for none).
-The default @var{pdq_typ} is @samp{nil}, which means @command{ncremap} 
-does not permute the dimension order prior to regridding.
-In @acronym{AIRS}-mode, @command{ncremap} calls @command{ncpdq} to
-permute dimensions from their order in the input file to this order:
+As of January~15, 2016, one can tell @command{ncremap} to invoke special
+processing procedures for different types of input data.
+For instance, to automatically permute the dimensions in the data file
+prior to regridding for a limited (though growing) number of data-file
+types that encounter the @command{ncremap} limitation concerning
+dimension ordering. 
+Valid procedure types are @samp{airs} for @acronym{NASA AIRS} satellite data, 
+@samp{alm} or @samp{clm} @acronym{DOE ALM} and @acronym{NCAR CLM} model data,
+@samp{cice} for @acronym{CICE} ice model data on 2D grids,
+@samp{mpas} for @acronym{MPAS} ocean/ice model data on unstructured grids,
+@samp{mod04} for @w{Level 2} @acronym{MODIS} @acronym{MOD04} product,
+@samp{sgs} for datasets containing sub-gridscale (@acronym{SGS}) data
+(such as @acronym{ALM/CLM} land model data or @acronym{CICE} sea-ice
+model data), 
+and @samp{nil} (for none).
+The default @var{prc_typ} is @samp{nil}, which means @command{ncremap} 
+does not perform any special procedure prior to regridding.
+The @acronym{AIRS} procedure calls @command{ncpdq} to permute dimensions
+from their order in the input file to this order: 
 @code{StdPressureLev,GeoTrack,GeoXTrack}.
-In @acronym{MPAS}-mode the order is 
-@code{Time,nVertLevels,maxEdges,MaxEdges2,nEdges,nCells}. 
+The @acronym{ALM}, @acronym{CLM}, and @acronym{CICE} procedures set 
+idiosyncratic model values and then invoke the Sub-gridscale
+(@acronym{SGS}) procedure (see below). 
+The @acronym{MOD04} procedure unpacks input data.
+The @acronym{MPAS} procedure permutes input data into this order:
+@code{Time,nVertLevels,maxEdges,MaxEdges2,nEdges,nCells}, and invokes
+renormalization.  
+
+@cindex Sub-gridscale (@acronym{SGS}) data
+@cindex @acronym{SGS}-mode
+@cindex @var{sgs_frc}
+@cindex @var{sgs_msk}
+@cindex @var{sgs_nrm}
+@cindex @code{--sgs_frc @var{sgs_frc}}
+@cindex @code{--sgs_msk @var{sgs_msk}}
+@cindex @code{--sgs_nrm @var{sgs_nrm}}
+In sub-grid mode, @command{ncremap} performs substantial pre- and
+post-processing to conserve fields that represent fractional parts
+of a gridcell.
+The sub-gridscale (@acronym{SGS}) fraction usually changes spatially
+with the geographic distribution of ice, ocean, vegetation, and so on.
+Spatial fields output by most geophysical models are intensive, 
+and so by default the regridder attempts to conserve the integral of the
+area times the field value such that the integral is equal on source and
+destination grids. 
+However some models (like @acronym{ALM}, @acronym{CLM}, and
+@acronym{CICE}) output gridcell values intended to apply to only a
+fraction @var{sgs_frc} (which stands for ``sub-gridscale fraction'') of
+the gridcell. 
+For concreteness consider a sub-grid field that represents the land
+fraction.
+Land fraction is less than one in gridcells that resolve coastlines or 
+islands.  
+@acronym{ALM} and @acronym{CLM}) happily output temperature values
+valid only for a small (i.e., @math{@var{sgs_frc} << 1}) island within
+the larger gridcell.
+Regridding weights that assume @math{@var{sgs_frc} = 1} everywhere would 
+create subtle, difficult-to-notice, biases in coastal regions that,
+on Earth, would alter global mean values (e.g., of temperature, fluxes)
+by up to a few percent at common grid resolutions.
+Though models like @acronym{ALM} and @acronym{CLM} may run on the same
+horizontal grid as the overlying atmosphere, they cannot be regridded
+with the atmosphere's grid weights that account for the whole gridcell
+instead of the sub-grid land fraction. 
+
+To correctly regrid sub-grid data, specify the @samp{-P sgs} option, 
+and names of the @var{sgs_frc} and @var{sgs_msk} variables (if they
+differ from their respective defaults @code{landfrac} and
+@code{landmask}). 
+Trouble will ensue @var{sgs_frc} is a percentage, or an absolute area. 
+In that case provide the normalization factor @var{sgs_nrm} by which
+@var{sgs_frc} must be @emph{divided} (not multiplied) to obtain a true
+fraction (between zero and one).
+Datasets (such as those from @acronym{CICE}) that store @var{sgs_frc} 
+in percent should specify the option
+@samp{--sgs_nrm=100} to instruct @command{ncremap} to normalize the
+sub-grid area appropriately before regridding.
+@command{ncremap} will re-derive @var{sgs_msk} based on the regridded 
+values of @var{sgs_frc}: @math{@var{sgs_msk} = 1} is assigned to
+destination gridcells with @math{@var{sgs_frc} > 0.0}, and all others
+@math{@var{sgs_msk} = 0}.
+As of @acronym{NCO} version 4.6.8 (released June, 2017), invoking any
+of the options @samp{--sgs_frc}, @samp{--sgs_msk}, or @samp{--sgs_nrm},
+automatically triggers @acronym{SGS}-mode, so that also invoking 
+@samp{-P sgs} is redundant though legal.
+
+@command{ncremap} supports convenience options to recover most of the  
+original, model-specific idiosyncracies in raw @acronym{ALM/CLM} and
+@acronym{CICE} datasets.
+@example
+# Invocations for ALM/CLM data
+ncremap -P alm -i in.nc -s src_grd.nc -d dst_data.nc -o out.nc
+ncremap -P sgs -i in.nc -s src_grd.nc -d dst_data.nc -o out.nc
+ncremap --sgs_frc=landfrac --sgs_msk=landmask ... 
+
+# Equivalent invocations for CICE data
+ncremap -P cice -i in.nc -s src_grd.nc -d dst_data.nc -o out.nc
+ncremap --sgs_frc=aice --sgs_msk=tmask --sgs_nrm=100 ... 
+@end example
+Files regridded using explicitly specified @acronym{SGS} options will
+differ slightly from those regridded using the @samp{-P alm} or 
+@samp{-P cice} options. 
+The former will have an @code{area} field in sterradians, the generic
+units used internally by the regridder. 
+The latter will produces model-specific @code{area} fields in square 
+kilometers (for @acronym{ALM}) or square meters (for @acronym{CICE}),
+as expected in the raw output from these two models.
+To convert from angular to areal values, @acronym{NCO} assumes a
+spherical Earth with radius @w{6,371,220 m} or @w{6,371,229 m},
+respectively. 
+The ouput @var{sgs_frc} field is expressed as a decimal fraction in all
+cases except for @samp{-P cice} which stores the fraction in percent.
+Thus the generic @acronym{SGS} and model-specific convenience options
+produce equivalent results, but the latter has the same metadata and
+units as raw model output.
+This makes it more interoperable with many existing analysis scripts. 
+
+Sub-gridscale handling currently requires the user to specify the
+source @acronym{SCRIP} grid-file. 
+Moreover, this source grid-file must include the (normally
+non-essential) @code{grid_area} field.
+It is infeasible to permit source-grid inferral, because
+weight-generators assume great circle arcs but 2D-grids usually have
+small-circles in latitude, and this can lead to area mis-matches.
+However, sub-gridscale handling will infer destination grids from
+2D-data files, if requested: 
+@example
+ncremap -P sgs -i in.nc -s src_grd.nc -g dst_grd.nc  -o out.nc
+ncremap -P sgs -i in.nc -s src_grd.nc -d dst_data.nc -o out.nc
+@end example
+
+The method used to regrid sub-grid values is somewhat involved.
+First, if necessary, we normalize the sub-grid variable to be a 
+fraction between zero and one.
+We then regrid the sub-grid fraction, and multiply the destination area  
+by the regridded fraction. 
+Then we duplicate the source and destination grids, to modify the
+copies without tampering with the originals.
+We multiply the grid-cell area in the duplicated source grid by  
+the sub-grid fraction in the input data file. 
+We multiply the grid-cell area in the duplicated destination
+grid by regridded sub-grid fraction.
+We then construct a map-file that conserves a field weighted by
+the altered source and destination gridcell areas.
+@command{ncremap} then applies these regridding weights to all
+input fields to construct the regridded fields.
+We then overwrite the area, sub-grid fraction, and sub-grid
+mask with the correct values from the first step, the conservatively
+regridded sub-grid fraction.
+For generic data this is the final step.
+The @code{area} and @var{sgs_frc} fields in the regridded file will be
+in units of sterradians and fraction, respectively.
+However, @command{ncremap} offers custom options to reproduce the
+idiosyncratic data and metadata format of two particular models,
+@acronym{ALM} and @acronym{CICE}.
+When invoked with @samp{-P alm} (or @samp{-P clm}), the final step
+converts the output @code{area} from sterradians to square kilometers. 
+When invoked with @samp{-P cice}, the final step converts the output
+@code{area} from sterradians to square meters, and the output
+@code{sgs_frc} from a fraction to a percent.
+
+During development of this procedure, we learned that regridding
+sub-grid values correctly versus incorrectly (i.e., with and 
+without @samp{-P sgs}, respectively) alters global-mean answers
+for land-based quantities by @w{about 1%} for typical grid resolutions  
+on Earth.
+This is small enough to be easily overlooked.
 
 @html
 <a name="par_typ"></a> <!-- http://nco.sf.net/nco.html#par_typ -->
@@ -21850,7 +22532,7 @@ In @acronym{MPAS}-mode the order is
 @cindex @code{--parallel_type}
 @cindex @code{--parallel_mode}
 @cindex @code{--parallel}
-@item -p @var{par_typ} (@code{--}, @code{--}, @code{--}, @code{--})
+@item -p @var{par_typ} (@code{--par_typ}, @code{--par_md}, @code{--parallel_type}, @code{--parallel_mode}, @code{--parallel})
 Specifies the parallelism mode desired.
 Parallelism accelerates throughput when regridding multiple files in one  
 @command{ncremap} invocation.
@@ -21883,9 +22565,66 @@ when all source files share the same grid.
 @command{ncremap} passes @var{rgr_opt} directly through to the
 regridder.  
 This is useful to customize output grids and metadata.
+One use is to rename output variables and dimensions from the defaults
+provided by or derived from input data.
 The default value is @samp{--rgr lat_nm_out=lat --rgr lon_nm_out=lon},
 i.e., by default @command{ncremap} always names latitude and longitude
 ``lat'' and ``lon'', respectively, regardless of their input names.
+
+@html
+<a name="rnr_thr"></a> <!-- http://nco.sf.net/nco.html#rnr_thr -->
+@end html
+@cindex @code{-r @var{rnr_thr}}
+@cindex @var{rnr_thr}
+@cindex @code{--rnr_thr}
+@cindex @code{--thr_rnr}
+@cindex @code{--renormalize_threshold}
+@item -r @var{rnr_thr} (@code{--rnr_thr}, @code{--thr_rnr}, @code{--renormalize_threshold})
+Use this option to request renormalization (see @ref{Regridding}) 
+and to specify the weight threshold.
+For example, @samp{-r 0.9} tells the regridder to renormalize
+with a weight threshold of 90%, so that all destination gridcells
+with at least 90% of their area contributed by valid source gridcells
+will be contain valid (not missing) values that are the area-weighted
+mean of the valid source values.
+This option was introduced because renormalization is a frequently used
+feature which previously could only be invoked by using the uglier and
+more generic @code{-R @var{rgr_opt}} option defined above.
+Specifying @samp{-r 0.9} or @samp{--rnr_thr=0.9} is equivalent to
+specifying @samp{-R '--rgr rnr=0.9'}.
+
+@html
+<a name="rgn_dst"></a> <!-- http://nco.sf.net/nco.html#rgn_dst -->
+<a name="rgn_src"></a> <!-- http://nco.sf.net/nco.html#rgn_src -->
+@end html
+@cindex @var{rgn_dst}
+@cindex @code{--rgn_dst}
+@cindex @code{--dst_rgn}
+@cindex @code{--regional_destination}
+@item --rgn_dst (@code{--rgn_dst}, @code{--dst_rgn}, @code{--regional_destination})
+@cindex @var{rgn_src}
+@cindex @code{--rgn_src}
+@cindex @code{--src_rgn}
+@cindex @code{--regional_source}
+@item --rgn_src (@code{--rgn_src}, @code{--src_rgn}, @code{--regional_source})
+Use these flags which take no argument to indicate that a user-supplied 
+(i.e., with @samp{-s @var{grd_src}} or @samp{-g @var{grd_dst}})
+grid is regional.
+The @acronym{ERWG} weight-generator needs to be told whether the source,
+destination, or both grids are regional or global in order to optimize
+weight production.
+@command{ncremap} supplies this information to the regridder for grids
+it automatically infers from data files. 
+However, the regridder needs to be explicitly told if user-supplied
+(i.e., with either @samp{-s @var{grd_src}} or @samp{-g @var{grd_dst}})
+grids are regional because the regridder does not examine supplied grids 
+before calling @acronym{ERWG} which assumes, unless told otherwise,
+that grids are global in extent.
+The sole effect of these flags is to add the arguments
+@samp{--src_regional} and/or @samp{--dst_regional} to @acronym{ERWG} 
+calls.
+Supplying regional grids without invoking these flags may dramatically 
+increase the map-file size and time to compute.
 
 @html
 <a name="grd_src"></a> <!-- http://nco.sf.net/nco.html#grd_src -->
@@ -21927,16 +22666,27 @@ Thus @acronym{NCO} will call @acronym{ERWG} only once, and will use that
 @command{GenerateOfflineMap} (not to @command{GenerateOverlapMesh}).
 The user-specified contents of @var{tempest_opt} supercede its default
 contents, which are currently empty.
-For example, to cause @command{GenerateOfflineMap} to use a
-@code{_FillValue} of @math{-1}, pass 
-@samp{-T "--fillvalue -1.0"} to @command{ncremap}.
-Other common options include enforcing monotonicity (which is not the
-default in TempestRemap) constraints. 
-To guarantee monotonicity in regridding from Finite Volume @acronym{FV} 
-to @acronym{FV} maps (e.g., @acronym{MPAS}-to-rectangular), pass 
-@samp{-T "-in_np 1"} to @command{ncremap}.
-To guarantee monotonicity in regridding from Finite Element @acronym{FE} 
-to @acronym{FV} maps, pass @samp{-T "--mono"}.
+
+@html
+<a name="tmp_drc"></a> <!-- http://nco.sf.net/nco.html#tmp_drc -->
+@end html
+@cindex @code{-T @var{tmp_drc}}
+@cindex @var{tmp_drc}
+@cindex @code{--tmp_drc}
+@cindex @code{--drc_tmp}
+@cindex @code{--tmp_dir}
+@cindex @code{--dir_tmp}
+@cindex @code{--tmp}
+@item -T @var{tmp_drc} (@code{--tmp_drc}, @code{--drc_tmp}, @code{--tmp_dir}, @code{--dir_tmp}, @code{--tmp_drc})
+Specifies the directory in which to place intermediate output files.
+Depending on how it is invoked, @command{ncremap} may generate
+a few or many intermediate files (grids and maps) that it will, by
+default, remove upon successful completion.
+These files can be large, so the option to set @var{tmp_drc} is offered
+to ensure their location is convenient to the system.
+If the user does not specify @var{tmp_drc}, then @command{ncremap} uses
+the value of @code{$TMPDIR}, if any, or else @file{/tmp} if it exists,
+or else it uses the current working director (@code{$PWD}).
 
 @html
 <a name="thr_nbr"></a> <!-- http://nco.sf.net/nco.html#thr_nbr -->
@@ -21950,27 +22700,6 @@ to @acronym{FV} maps, pass @samp{-T "--mono"}.
 Specifies the number of threads used per regridding process
 (@pxref{OpenMP Threading}).
 The @acronym{NCO} regridder scales well up to 8--16 threads.
-
-@html
-<a name="tmp_drc"></a> <!-- http://nco.sf.net/nco.html#tmp_drc -->
-@end html
-@cindex @code{-U @var{tmp_drc}}
-@cindex @var{tmp_drc}
-@cindex @code{--tmp_drc}
-@cindex @code{--drc_tmp}
-@cindex @code{--tmp_dir}
-@cindex @code{--dir_tmp}
-@cindex @code{--tmp}
-@item -U @var{tmp_drc} (@code{--tmp_drc}, @code{--drc_tmp}, @code{--tmp_dir}, @code{--dir_tmp}, @code{--tmp_drc})
-Specifies the directory in which to place intermediate output files.
-Depending on how it is invoked, @command{ncremap} may generate
-a few or many intermediate files (grids and maps) that it will, by
-default, remove upon successful completion.
-These files can be large, so the option to set @var{tmp_drc} is offered
-to ensure their location is convenient to the system.
-If the user does not specify @var{tmp_drc}, then @command{ncremap} uses
-the value of @code{$TMPDIR}, if any, or else @file{/tmp} if it exists,
-or else it uses the current working director (@code{$PWD}).
 
 @html
 <a name="unq_sfx"></a> <!-- http://nco.sf.net/nco.html#unq_sfx -->
@@ -22043,8 +22772,8 @@ suspects'' to identify latitude and longitude coordinate variables.
 Now, if @var{var_rgr} is @acronym{CF}-compliant, then @command{ncremap}
 will automatically identify the horizontal spatial dimensions. 
 If @var{var_rgr} is supplied but is not @acronym{CF}-compliant, then
-@command{ncremap} will use its internal database to identify 
-horizontal spatial dimensions.
+@command{ncremap} will still attempt to identify horizontal spatial
+dimensions using its internal database of ``likely names''.
 If both these automated methods fail, manually supply @command{ncremap}
 with the names of the horizontal spatial dimensions 
 @example
@@ -22055,6 +22784,40 @@ ncremap -R "--rgr lat_nm=xq --rgr lon_nm=zj" -i in.nc -d dst.nc -O ~/rgr # Manua
 @end example
 @noindent
 
+@html
+<a name="upk_inp"></a> <!-- http://nco.sf.net/nco.html#upk_inp -->
+@end html
+@cindex @code{-U}
+@cindex @code{--unpack}
+@cindex @code{--upk}
+@cindex @code{--upk_inp}
+@item -U (@code{--unpack}, @code{--upk}, @code{--upk_inp})
+This switch (which takes no argument) causes @command{ncremap} to
+unpack (see @ref{Packed data}) input data before regridding it.
+This switch causes unpacking at the regridding stage that occurs
+after map generation.
+Hence this switch does not benefit grid inferral.
+Grid inferral examines only the coordinate variables in a dataset.
+If coordinates are packed (a terrible practice) in a file from which a
+grid will be inferred, users should first manually unpack the file (this
+option will not help). 
+Fortunately, coordinate variables are usually not packed, even in files
+with other packed data.
+
+Many institutions (like @acronym{NASA}) pack datasets to conserve space
+before distributing them. 
+This option allows one to regrid input data without having
+to manually unpack it first.
+Beware that @acronym{NASA} uses at least three different and
+incompatible versions of packing in its @acronym{L2} datasets.
+The unpacking algorithm employed by this option is the default netCDF
+algorithm, which is appropriate for @acronym{MOD04} and is inappropriate
+for @acronym{MOD08} and @acronym{MOD13}. 
+See @ref{Packed data} for more details and workarounds.
+
+@html
+<a name="cnf"></a> <!-- http://nco.sf.net/nco.html#cnf -->
+@end html
 @cindex @code{--version}
 @cindex @code{--vrs}
 @cindex @code{--config}
@@ -22071,13 +22834,13 @@ executables that may be used by the script.
 @html
 <a name="vrb_lvl"></a> <!-- http://nco.sf.net/nco.html#vrb_lvl -->
 @end html
-@cindex @code{--vrb @var{vrb_lvl}}
+@cindex @code{--vrb=@var{vrb_lvl}}
 @cindex @var{vrb_lvl}
 @cindex @code{--vrb_lvl}
 @cindex @code{--vrb}
 @cindex @code{--verbosity}
 @cindex @code{--verbosity_level}
-@item --vrb @var{vrb_lvl} (@code{--vrb_lvl}, @code{--vrb}, @code{--verbosity}, @code{--verbosity_level})
+@item --vrb=@var{vrb_lvl} (@code{--vrb_lvl}, @code{--vrb}, @code{--verbosity}, @code{--verbosity_level})
 Specifies a verbosity level similar to the rest of @acronym{NCO}.
 If @math{@var{vrb_lvl} = 0}, @command{ncremap} prints nothing except
 potentially serious warnings.
@@ -22091,19 +22854,61 @@ Note that @var{vrb_lvl} is distinct from @var{dbg_lvl} which is
 passed to the regridder (@command{ncks}) for additional diagnostics.
 
 @html
-<a name="wgt_gnr"></a> <!-- http://nco.sf.net/nco.html#wgt_gnr -->
+<a name="wgt_opt"></a> <!-- http://nco.sf.net/nco.html#wgt_opt -->
 @end html
-@cindex @code{-w @var{wgt_gnr}}
-@cindex @var{wgt_gnr}
+@cindex @code{-W @var{wgt_opt}}
+@cindex @var{wgt_opt}
+@cindex @code{--wgt_opt}
+@cindex @code{--weight_options}
+@cindex @code{--tps_opt}
+@cindex @code{--tempest_options}
+@cindex @code{--esmf_opt}
+@cindex @code{--esmf_options}
+@item -W @var{wgt_opt} (@code{--wgt_opt}, @code{--weight_options}, @code{--esmf_opt}, @code{--esmf_options}, @code{--tps_opt}, @code{--tempest_options}, )
+@command{ncremap} passes @var{wgt_opt} directly through to the 
+weight-generator (currently @acronym{ERWG} or GenerateOfflineMap). 
+The user-specified contents of @var{wgt_opt}, if any, supercede the
+default contents for the weight-generator.
+The default option for @acronym{ERWG} is @samp{--ignore_unmapped}).
+The @acronym{ERWG} and TempestRemap documentation shows all available
+options. 
+For example, to cause @acronym{ERWG} to output to a netCDF4 file,  
+pass @samp{-W "--netcdf4"} to @command{ncremap}.
+
+GenerateOfflineMap is, by default, run without any options.
+To cause @command{GenerateOfflineMap} to use a @code{_FillValue} of
+@math{-1}, pass @samp{-W "--fillvalue -1.0"} to @command{ncremap}.
+Other common options include enforcing monotonicity (which is not the
+default in TempestRemap) constraints. 
+To guarantee monotonicity in regridding from Finite Volume @acronym{FV} 
+to @acronym{FV} maps (e.g., @acronym{MPAS}-to-rectangular), pass 
+@samp{-W "-in_np 1"} to @command{ncremap}.
+To guarantee monotonicity in regridding from Finite Element @acronym{FE} 
+to @acronym{FV} maps, pass @samp{-W "--mono"}.
+
+@html
+<a name="wgt_cmd"></a> <!-- http://nco.sf.net/nco.html#wgt_cmd -->
+@end html
+@cindex @code{-w @var{wgt_cmd}}
+@cindex @var{wgt_cmd}
+@cindex @code{--wgt_cmd}
 @cindex @code{--wgt_gnr}
+@cindex @code{--weight_command}
 @cindex @code{--weight_generator}
-@item -w @var{wgt_gnr} (@code{--wgt_gnr}, @code{--weight_generator}, @code{--generator})
-Specifies the weight-generator to use when a map-file is not provided. 
-The @var{wgt_gnr} argument must be @code{esmf} for @acronym{ESMF}'s
-@command{ESMF_RegridWeightGen} (@acronym{ERWG}), or 
-@code{tempest} for TempestRemaps's
-@command{GenerateOverlapMesh} and @command{GenerateOfflineMap}.
-Specifying @var{wgt_gnr} and supplying (with @samp{-m}) a map-file
+@item -w @var{wgt_cmd} (@code{--wgt_cmd}, @code{--weight_command}, @code{--wgt_gnr}, @code{--weight_generator})
+Specifies a (possibly extended) command to use to run the
+weight-generator when a map-file is not provided.  
+This command overrides the default executable executable for the
+weight generator, which is @command{ESMF_RegridWeightGen} for
+@acronym{ESMF} and @command{GenerateOfflineMap} for TempestRemap.
+(There is currently no way to override @command{GenerateOverlapMesh}  
+for TempestRemap). 
+The @var{wgt_cmd} must accept the same arguments as the default
+command. 
+Examples include @samp{mpirun -np 24 ESMF_RegridWeightGen},
+@samp{mpirun-openmpi-mp -np 16 ESMF_RegridWeightGen}, and other
+ways of exploiting parallelism that are system-dependent.
+Specifying @var{wgt_cmd} and supplying (with @samp{-m}) a map-file
 is not permitted (since the weight-generator would not be used).
 
 @html
@@ -22126,16 +22931,19 @@ Currently variables marked as extensive are summed, not regridded.
 
 @unnumberedsubsec Limitations to @command{ncremap}
 
-There are two significant limitations to @command{ncremap} that we
-hope to remove in the coming year.
-First, the fields to be regridded must have latitude and longitude as
-the final two dimension in @var{in_fl}. 
+@command{ncremap} has two significant limitations to be aware of.
+First, for two-dimensional input grids the fields to be regridded must
+have latitude and longitude, or, in the case of curvilinear data, the
+two equivalent horizontal dimensions, as the final two dimensions in
+@var{in_fl}.
 Fields with other dimension orders (e.g., @samp{lat,lev,lon}) will not
 regrid properly. 
-To workaround this limitation for the time-being, please employ 
+To workaround this limitation for the time-being, one can employ 
 @command{ncpdq} (@pxref{ncpdq netCDF Permute Dimensions Quickly})
 to permute the dimensions before (and un-permute them after) regridding.
-For example
+@command{ncremap} utilizes this method internally for some common
+input grids.
+For example,
 @example
 # AIRS Level2 vertical profiles
 ncpdq -a StdPressureLev,GeoTrack,GeoXTrack AIRS_L2.hdf AIRS_L2_ncpdq.nc
@@ -22148,9 +22956,9 @@ ncremap -R "--rgr col_nm=nCells" -i mpas_ncpdq.nc -m mpas120_to_t62.nc -O ~/rgr
 The previous two examples occur so frequently that @command{ncremap} has
 been specially equipped to handle @acronym{AIRS} and @acronym{MPAS}
 files. 
-As of 20160115, the following @command{ncremap} commands with @samp{-P}
-switches automagically perform all the required permutation and renaming
-necessary:
+As of 20160115, the following @command{ncremap} commands with the
+@samp{-P @var{prc_typ}} option automagically perform all required
+permutation and renaming necessary:
 @example
 # AIRS Level2 vertical profiles
 ncremap -P airs -i AIRS_L2.nc -d dst_1x1.nc -O ~/rgr
@@ -22159,10 +22967,9 @@ ncremap -P mpas -i mpas.nc -m mpas120_to_t62.nc -O ~/rgr
 @end example
 @noindent
 The machinery to handle permutations and special options for other
-datafiles is relatively easy to extend. 
+datafiles is relatively easy to extend with new @var{prc_typ} options. 
 If you work with common datasets that could benefit from their own
-@command{ncremap} @samp{-P} options, contact us and we will try to
-implement them. 
+pre-processing options, contact us and we will try to implement them.  
 
 The second limitation is that @command{ncremap} currently must read
 weights from an on-disk mapfile, it cannot yet compute weights itself 
@@ -22756,7 +23563,7 @@ Variables not prefixed with a period (@code{global}) must be present.
 @noindent
 SYNTAX
 @example
-ncwa [-3] [-4] [-6] [-7] [-A] [-a @var{dim}[,@dots{}]] [-B @var{mask_cond}] [-b] [-C] [-c]
+ncwa [-3] [-4] [-5] [-6] [-7] [-A] [-a @var{dim}[,@dots{}]] [-B @var{mask_cond}] [-b] [-C] [-c]
 [--cnk_byt @var{sz_byt}] [--cnk_csh @var{sz_byt}] [--cnk_dmn @var{nm},@var{sz_lmn}] [--cnk_map @var{map}]
 [--cnk_min @var{sz_byt}] [--cnk_plc @var{plc}] [--cnk_scl @var{sz_lmn}]
 [-D @var{dbg}] [-d @var{dim},[@var{min}][,[@var{max}][,[@var{stride}]]] [-F]
@@ -23403,6 +24210,7 @@ Auxiliary coordinate support.
 @cindex Scott Capps
 @item Scott Capps
 Large work-load testing
+@cindex Dave Blodgett
 @cindex Peter Campbell
 @cindex Martin Dix
 @cindex Mark Flanner
@@ -23415,10 +24223,11 @@ Large work-load testing
 @cindex Michael Schulz
 @cindex Rich Signell
 @cindex Gary Strand
+@cindex Adrian Tompkins
 @cindex Andrew Wittenberg
 @cindex George White
 @cindex Remik Ziemlinski
-@item Peter Campbell, Martin Dix, Mark Flanner, Markus Liebig, Keith Lindsay, Mike Page, Martin Schmidt, Michael Schulz, Lori Sentman, Rich Signell, Gary Strand, George White Andrew Wittenberg, Remik Ziemlinski
+@item Dave Blodgett, Peter Campbell, Martin Dix, Mark Flanner, Markus Liebig, Keith Lindsay, Mike Page, Martin Schmidt, Michael Schulz, Lori Sentman, Rich Signell, Gary Strand, Adrian Tompkins, George White Andrew Wittenberg, Remik Ziemlinski
 Excellent bug reports and feature requests.
 @cindex Filipe Fernandes
 @cindex Hugo Oliveira

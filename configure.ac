@@ -51,7 +51,8 @@
 
 # Process configure input with autoconf to produce configure script
 # (package name,version,bug-report-address,tarball name)
-AC_INIT([NCO netCDF Operators],[4.6.6-alpha02],[nco-bugs@lists.sourceforge.net],[nco])
+AC_INIT([NCO netCDF Operators],[4.6.8],[nco-bugs@lists.sourceforge.net],[nco])
+#AC_INIT([NCO netCDF Operators],[m4_esyscmd([git describe --abbrev=7 --dirty --always --tags])],[nco-bugs@lists.sourceforge.net],[nco])
 
 # Print GNU copyright in configure script
 AC_COPYRIGHT
@@ -73,9 +74,8 @@ AC_CANONICAL_TARGET
 
 # Get NCO version
 if test -r doc/VERSION; then
-#    nco_version=`cat doc/VERSION`
-##  AC_DEFINE_UNQUOTED(NCO_VERSION,${nco_version},NCO Version)
-    NCO_VERSION=`cat doc/VERSION`
+#    NCO_VERSION=`cat doc/VERSION`
+    NCO_VERSION=`git describe --abbrev=7 --dirty --always --tags`
     AC_SUBST(NCO_VERSION)
 fi
 
@@ -635,10 +635,8 @@ if test "${enable_gsl}" != 'no'; then
     fi
     if test "${GSL_LIB}"; then
 	LIBS="${LIBS} -L${GSL_LIB}"
-    else
-	GSL_LIB="${GSL_ROOT}/lib"
-	LIBS="${LIBS} `${GSL_CONFIG} --libs`"
     fi
+	LIBS="${LIBS} `${GSL_CONFIG} --libs`"
     AC_MSG_NOTICE([These GSL library and header tests must succeed for GSL support:])
 # fxm: default action of check_lib adds a superfluous -lgsl to $LIBS
     AC_CHECK_LIB([gsl],[gsl_sf_gamma_inc],,enable_gsl=no)
@@ -720,8 +718,19 @@ if test "${enable_udunits2}" != 'no'; then
 	if test -d "${UDUNITS2_PATH}"; then
 	    # NB: Use ${UDUNITS2_PATH} not ${UDUNITS2_ROOT} because UDUnits software looks for ${UDUNITS2_PATH}
 	    # Add ${UDUNITS2_PATH}/lib to search path if present
-	    nco_udunits2_xml=${UDUNITS2_PATH}/share/udunits/udunits2.xml
-	    LDFLAGS="${LDFLAGS} -L${UDUNITS2_PATH}/lib"
+      # Some systems install 64bit libraries into $prefix/lib64 instead of 
+      #  $prefix/lib. If NCO libraries are installed into $prefix/lib64, 
+      #  UDUNITS presumably was installed in $UDUNITS2_PATH/lib64 as well.
+      #  Therefore, we take `basename $libdir` (libdir=$prefix/lib|lib64),
+      #  which is 'lib' or 'lib64', and append it to UDUNITS2_PATH. If this
+      #  directory does not exist, we append 'lib' to UDUNITS2_PATH.
+      #   (Daniel Neumann, 3rd June 2017)
+      nco_udunits2_xml=${UDUNITS2_PATH}/share/udunits/udunits2.xml
+      if test -d "${UDUNITS2_PATH}/`basename $libdir`"; then
+        LDFLAGS="${LDFLAGS} -L${UDUNITS2_PATH}/`basename $libdir`"
+      else
+        LDFLAGS="${LDFLAGS} -L${UDUNITS2_PATH}/lib"
+      fi
 	    CPPFLAGS="${CPPFLAGS} -I${UDUNITS2_PATH}/include"
 	else
 	    echo "WARNING: UDUNITS2_PATH location \"${UDUNITS2_PATH}\" does not exist!"

@@ -217,10 +217,15 @@ ncap_att_gnrl
   std::string s_fll;
   
   NcapVar *Nvar;
-  
+
+  // this holds the idx of transient attributes in var_vtr
+  // these are one shot attributes that are used once
+  std::vector<int> tr_int_vtr;
   // De-reference 
   NcapVarVector &var_vtr=prs_arg->var_vtr;
   NcapVarVector att_vtr; // hold new attributes.
+
+
   
   if(location == 1) fl_id=prs_arg->in_id;  
   if(location == 2) fl_id=prs_arg->out_id;  
@@ -259,12 +264,26 @@ ncap_att_gnrl
 
       // Create string for new attribute
       s_fll=s_dst+"@"+(var_vtr[idx]->getAtt());
+      // mark transient att
+      if(var_vtr[idx]->flg_mem )
+        tr_int_vtr.push_back(idx);
+
       var_att=nco_var_dpl(var_vtr[idx]->var);
       Nvar=new NcapVar(var_att,s_fll);
       att_vtr.push_back(Nvar);
     }
   }
-  
+
+  //delete transient atts
+  // nb go through vector in reverse order deleting
+  if(tr_int_vtr.size())
+    for(idx=tr_int_vtr.size()-1; idx>=0; idx--)
+      var_vtr.erase(tr_int_vtr[idx]);
+
+
+
+
+
   sz=att_vtr.size();
   // add new att to list;
   for(idx=0;idx< sz;idx++){
@@ -278,6 +297,7 @@ ncap_att_gnrl
     var_vtr.push_ow(att_vtr[idx]);         
 #endif
   }
+
   return sz;
   
 } /* end ncap_att_gnrl() */
@@ -303,16 +323,22 @@ ncap_att_stretch /* stretch a single valued attribute from 1 to sz */
   // and and calloc space for new ones
   if(var->type == (nc_type)NC_STRING)
   {
-    
-    (void)cast_void_nctype((nc_type)NC_STRING,&var->val);    
-    
-    nco_free(var->val.sngp[0]);  
-    nco_free(var->val.sngp);     
-    
-    var->val.sngp=(char**)nco_calloc(nw_sz,var_typ_sz);         
-    (void)cast_nctype_void((nc_type)NC_STRING,&var->val);
+    ptr_unn nw_val;
 
-    
+    nw_val.sngp=(char**)nco_calloc(nw_sz,var_typ_sz);
+    (void)cast_void_nctype((nc_type)NC_STRING,&var->val);
+
+    for(idx=0;idx<nw_sz;idx++)
+      nw_val.sngp[idx]=  var->val.sngp[0] ? strdup(var->val.sngp[0]) : NULL_CEWI ;
+
+
+    var->val.sngp[0]=(nco_string )nco_free(var->val.sngp[0]);
+    var->val.sngp=(nco_string*)nco_free(var->val.sngp);
+
+    var->val=nw_val;
+
+    (void)cast_nctype_void((nc_type)NC_STRING,&var->val);
+    var->sz=nw_sz;
   }
   else
   {
@@ -665,6 +691,44 @@ ncap_att_char  /* extract string from a NC_CHAR or first NC_STRING */
   return cstr;  
 
 }
+
+
+var_sct *
+ncap_att_cll_mtd(
+const char *nm,
+dmn_sct **dim,
+int nbr_dim,
+enum nco_op_typ op_typ
+){
+  int idx;
+  var_sct *var_att;
+  std::string var_nm;
+  std::string att_txt("");
+
+  var_nm=std::string(nm)+SCS("@cell_methods");
+
+  for(idx=0;idx<nbr_dim;idx++){
+      att_txt += std::string(dim[idx]->nm);
+    if(idx<nbr_dim-1) att_txt+=SCS(", ");
+  }
+
+
+  att_txt+= SCS(": ")+SCS( nco_op_typ_to_rdc_sng(op_typ));
+
+  var_att=ncap_sclr_var_mk(var_nm, NC_CHAR,false);
+  var_att->val.vp=(void*)nco_malloc( sizeof(char)*att_txt.size());
+
+  cast_void_nctype(NC_CHAR,&var_att->val);
+  strncpy(var_att->val.cp, att_txt.c_str(), att_txt.size());
+  var_att->sz=att_txt.size();
+  cast_nctype_void(NC_CHAR,&var_att->val);
+
+  return var_att;
+
+}
+
+
+
 
 
 

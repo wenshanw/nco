@@ -225,6 +225,9 @@ variables:
 	lat_cal:units = "days since 1964-2-28"; 
 	lat_cal:calendar = "360_day";
 
+	double tm_scn;
+        tm_scn:units = "seconds since 2013-01-01";
+
 	double tm_std;
         tm_std:units = "days since 2013-01-01";
 
@@ -929,6 +932,16 @@ variables:
         orog:cell_measures = "area: areacella" ;
         orog:purpose = "Replicate processing of files produced by CESM and distributed on ESGF" ;
 
+	float orog2(lat,lon);
+	orog2:long_name = "Value of 1 everywhere on latxlon grid";
+	orog2:units = "fraction";
+        orog2:purpose = "debug TODO nco1138" ;
+
+	float orog3(lat,lon);
+	orog3:long_name = "Value of 0 first half, 1 second half on latxlon grid";
+	orog3:units = "fraction";
+        orog3:purpose = "debug TODO nco1138" ;
+
 	float weight(lat);
 	weight:long_name = "Gaussian weight";
 	weight:units = "fraction";
@@ -1407,7 +1420,9 @@ data:
 	var_msk=0.,1.,0.,0.,1.,1.,0.,2.;
 	ORO=0.,1.,0.,0.,1.,1.,0.,2.;
 	orog=0.,1.,0.,0.,1.,1.,0.,2.;
-	mask=0.,1.,0.,0.,1.,1.,0.,2.;
+	orog2=1.,1.,1.,1.,1.,1.,1.,1.;
+	orog3=0.,0.,0.,0.,1.,1.,1.,1.;
+	mask=0.,1.,0.,0.,1.,1.,0.,1.;
 //	mask=0.,0.,0.,0.,0.,0.,0.,0.;
 //	mask=1.,1.,1.,1.,1.,1.,1.,1.;
 	fll_val=73,-999,73,-999;
@@ -1606,6 +1621,7 @@ data:
 	time=1.,2.,3.,4.,5.,6.,7.,8.,9.,10.;
 	time_bnds=0.5,1.5,1.5,2.5,2.5,3.5,3.5,4.5,4.5,5.5,5.5,6.5,6.5,7.5,7.5,8.5,8.5,9.5,9.5,10.5;
 	climatology_bounds=0.5,1.5,1.5,2.5,2.5,3.5,3.5,4.5,4.5,5.5,5.5,6.5,6.5,7.5,7.5,8.5,8.5,9.5,9.5,10.5;
+	tm_scn=59;
 	tm_std=59;
 	tm_grg=59;
 	tm_jln=59;

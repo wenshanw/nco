@@ -75,6 +75,9 @@
       fmc_vtr.push_back( fmc_cls("total",this,(int)PTTL));
       fmc_vtr.push_back( fmc_cls("ttl",this,(int)PTTL));
       fmc_vtr.push_back( fmc_cls("sum",this,(int)PTTL));
+      fmc_vtr.push_back( fmc_cls("tabs",this,(int)PTABS));
+      fmc_vtr.push_back( fmc_cls("ttlabs",this,(int)PTABS));
+
     }
   }		      
 		      
@@ -89,9 +92,10 @@
             dmn_sct **dim_nw=NULL_CEWI;  
             var_sct *var=NULL_CEWI;
             var_sct *var1=NULL_CEWI;
+            var_sct *var_att_cll_mtd=NULL_CEWI;
            
-	    std::string susg;
-	    std::string sfnm=fmc_obj.fnm();
+	        std::string susg;
+	        std::string sfnm=fmc_obj.fnm();
 
             RefAST aRef;
             RefAST tr;
@@ -116,7 +120,7 @@
               while(tr=tr->getNextSibling());    
             } 
       
-            nbr_args=vtr_args.size();  
+            nbr_args=vtr_args.size();
 
             susg="usage: var_out="+sfnm+"(var_in,$dim1,$dim2...$dimn)";
 
@@ -128,7 +132,7 @@
             nbr_dim=var1->nbr_dim;  
 
             // Process function arguments if any exist !! 
-            for(idx=1; idx<nbr_args; idx++){  
+            for(idx=1; idx<nbr_args; idx++){
                 aRef=vtr_args[idx];
            
                 switch(aRef->getType()){
@@ -157,6 +161,7 @@
                 } // end switch
 
              } // end for 
+
 
 	    // Important to note that dmn_vtr contains dim pointers
             // picked up from var1->dim so there is no need to free them 
@@ -216,14 +221,14 @@
       
               dim_nw=(dmn_sct**)nco_malloc(nbr_dim*sizeof(dmn_sct*));
 
-	      for(idx=0 ; idx<nbr_dim; idx++){ 
+	          for(idx=0 ; idx<nbr_dim; idx++){
                 dim_nw[idx]=nco_dmn_dpl(var1->dim[idx]);   
                 dim_nw[idx]->srt=var1->srt[idx];
                 dim_nw[idx]->end=var1->end[idx];
                 dim_nw[idx]->cnt=var1->cnt[idx];
                 dim_nw[idx]->srd=var1->srd[idx];
                    
-	        var1->dim[idx]=dim_nw[idx]; 
+	            var1->dim[idx]=dim_nw[idx];
               }
 
             }  
@@ -231,12 +236,25 @@
             if(dmn_vtr.size() >0 && dmn_vtr.size()<nbr_dim ){
                 dim=&dmn_vtr[0];
                 avg_nbr_dim=dmn_vtr.size();
-	    // average over all dims                           
+	        // average over all dims
             }else{
                 dim=var1->dim;
                 avg_nbr_dim=nbr_dim; 
-            }    
-            
+            }
+
+
+          if(prs_arg->FLG_CLL_MTH) {
+            NcapVar *Nvar;
+            var_att_cll_mtd = ncap_att_cll_mtd(var1->nm,dim, avg_nbr_dim, (nco_op_typ)fdx);
+            Nvar=new NcapVar(var_att_cll_mtd);
+            // mark attribute as transient
+            // this mean it is propagated to the LHS only once then deleted
+            Nvar->flg_mem=true;
+            prs_arg->var_vtr.push_ow(Nvar);
+          }
+
+
+
             // do the heavy lifting
             switch(fdx){
                     
@@ -254,17 +272,26 @@
                     break;
                     
                 case PMIBS:
+                    (void)nco_var_abs(var1->type,var1->sz,var1->has_mss_val,var1->mss_val,var1->val);
                     var=nco_var_avg(var1,dim,avg_nbr_dim,nco_op_mibs,False,&ddra_info);
                     break;
                     
                 case PMABS:
+                    (void)nco_var_abs(var1->type,var1->sz,var1->has_mss_val,var1->mss_val,var1->val);
                     var=nco_var_avg(var1,dim,avg_nbr_dim,nco_op_mabs,False,&ddra_info);
                     break;
                     
                 case PMEBS:
-                    var=nco_var_avg(var1,dim,avg_nbr_dim,nco_op_mebs,False,&ddra_info);
+                    (void)nco_var_abs(var1->type,var1->sz,var1->has_mss_val,var1->mss_val,var1->val);
+                    var=nco_var_avg(var1,dim,avg_nbr_dim,nco_op_avg,False,&ddra_info);
+                    (void)nco_var_nrm(var->type,var->sz,var->has_mss_val,var->mss_val,var->tally,var->val);
                     break;
-                    
+
+                case PTABS:
+                    (void)nco_var_abs(var1->type,var1->sz,var1->has_mss_val,var1->mss_val,var1->val);
+                    var=nco_var_avg(var1,dim,avg_nbr_dim,nco_op_avg,False,&ddra_info);
+                    break;
+
                 case PMAX:
                     var=nco_var_avg(var1,dim,avg_nbr_dim,nco_op_max,False,&ddra_info);
                     break;
@@ -307,11 +334,12 @@
              // var1 is freed/destroyed in nco_var_avg()
 
 
+
             // free local dim list if necessary
             if(dim_nw){
-	      for(idx=0; idx<nbr_dim;idx++)
-		dim_nw[idx]=nco_dmn_free(dim_nw[idx]);
-              nco_free(dim_nw);
+	          for(idx=0; idx<nbr_dim;idx++)
+		        dim_nw[idx]=nco_dmn_free(dim_nw[idx]);
+                nco_free(dim_nw);
             }  		 
             return var;                
 
@@ -332,6 +360,12 @@
       fmc_vtr.push_back( fmc_cls("has_miss",this,(int)HAS_MISS));
       fmc_vtr.push_back( fmc_cls("ram_write",this,(int)RAM_WRITE));
       fmc_vtr.push_back( fmc_cls("ram_delete",this,(int)RAM_DELETE));
+      fmc_vtr.push_back( fmc_cls("mask_miss",this,(int)MASK_MISS));
+      /* synomn */
+      fmc_vtr.push_back( fmc_cls("missing",this,(int)MASK_MISS));
+      fmc_vtr.push_back( fmc_cls("linear_fill_miss",this,(int)LINEAR_FILL_MISS));
+      fmc_vtr.push_back( fmc_cls("simple_fill_miss",this,(int)SIMPLE_FILL_MISS));
+      fmc_vtr.push_back( fmc_cls("weighted_fill_miss",this,(int)WEIGHT_FILL_MISS));
      
     }
   }
@@ -373,13 +407,50 @@
       
      if(nbr_args ==0) 
        err_prn(fnc_nm,styp+" \""+sfnm+"\" has been called with no arguments"); 
-     
-     // deal with is_miss in a seperate function     
+
+
+
+     // deal with is_miss in a seperate function
+    /*
      if(fdx==NUM_MISS||fdx==HAS_MISS)
        return is_fnd(is_mtd, vtr_args,fmc_obj,walker);           
      if(fdx==GET_MISS)       
-       return get_fnd(is_mtd, vtr_args,fmc_obj,walker);             
-  
+       return get_fnd(is_mtd, vtr_args,fmc_obj,walker);
+    if(fdx==FILL_LINEAR_MISS)
+      return fill_fnd(is_mtd, vtr_args,fmc_obj,walker);
+
+    */
+
+    switch(fdx)
+    {
+      case NUM_MISS:
+      case HAS_MISS:
+        return is_fnd(is_mtd, vtr_args,fmc_obj,walker);
+        break;
+
+      case GET_MISS:
+        return get_fnd(is_mtd, vtr_args,fmc_obj,walker);
+        break;
+
+      case LINEAR_FILL_MISS:
+        return linear_fill_fnd(is_mtd, vtr_args,fmc_obj,walker);
+        break;
+
+      case MASK_MISS:
+        return mask_fnd(is_mtd, vtr_args,fmc_obj,walker);
+        break;
+
+      case SIMPLE_FILL_MISS:
+      case WEIGHT_FILL_MISS:
+        return fill_fnd(is_mtd, vtr_args,fmc_obj,walker);
+        break;
+
+        // do nothing just continue
+      default:
+        break;
+    }
+
+
 
     if( fdx==SET_MISS || fdx==CH_MISS) {
 
@@ -536,7 +607,7 @@
 
   
 var_sct * utl_cls::is_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker){
-  const std::string fnc_nm("srt_cls::imap_fnd");
+  const std::string fnc_nm("utl_cls::is_fnd");
     int nbr_args;
     int fdx=fmc_obj.fdx();
     long icnt;
@@ -600,7 +671,7 @@ var_sct * utl_cls::is_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &
  
 // custom function for GET_MISS
 var_sct * utl_cls::get_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker){
-  const std::string fnc_nm("srt_cls::imap_fnd");
+  const std::string fnc_nm("utl_cls::get_fnd");
     int nbr_args;
     int fdx=fmc_obj.fdx();
     var_sct *var=NULL_CEWI;
@@ -676,7 +747,570 @@ var_sct * utl_cls::get_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls 
 
     return var_ret; 	
 
-} 
+}
+
+var_sct * utl_cls::linear_fill_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker){
+  const std::string fnc_nm("utl_cls::fill_linear_fnd");
+  nco_bool do_permute=False;
+  int idx;
+  int jdx;
+  int nbr_dim;
+  int nbr_args;
+  int re_dim_nbr;
+  int swp_nbr;
+  int fdx=fmc_obj.fdx();
+  long icnt;
+  var_sct *var=NULL_CEWI;
+  var_sct *var_int=NULL_CEWI;
+  nc_type styp=NC_INT; // used to hold the mapping type either NC_INT or NC_UINT64
+  std::string sfnm =fmc_obj.fnm(); //method name
+  std::string var_nm;
+  std::string dim_nm;
+  std::string susg;
+  prs_cls *prs_arg=walker.prs_arg;
+
+
+  sfnm =fmc_obj.fnm(); //method name
+
+  susg="usage: var_out="+sfnm+"(var_in,$dim?)";
+
+
+  nbr_args=args_vtr.size();
+  var=walker.out(args_vtr[0] );
+  nbr_dim=var->nbr_dim;
+
+  if(nbr_args==0)
+    err_prn(sfnm,"Function has been called with no arguments\n"+susg);
+
+  if(prs_arg->ntl_scn){
+    return var;
+
+  }
+
+  if(nbr_args >1)
+  {
+    RefAST aRef=args_vtr[1];
+    if(aRef->getType() != DIM_ID)
+      err_prn(sfnm, "Second argument must be a single dimension\n"+susg);
+
+    dim_nm=aRef->getText();
+
+    for(idx=0;idx<nbr_dim;idx++)
+      if(!strcmp(var->dim[idx]->nm, dim_nm.c_str())) break;
+
+    if(idx==nbr_dim)
+      err_prn(sfnm, "Unable to find dim " + dim_nm +" in var "+ SCS(var->nm)+".");
+
+    re_dim_nbr=idx;
+
+  }
+  // dim not specified so choose last dim in var
+  else
+  {
+    re_dim_nbr = var->nbr_dim - 1;
+    dim_nm=SCS(var->dim[re_dim_nbr]->nm );
+  }
+
+  std::vector<nco_bool>  bool_vtr(nbr_dim,False);
+  std::vector<int> dmn_idx_in_out(nbr_dim,0);
+  std::vector<int> dmn_idx_out_in(nbr_dim,0);
+
+  for(idx=0;idx<nbr_dim;idx++)
+    dmn_idx_in_out[idx]=idx;
+
+  // do we need to permute dims ?
+  if(nbr_dim ==1 || re_dim_nbr == nbr_dim-1)
+  {
+   do_permute=False;
+
+  }
+  else
+  {
+    dmn_sct *swp_dim;
+    do_permute=True;
+    // swap about last value;
+    dmn_idx_in_out[re_dim_nbr]=nbr_dim-1;
+    dmn_idx_in_out[nbr_dim-1]=re_dim_nbr;
+
+    var_int=nco_var_dpl(var);
+    swp_dim=var->dim[re_dim_nbr];
+
+    var_int->dim[re_dim_nbr]=var_int->dim[nbr_dim-1];
+    var_int->dim[nbr_dim-1]=swp_dim;
+
+    // create "out_in" mapping from "in_out" mapping
+    for(idx=0 ; idx <nbr_dim ; idx++)
+      for(jdx=0 ; jdx<nbr_dim; jdx++)
+        if( idx==dmn_idx_in_out[jdx]){
+          dmn_idx_out_in[idx]=jdx;
+          break;
+        }
+
+
+
+  }
+
+  //do opera
+  if(do_permute)
+  {
+    (void) nco_var_dmn_rdr_val(var, var_int, &dmn_idx_out_in[0], &bool_vtr[0]);
+  }
+
+  // do fill
+  if(1)
+  {
+
+    int slb_sz=var_int->dim[nbr_dim-1]->cnt;
+    int sz=var->sz/slb_sz;
+    double *dp;
+
+    cast_void_nctype(NC_DOUBLE,&var_int->val);
+    dp=var_int->val.dp;
+
+    for(idx=0;idx<sz;idx++)
+      for(jdx=0;jdx<slb_sz;jdx++)
+        dp[idx*slb_sz+jdx]=jdx;
+
+
+    cast_nctype_void(NC_DOUBLE,&var_int->val);
+  }
+
+  // permute back to original state
+  if(do_permute)
+  {
+
+    (void) nco_var_dmn_rdr_val(var_int, var, &dmn_idx_in_out[0], &bool_vtr[0]);
+    var_int = (var_sct *) nco_var_free(var_int);
+
+  }
+
+  return var;
+
+
+
+}
+
+
+/* fill_miss() method  assumes that the final two dims of the var are lat,lon */
+/* if type not double then converts to double for fill, then converts back to orginal type */
+var_sct * utl_cls::fill_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker){
+  const std::string fnc_nm("utl_cls::fill_fnd");
+  int idx;
+  int jdx;
+  int nbr_dim;
+  int nbr_args;
+  int fdx=fmc_obj.fdx();
+  long icnt;
+  double *lat_dp=NULL_CEWI;
+  double *lon_dp=NULL_CEWI;
+  nc_type lcl_typ;
+  var_sct *var=NULL_CEWI;
+  var_sct *var_lat=NULL_CEWI;
+  var_sct *var_lon=NULL_CEWI;
+
+  std::string sfnm =fmc_obj.fnm(); //method name
+  std::string susg;
+  prs_cls *prs_arg=walker.prs_arg;
+
+
+  sfnm =fmc_obj.fnm(); //method name
+
+  susg="usage: var_out="+sfnm+"(var_in)";
+
+
+
+  nbr_args=args_vtr.size();
+  var=walker.out(args_vtr[0] );
+  nbr_dim=var->nbr_dim;
+
+  if(nbr_args==0)
+    err_prn(sfnm,"Function has been called with no arguments\n"+susg);
+
+  if(prs_arg->ntl_scn){
+    return var;
+
+  }
+
+  // number of dims
+  if(var->nbr_dim<2)
+    err_prn(sfnm,"variable must have a least 2 dims.\"" + SCS(var->nm) + "\" has "+nbr2sng(var->nbr_dim)+ " dims." );
+
+  lcl_typ=var->type;
+  // if not double then convert to double
+  if(var->type != NC_DOUBLE )
+    nco_var_cnf_typ(NC_DOUBLE, var);
+
+  nbr_dim = var->nbr_dim;
+
+  if(fdx==WEIGHT_FILL_MISS) {
+    // grab lat & lon -- assume 1D and there names are the same as their dim names and the dim order is lat,lon
+    var_lat = prs_arg->ncap_var_init(std::string(var->dim[nbr_dim - 2]->nm), true); // lat second to last
+    var_lon = prs_arg->ncap_var_init(std::string(var->dim[nbr_dim - 1]->nm), true); // lon last dim
+
+    if (var_lat && var_lon) {
+
+      if (var_lat->type != NC_DOUBLE)
+        nco_var_cnf_typ(NC_DOUBLE, var_lat);
+
+      if (var_lon->type != NC_DOUBLE)
+        nco_var_cnf_typ(NC_DOUBLE, var_lon);
+
+      cast_void_nctype(var_lat->type, &var_lat->val);
+      cast_void_nctype(var_lon->type, &var_lon->val);
+
+      lat_dp = var_lat->val.dp;
+      lon_dp = var_lon->val.dp;
+    }
+    else
+      err_prn(sfnm,"to get the lat/lon coord-variables this function assumes that they are named after the final two dims in your variable argument.");
+
+
+  }
+
+  {
+    // move through data in blocks if number of dims >2
+    int blk_nbr;
+    size_t blk_sz;
+    size_t slb_sz;
+    void *vp;
+    void *msk_vp = NULL_CEWI;
+
+
+    blk_sz = var->dim[nbr_dim - 2]->cnt * var->dim[nbr_dim - 1]->cnt;
+    blk_nbr = var->sz / blk_sz;
+
+    slb_sz = nco_typ_lng(var->type);
+
+    // save pointer to restore later
+    vp = var->val.vp;
+    // create space here for use in beta_fill
+    msk_vp = nco_malloc(blk_sz * slb_sz);
+
+    for (idx = 0; idx < blk_nbr; idx++) {
+      var->val.vp = (char *) vp + (ptrdiff_t) (blk_sz * idx * slb_sz);
+      if(fdx==SIMPLE_FILL_MISS)
+         simple_fill(var, msk_vp);
+      else if(fdx==WEIGHT_FILL_MISS)
+         weight_fill(var,msk_vp,lat_dp,lon_dp);
+    }
+
+    var->val.vp = vp;
+
+
+    msk_vp = nco_free(msk_vp);
+
+  }
+
+  // convert back to original type
+  if(lcl_typ != var->type)
+     nco_var_cnf_typ(lcl_typ, var);
+
+
+  // free lat/lon
+  if(fdx==WEIGHT_FILL_MISS)
+  {
+    cast_nctype_void(var_lat->type,&var_lat->val);
+    cast_nctype_void(var_lon->type,&var_lon->val);
+    var_lat=nco_var_free(var_lat);
+    var_lon=nco_var_free(var_lon);
+  }
+
+
+
+  return var;
+
+}
+
+
+
+/* simple fill function for replacing _FillValue with average of nearest neighbour(s) */
+int utl_cls::simple_fill(var_sct* var, void* msk_vp){
+
+  // we now have a 2 D var assume [lat, lon]
+  int idx;
+  int jdx;
+  int nbr_dim=var->nbr_dim;
+  int imax_loop=1000;
+  int num_miss;
+  int cnt=0;
+  int lat_sz;
+  int lon_sz;
+  size_t slb_sz;
+  double dbl_mss_val;
+  double **msk_dp=NULL_CEWI;
+  double **dp=NULL_CEWI;
+
+  slb_sz=nco_typ_lng(var->type);
+  lat_sz=var->dim[nbr_dim-2]->cnt;
+  lon_sz=var->dim[nbr_dim-1]->cnt;
+
+
+  // make indexing easier
+  msk_dp=(double**)nco_malloc( sizeof(double*) * lat_sz);
+  dp=(double**)nco_malloc( sizeof(double*) * lat_sz);
+
+  cast_void_nctype(var->type, &var->val);
+  if(var->has_mss_val)
+    dbl_mss_val=*var->mss_val.dp;
+  else
+    dbl_mss_val=NC_FILL_DOUBLE;
+
+
+  // make indexing easier
+  for(idx=0;idx<lat_sz;idx++) {
+    dp[idx] = &(var->val.dp[lon_sz * idx]);
+    msk_dp[idx]= (double*)msk_vp+ptrdiff_t(lon_sz*idx);
+
+  }
+
+  // set num miss to get loop going
+  num_miss=999;
+
+
+  while( imax_loop-->0 && num_miss>0) {
+    double sum=0.0;
+    num_miss=0;
+    // set msk to latest values
+    memcpy((char*)msk_vp, (char*)var->val.dp, lat_sz * lon_sz * slb_sz);
+
+    // move from bottom to top (lat)  and left to right (lon)
+    for (idx = 0 ; idx < lat_sz; idx++)
+      for (jdx = 0; jdx < lon_sz; jdx++)
+        if (msk_dp[idx][jdx] == dbl_mss_val) {
+          sum = 0.0;
+          cnt = 0;
+          if (idx > 0 && msk_dp[idx - 1][jdx] != dbl_mss_val) {
+            sum += msk_dp[idx - 1][jdx];
+            cnt++;
+          }
+
+          if (idx < lat_sz - 1 && msk_dp[idx + 1][jdx] != dbl_mss_val) {
+            sum += msk_dp[idx + 1][jdx];
+            cnt++;
+          }
+
+          if (jdx > 0 && msk_dp[idx][jdx - 1] != dbl_mss_val) {
+            sum += msk_dp[idx][jdx - 1];
+            cnt++;
+          }
+
+          if (jdx < lon_sz - 1 && msk_dp[idx][jdx + 1] != dbl_mss_val) {
+            sum += msk_dp[idx][jdx + 1];
+            cnt++;
+          }
+
+          if (cnt > 0)
+            dp[idx][jdx] = sum / cnt;
+          else
+            num_miss++;
+        }
+
+    // get number of missing elements
+    // printf("beta_fill: inum=%d  num_miss=%ld\n", imax_loop, num_miss);
+
+
+  }
+
+  cast_nctype_void(var->type,&var->val);
+
+  dp=(double**)nco_free(dp);
+  msk_dp=(double**)nco_free(dp);
+
+  return NCO_NOERR;
+
+}
+
+
+/* fill function uses weighted value of eight nearest neighbours */
+int utl_cls::weight_fill(var_sct* var, void* msk_vp, double *lat, double *lon){
+
+  // we now have a 2 D var assume [lat, lon]
+  int idx;
+  int jdx;
+  int nbr_dim=var->nbr_dim;
+  int imax_loop=1000;
+  int num_miss;
+  int cnt=0;
+  int lat_sz;
+  int lon_sz;
+  size_t slb_sz;
+  double dbl_mss_val;
+  double **msk_dp=NULL_CEWI;
+  double **dp=NULL_CEWI;
+
+  slb_sz=nco_typ_lng(var->type);
+  lat_sz=var->dim[nbr_dim-2]->cnt;
+  lon_sz=var->dim[nbr_dim-1]->cnt;
+
+
+  // make indexing easier
+  msk_dp=(double**)nco_malloc( sizeof(double*) * lat_sz);
+  dp=(double**)nco_malloc( sizeof(double*) * lat_sz);
+
+  cast_void_nctype(var->type, &var->val);
+  if(var->has_mss_val)
+    dbl_mss_val=*var->mss_val.dp;
+  else
+    dbl_mss_val=NC_FILL_DOUBLE;
+
+
+  // make indexing easier
+  for(idx=0;idx<lat_sz;idx++) {
+    dp[idx] = &(var->val.dp[lon_sz * idx]);
+    msk_dp[idx]= (double*)msk_vp+ptrdiff_t(lon_sz*idx);
+
+  }
+
+  // set num miss to get loop going
+  num_miss=999;
+
+
+  while( imax_loop-->0 && num_miss>0) {
+
+    num_miss = 0;
+    // set msk to latest values
+    memcpy((char *) msk_vp, (char *) var->val.dp, lat_sz * lon_sz * slb_sz);
+
+    // move from bottom to top (lat)  and left to right (lon)
+    for (idx = 0; idx < lat_sz; idx++)
+      for (jdx = 0; jdx < lon_sz; jdx++)
+        if (msk_dp[idx][jdx] == dbl_mss_val) {
+          // sum numerator
+          double sum_nd = 0.0;
+          //  sum denominator
+          double sum_dd = 0.0;
+          // distance from target point - to neighbour
+          double dist = 0.0;
+          int cnt = 0;
+
+          for (int xdx = idx - 1; xdx <= idx + 1; xdx++) {
+            if (xdx < 0 || xdx >= lat_sz) continue;
+
+            for (int ydx = jdx - 1; ydx <= jdx + 1; ydx++) {
+              if (ydx < 0 || ydx >= lon_sz || xdx == idx && ydx == jdx) continue;
+
+              if (msk_dp[xdx][ydx] != dbl_mss_val) {
+                dist = point2point(lat[idx], lon[jdx], lat[xdx], lon[ydx]);
+                sum_nd += msk_dp[xdx][ydx] / dist /dist;
+                sum_dd += 1.0 / dist / dist ;
+                cnt++;
+              }
+
+              if (cnt > 0)
+                dp[idx][jdx] = sum_nd / sum_dd;
+              else
+                num_miss++;
+            }
+          }
+        }
+  }
+
+    // get number of missing elements
+    // printf("beta_fill: inum=%d  num_miss=%ld\n", imax_loop, num_miss);
+
+
+
+
+  cast_nctype_void(var->type,&var->val);
+
+  dp=(double**)nco_free(dp);
+  msk_dp=(double**)nco_free(dp);
+
+  return NCO_NOERR;
+
+}
+
+
+// distance between two points on a great circle
+double utl_cls::point2point(double lat1,double lon1,double lat2, double lon2) {
+
+double dist;
+double alpha;
+
+
+  if(lon1==lon2)
+    return fabs(lat2-lat1);
+  else if(lat1==lat2)
+    alpha=  pow(sin(lat1),2.0) +  pow( cos(lat1),2.0) * cos(lon2-lon1);
+  else
+    alpha=sin(lat1)*sin(lat2)+cos(lat1)*cos(lat2)*cos(lon2-lon1);
+
+  dist=fabs(acos(alpha));
+
+  return dist;
+
+}
+
+
+var_sct * utl_cls::mask_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker) {
+  const std::string fnc_nm("utl_cls::mask_fnd");
+  nco_bool do_permute = False;
+  int idx;
+  int jdx;
+  int nbr_dim;
+  int nbr_args;
+  int re_dim_nbr;
+  int swp_nbr;
+  int fdx = fmc_obj.fdx();
+  long icnt;
+  var_sct *var = NULL_CEWI;
+  var_sct * var_miss= NULL_CEWI;
+  nc_type styp = NC_INT; // used to hold the mapping type either NC_INT or NC_UINT64
+  std::string sfnm = fmc_obj.fnm(); //method name
+  std::string var_nm;
+  std::string dim_nm;
+  std::string susg;
+  prs_cls *prs_arg = walker.prs_arg;
+
+
+  sfnm = fmc_obj.fnm(); //method name
+
+  susg = "usage: var_out=" + sfnm + "(var_in)";
+
+
+  nbr_args = args_vtr.size();
+  var = walker.out(args_vtr[0]);
+  nbr_dim = var->nbr_dim;
+
+  if (nbr_args == 0)
+    err_prn(sfnm, "Function has been called with no arguments\n" + susg);
+
+  if (prs_arg->ntl_scn)
+  {
+    if(var->has_mss_val)
+      if(var->mss_val.vp) {
+        var->mss_val.vp = nco_free(var->mss_val.vp);
+        var->has_mss_val = False;
+      }
+
+
+    return var;
+
+  }
+
+  /* remember the default fill for var->type is used for val.vp in this function call */
+  var_miss=ncap_sclr_var_mk("~var_miss",var->type,true);
+
+  if(var->has_mss_val){
+
+    (void)memcpy(var_miss->val.vp, var->mss_val.vp, nco_typ_lng(var->type));
+    var->has_mss_val=False;
+    var->mss_val.vp=(void*)NULL;
+
+  }else{
+   wrn_prn(sfnm,"Warning method is using default fill value as \""+ SCS(var->nm)+ "\" has no missing value.");
+
+  }
+
+  /* remember this function calls frees up second operand miss_var */
+  (void)ncap_var_var_op(var,var_miss, EQ );
+
+  return var;
+
+
+}
+
+
 
 
 
@@ -3292,31 +3926,30 @@ double bil_cls::clc_lin_ipl(double x1,double x2, double x, double Q0,double Q1){
     // check limits co-ord increasing 
     if(bInc){
       for(idx=0;idx<r_sz;idx++){ 
-	 dval=var2->val.dp[idx]; 
+	    dval=var2->val.dp[idx];
          /* default set to out of range */   
-         ip[idx]=-1;  
-         if(dval>=dp_crd[0] && dval<=dp_crd[c_sz-1] )
+        ip[idx]=-1;
+        if(dval>=dp_crd[0] && dval<=dp_crd[c_sz-1] )
            for(jdx=0 ; jdx<c_sz-1 ; jdx++)
-             if( dval >= dp_crd[jdx] && dval <= dp_crd[jdx+1] )
-             {  
-	        ip[idx]=(dval-dp_crd[jdx]<= dp_crd[jdx+1]-dval ? jdx: jdx+1 );    
-                break;
-	     }  
+             if( dval >= dp_crd[jdx] && dval <= dp_crd[jdx+1] ) {
+               ip[idx] = (dval - dp_crd[jdx] <= dp_crd[jdx + 1] - dval ? jdx : jdx + 1);
+               break;
+             }
       }
     }
     // check limits co-ord decreasing
     if(!bInc){
       for(idx=0;idx<r_sz;idx++){  
-	 dval=var2->val.dp[idx]; 
-         /* default set to out of range */   
-         ip[idx]=-1;  
-         if(dval<=dp_crd[0] && dval>=dp_crd[c_sz-1] )
-           for(jdx=0 ; jdx<c_sz-1 ; jdx++)
-             if( dval <= dp_crd[jdx] && dval >= dp_crd[jdx+1] )
-             {  
-	        ip[idx]=(dp_crd[jdx]-dval <= dval-dp_crd[jdx+1] ? jdx: jdx+1 );    
-                break;
-	     }  
+	    dval=var2->val.dp[idx];
+        /* default set to out of range */
+        ip[idx]=-1;
+        if(dval<=dp_crd[0] && dval>=dp_crd[c_sz-1] )
+          for(jdx=0 ; jdx<c_sz-1 ; jdx++)
+            if( dval <= dp_crd[jdx] && dval >= dp_crd[jdx+1] )
+            {
+	          ip[idx]=(dp_crd[jdx]-dval <= dval-dp_crd[jdx+1] ? jdx: jdx+1 );
+              break;
+	        }
       }  
     }              
     (void)cast_nctype_void(NC_DOUBLE,&var1->val);
@@ -4173,14 +4806,14 @@ var_sct *vlist_cls::push_fnd(bool &is_mtd, std::vector<RefAST> &vtr_args, fmc_cl
   {
      case PATOI: 
        {          
-         char *pend='\0';
+         char *pend=NULL;
          nco_int iout;
          iout=0; 
 
 	 // allows whites space prefix & suffix                                                                                                                                
          iout=(nco_int)std::strtol(buffer,&pend,10);
 
-         if( pend !=buffer  && (*pend=='\0'|| *pend==' ') )
+         if(pend != buffer && (*pend == '\0'|| *pend == ' '))
             ierr=0;
          else
             ierr=errno;
@@ -4194,14 +4827,14 @@ var_sct *vlist_cls::push_fnd(bool &is_mtd, std::vector<RefAST> &vtr_args, fmc_cl
 
      case PATOL: 
        {          
-         char *pend='\0';
+         char *pend=NULL;
          nco_int64 lout;
          lout=0; 
 
 	      // allows whites space prefix & suffix
          lout=(nco_int64)std::strtoll(buffer,&pend,10);
 
-         if( pend !=buffer  && (*pend=='\0'|| *pend==' ') )
+         if( pend !=buffer && (*pend == '\0' || *pend == ' '))
             ierr=0;
          else
 	        ierr=errno;

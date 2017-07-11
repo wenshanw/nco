@@ -28,6 +28,14 @@ nco_sng2kvm /* [fnc] Convert string to key-value pair */
   char *args_copy=strdup(args);
   char *ptr_for_free=args_copy;
   kvm_sct kvm;
+
+  if(!strstr(args_copy, "="))
+  {
+    kvm.key=strdup(args_copy);
+    kvm.val=NULL;
+    nco_free(ptr_for_free);
+    return kvm;
+  }
   
   kvm.key=strdup(strsep(&args_copy,"="));
   kvm.val=strdup(args_copy);
@@ -81,7 +89,9 @@ nco_kvm_prn(kvm_sct kvm)
   if(kvm.key) (void)fprintf(stdout,"%s = %s\n",kvm.key,kvm.val); else return;
 } /* end nco_kvm_prn() */
 
-char *nco_remove_backslash(char *args)
+char * /* O/I [sng] string that has backslash(es) */
+nco_remove_backslash
+(char *args) /* O/I [sng] string that had already been got rid of backslash(es) */
 { /* Purpose: recursively remove backslash from string */
   char *backslash_pos=strstr(args,"\\"); 
   if(backslash_pos){
@@ -89,6 +99,20 @@ char *nco_remove_backslash(char *args)
     memmove(&args[absolute_pos],&args[absolute_pos+1L],strlen(args)-absolute_pos);
     return nco_remove_backslash(args);
   }else return args;
+} /* !nco_remove_backslash() */
+
+char * /* O [sng] the flag that has no hyphens */
+nco_remove_hyphens /* [fnc] Remove the hyphens come before the flag */
+(char* args) /* I [sng] the flag that has hyphens in it*/
+{
+  char *hyphen_pos=strstr(args,"-"); 
+  if(hyphen_pos){
+    int absolute_pos=hyphen_pos-args;/* Get memory address offset */
+    memmove(&args[absolute_pos],&args[absolute_pos+1L],strlen(args)-absolute_pos);
+    return nco_remove_hyphens(args);
+  }
+  else
+    return args;
 }
 
 char ** /* O [sng] Group of split strings */
@@ -146,6 +170,84 @@ nco_sng_split /* [fnc] Split string by delimiter */
   return sng_fnl;
 } /* end nco_sng_split() */
 
+int /* O [flg] Option is flag */
+nco_opt_is_flg /* [fnc] Check whether option is registered as NCO flag */
+(const char* flag) /* I [sng] Input string */
+{
+  const char fnc_nm[]="nco_opt_is_flg()"; /* [sng] Function name */
+  const char *rgr_flags[]={
+    "no_area",
+    "no_area_out",
+    "cell_measures",
+    "cll_msr",
+    "no_cell_measures",
+    "no_cll_msr",
+    "curvilinear",
+    "crv",
+    "dgn_area",
+    "diagnose_area",
+    "dgn_bnd",
+    "diagnose_bounds",
+    "infer",
+    "nfr",
+    "no_stagger",
+    "no_stg"};
+  const char *gaa_flags[]={""};
+  const char *trr_flags[]={""};
+  const char *ppc_flags[]={""};
+  
+  for(unsigned int index=0;index<sizeof(rgr_flags)/sizeof(char *);index++)
+    {
+      if(!strcmp(flag,rgr_flags[index])){
+        return NCO_NOERR;
+      }
+    }
+  for(unsigned int index=0;index<sizeof(gaa_flags)/sizeof(char *);index++)
+    {
+      if(!strcmp(flag, gaa_flags[index])) 
+        return NCO_NOERR;
+    }
+  for(unsigned int index=0;index<sizeof(trr_flags)/sizeof(char *);index++)
+    {
+      if(!strcmp(flag, trr_flags[index])) 
+        return NCO_NOERR;
+    }
+  for(unsigned int index=0;index<sizeof(ppc_flags)/sizeof(char *);index++)
+    {
+      if(!strcmp(flag, ppc_flags[index])) 
+        return NCO_NOERR;
+    }
+  
+  (void)fprintf(stderr, "%s: ERROR %s Multi-Argument (MTA) parser reports unrecognized option \"%s\"\n%s: HINT Lack of equals sign indicates this may be a mis-typed flag rather than an erroneous key-value pair specification. Valid MTA flags are listed below. Synonyms for each flag are listed on the same line. A leading \"--\" is optional. MTA documentation is at http://nco.sf.net/nco.html#mta\n",nco_prg_nm_get(),fnc_nm,flag,nco_prg_nm_get());
+
+  (void)fprintf(stderr, "Regridder flags (\"rgr\" indicator):\n");
+  for(unsigned int index=0;index<sizeof(rgr_flags)/sizeof(char *);index++)
+    {
+      (void)fprintf(stderr, "  %2d. %s\n",index+1,rgr_flags[index]);
+    }
+  /*
+    (void)fprintf(stderr, "ncks gaa (Global Attribute Adding) flags:\n");
+    for(unsigned int index=0;index<sizeof(gaa_flags)/sizeof(char *);index++)
+    {
+      (void)fprintf(stderr, "%s\n",gaa_flags[index]);
+    }
+  
+  (void)fprintf(stderr, "ncks trr (Terraref) flags:\n");
+  for(unsigned int index=0;index<sizeof(trr_flags)/sizeof(char *);index++)
+    {
+      (void)fprintf(stderr, "%s\n",trr_flags[index]);
+    }
+  (void)fprintf(stderr, "ncks ppc (Precision-Preserving Compression) flags:\n");
+  for(unsigned int index=0;index<sizeof(ppc_flags)/sizeof(char *);index++)
+    {
+      (void)fprintf(stderr, "%s\n",ppc_flags[index]);
+    }
+  */
+  
+  return NCO_ERR;
+}
+
+
 int /* O [flg] Input has valid syntax */
 nco_input_check /* [fnc] Check whether input has valid syntax */
 (const char *args) /* O [sng] Input arguments */
@@ -153,17 +255,22 @@ nco_input_check /* [fnc] Check whether input has valid syntax */
   /* Check argument syntax
    * If return value is false the parser will terminate the program */
   const char fnc_nm[]="nco_input_check()"; /* [sng] Function name */
-
+  
   if(!strstr(args,"=")){ // If no equal sign in arguments
-    (void)fprintf(stderr,"%s: ERROR %s did not detect equal sign between key and value for argument \"%s\".\n%s HINT This can occur when the designated or default key-value delimiter \"%s\" is mixed into the literal text of the value. Try changing the delimiter to a string guaranteed not to appear in the value string with, e.g., --dlm=\"##\".\n",nco_prg_nm_get(),fnc_nm,args,nco_prg_nm_get(),nco_mta_dlm_get());
-    return NCO_ERR;
+    char *arg_copy=strdup(args);
+    if(!nco_opt_is_flg(nco_remove_hyphens(arg_copy))){
+      (void)fprintf(stderr,"%s: ERROR %s did not detect equal sign between key and value for argument \"%s\".\n%s: HINT This can occur when the designated or default key-value delimiter string \"%s\" is mixed into the literal text of the value. Try changing delimiter to a string guaranteed not to appear in the value string with, e.g., --dlm=\"##\".\n",nco_prg_nm_get(),fnc_nm,args,nco_prg_nm_get(),nco_mta_dlm_get());
+      nco_free(arg_copy);
+      return NCO_ERR;
+    }
+    nco_free(arg_copy);
   }
   if(strstr(args,"=") == args){ // Equal sign is at argument start (no key)
-    (void)fprintf(stderr,"%s: ERROR %s reports no key in key-value pair for argument \"%s\".\n%s HINT It appears that an equal sign is the first character of the argument, meaning that a value was specified with a corresponding key.\n",nco_prg_nm_get(),fnc_nm,args,nco_prg_nm_get()); 
+    (void)fprintf(stderr,"%s: ERROR %s reports no key in key-value pair for argument \"%s\".\n%s: HINT It appears that an equal sign is the first character of the argument, meaning that a value was specified with a corresponding key.\n",nco_prg_nm_get(),fnc_nm,args,nco_prg_nm_get()); 
     return NCO_ERR;
   }
   if(strstr(args,"=") == args+strlen(args)-1L){ // Equal sign is at argument end
-    (void)fprintf(stderr,"%s: ERROR %s reports no value in key-value pair for argument \"%s\".\n%s HINT This usually occurs when the value of a key is unintentionally omitted, e.g., --gaa foo= , --ppc foo= , --rgr foo= , or --trr foo= . Each equal sign must immediatte precede a value for the specified key(s).\n",nco_prg_nm_get(),fnc_nm,args,nco_prg_nm_get());
+    (void)fprintf(stderr,"%s: ERROR %s reports no value in key-value pair for argument \"%s\".\n%s: HINT This usually occurs when the value of a key is unintentionally omitted, e.g., --gaa foo= , --ppc foo= , --rgr foo= , or --trr foo= . Each equal sign must immediatte precede a value for the specified key(s).\n",nco_prg_nm_get(),fnc_nm,args,nco_prg_nm_get());
     return NCO_ERR;
   }
   return NCO_NOERR;
@@ -195,7 +302,7 @@ nco_arg_mlt_prs /* [fnc] main parser, split the string and assign to kvm structu
   char **separate_args=nco_sng_split(args,(const char *)nco_mta_dlm);
   size_t counter=nco_count_blocks(args,nco_mta_dlm)*nco_count_blocks(args,nco_mta_sub_dlm); /* [nbr] Maximum number of kvm structures in this argument */
 
-  for(int index=0;index<nco_count_blocks(args,nco_mta_dlm);index++){
+   for(int index=0;index<nco_count_blocks(args,nco_mta_dlm);index++){
     if(!nco_input_check(separate_args[index])) nco_exit(EXIT_FAILURE);
   } /* !index */
   
@@ -204,14 +311,24 @@ nco_arg_mlt_prs /* [fnc] main parser, split the string and assign to kvm structu
   size_t kvm_idx=0;
   
   for(int sng_idx=0;sng_idx<nco_count_blocks(args,nco_mta_dlm);sng_idx++){
-    char *value=strdup(strstr(separate_args[sng_idx],"="));
-    char *set_of_keys=strdup(strtok(separate_args[sng_idx],"=")); 
+    char *value=NULL, *set_of_keys=NULL;
+    if(strstr(separate_args[sng_idx],"="))
+    { /*key-value pair case*/
+      value=strdup(strstr(separate_args[sng_idx],"="));
+      set_of_keys=strdup(strtok(separate_args[sng_idx],"="));
+    }
+    else
+    { /*Pure key case (flags) */
+      set_of_keys=strdup(nco_remove_hyphens(separate_args[sng_idx]));
+      value=NULL;
+    }
     char **individual_args=nco_sng_split(set_of_keys,nco_mta_sub_dlm);
     
     for(int sub_idx=0;sub_idx<nco_count_blocks(set_of_keys,nco_mta_sub_dlm);sub_idx++){
       char *temp_value=strdup(individual_args[sub_idx]);
-      temp_value=(char *)nco_realloc(temp_value,strlen(temp_value)+strlen(value)+1L);
-      temp_value=strcat(temp_value,value);
+      temp_value=(char *)nco_realloc(temp_value,strlen(temp_value)+(value ? strlen(value) : 0)+1L);
+      if(value)
+        temp_value= strcat(temp_value,value);
       kvm_set[kvm_idx++]=nco_sng2kvm(nco_remove_backslash(temp_value));
       nco_free(temp_value);
     } /* !sub_idx */

@@ -207,7 +207,9 @@ main(int argc,char **argv)
   nco_bool RAM_OPEN=False; /* [flg] Open (netCDF3-only) file(s) in RAM */
   nco_bool RM_RMT_FL_PST_PRC=True; /* Option R */
   nco_bool WRT_TMP_FL=True; /* [flg] Write output to temporary file */
-  nco_bool flg_mmr_cln=True; /* [flg] Clean memory prior to exit */
+  nco_bool flg_mmr_cln=True;  /* [flg] Clean memory prior to exit */
+  nco_bool flg_cll_mth=False;  /* [flg] Add/modify cell_methods attributes */
+
   
   nm_id_sct *dmn_lst=NULL_CEWI;
   nm_id_sct *xtr_lst=NULL_CEWI; /* Non-processed variables to copy to OUTPUT */
@@ -232,6 +234,10 @@ main(int argc,char **argv)
   static struct option opt_lng[]={ /* Structure ordered by short option key if possible */
     /* Long options with no argument, no short option counterpart */
     {"clean",no_argument,0,0}, /* [flg] Clean memory prior to exit */
+    {"cll_mth",no_argument,0,0}, /* [flg] Add/modify cell_methods attributes */
+    {"cell_methods",no_argument,0,0}, /* [flg] Add/modify cell_methods attributes */
+    {"no_cll_mth",no_argument,0,0}, /* [flg] Do not add/modify cell_methods attributes */
+    {"no_cell_methods",no_argument,0,0}, /* [flg] Do not add/modify cell_methods attributes */
     {"mmr_cln",no_argument,0,0}, /* [flg] Clean memory prior to exit */
     {"drt",no_argument,0,0}, /* [flg] Allow dirty memory on exit */
     {"dirty",no_argument,0,0}, /* [flg] Allow dirty memory on exit */
@@ -401,8 +407,15 @@ main(int argc,char **argv)
 	(void)nco_vrs_prn(CVS_Id,CVS_Revision);
 	nco_exit(EXIT_SUCCESS);
       } /* endif "vrs" */
+
       if(!strcmp(opt_crr,"wrt_tmp_fl") || !strcmp(opt_crr,"write_tmp_fl")) WRT_TMP_FL=True;
       if(!strcmp(opt_crr,"no_tmp_fl")) WRT_TMP_FL=False;
+      if(!strcmp(opt_crr,"cll_mth") || !strcmp(opt_crr,"cell_methods")) flg_cll_mth=True; /* [flg] Add/modify cell_methods attributes */
+
+      if(!strcmp(opt_crr,"cll_mth") || !strcmp(opt_crr,"cell_methods")) flg_cll_mth=True; /* [flg] Add/modify cell_methods attributes */
+      if(!strcmp(opt_crr,"no_cll_mth") || !strcmp(opt_crr,"no_cell_methods")) flg_cll_mth=False; /* [flg] Add/modify cell_methods attributes */
+
+
     } /* opt != 0 */
     /* Process short options */
     switch(opt){
@@ -700,7 +713,8 @@ main(int argc,char **argv)
   } /* Existing file */
   
   /* Initialize chunking from user-specified inputs */
-  if(fl_out_fmt == NC_FORMAT_NETCDF4 || fl_out_fmt == NC_FORMAT_NETCDF4_CLASSIC) rcd+=nco_cnk_ini(in_id,fl_out,cnk_arg,cnk_nbr,cnk_map,cnk_plc,cnk_csh_byt,cnk_min_byt,cnk_sz_byt,cnk_sz_scl,&cnk);
+  if(fl_out_fmt == NC_FORMAT_NETCDF4 || fl_out_fmt == NC_FORMAT_NETCDF4_CLASSIC)
+    rcd+=nco_cnk_ini(in_id,fl_out,cnk_arg,cnk_nbr,cnk_map,cnk_plc,cnk_csh_byt,cnk_min_byt,cnk_sz_byt,cnk_sz_scl,&cnk);
 
   /* Copy global attributes */
   (void)nco_att_cpy(in_id,out_id,NC_GLOBAL,NC_GLOBAL,(nco_bool)True);
@@ -736,9 +750,9 @@ main(int argc,char **argv)
   prs_arg.ATT_PROPAGATE=ATT_PROPAGATE;      
   prs_arg.ATT_INHERIT=ATT_INHERIT;
   prs_arg.NCAP_MPI_SORT=(thr_nbr > 1 ? true:false);
-  
+  prs_arg.FLG_CLL_MTH=(flg_cll_mth ? true:false);
   prs_arg.dfl_lvl=dfl_lvl;  /* [enm] Deflate level */
-  prs_arg.cnk_sz=(size_t *)NULL; /* Chunk sizes NULL for now */ 
+  prs_arg.cnk_in=&cnk; /* chunking sct */
   
 #ifdef NCO_NETCDF4_AND_FILLVALUE
   prs_arg.NCAP4_FILL=(fl_out_fmt == NC_FORMAT_NETCDF4 || fl_out_fmt == NC_FORMAT_NETCDF4_CLASSIC);
@@ -995,7 +1009,7 @@ main(int argc,char **argv)
     } */
     if(var_vtr[idx]->xpr_typ == ncap_att){
       /* Skip missing values (for now) */
-      if(var_vtr[idx]->getAtt() == nco_mss_val_sng_get()) continue;     
+      if(var_vtr[idx]->getAtt() == nco_mss_val_sng_get() || var_vtr[idx]->flg_mem  ) continue;
       /* skip NC_STRING without warning - we  use NC_STRING as  variable pointers */  
       if( fl_out_fmt != NC_FORMAT_NETCDF4 &&  var_vtr[idx]->var->type==NC_STRING ) continue;   
       att_item.att_nm=strdup(var_vtr[idx]->getAtt().c_str());
@@ -1027,7 +1041,20 @@ main(int argc,char **argv)
   } /* end for */
   
   /* Set chunksize parameters */
-  if(fl_out_fmt == NC_FORMAT_NETCDF4 || fl_out_fmt == NC_FORMAT_NETCDF4_CLASSIC) (void)nco_cnk_sz_set(out_id,(lmt_msa_sct **)NULL_CEWI,(int)0,&cnk_map,&cnk_plc,cnk_sz_scl,cnk.cnk_dmn,cnk_nbr);
+  if(fl_out_fmt == NC_FORMAT_NETCDF4 || fl_out_fmt == NC_FORMAT_NETCDF4_CLASSIC) {
+
+    //(void) nco_cnk_sz_set(out_id, (lmt_msa_sct **) NULL_CEWI, (int) 0, &cnk_map, &cnk_plc, cnk_sz_scl, cnk.cnk_dmn,cnk_nbr);
+    dmn_cmn_sct cmn[NC_MAX_DIMS];
+    /* update member dmn_cmn_vtr() from dmn_out_vtr */
+    prs_arg.ncap_pop_dmn_cmn();
+    for(idx=0; idx<nbr_var_fix;idx++) {
+      prs_arg.ncap_pop_var_dmn_cmn(var_fix[idx], cmn);
+      (void) nco_cnk_sz_set_trv(in_id, out_id, &cnk, var_fix[idx]->nm, cmn);
+    }
+  }
+
+
+
 
   /* Turn-off default filling behavior to enhance efficiency */
   nco_set_fill(out_id,NC_NOFILL,&fll_md_old);
