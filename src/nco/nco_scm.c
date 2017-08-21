@@ -149,7 +149,7 @@ nco_cpy_prn(void) /* [fnc] Print copyright notice */
 {
   /* Purpose: Print copyright notice */
   (void)fprintf(stderr,"Copyright (C) 1995--2017 Charlie Zender\n");
-  (void)fprintf(stdout,"This program is part of NCO, the netCDF Operators.\nNCO is free software and comes with a BIG FAT KISS and ABOLUTELY NO WARRANTY\nYou may redistribute and/or modify NCO under the terms of the\nGNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file\nGPL: http://www.gnu.org/copyleft/gpl.html\nLICENSE: https://github.com/nco/nco/tree/master/LICENSE\n");
+  (void)fprintf(stdout,"This program is part of NCO, the netCDF Operators.\nNCO is free software and comes with a BIG FAT KISS and ABSOLUTELY NO WARRANTY\nYou may redistribute and/or modify NCO under the terms of the\nGNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file\nGPL: http://www.gnu.org/copyleft/gpl.html\nLICENSE: https://github.com/nco/nco/tree/master/LICENSE\n");
 } /* end copyright_prn() */
 
 void
@@ -174,7 +174,7 @@ nco_vrs_prn /* [fnc] Print NCO version */
   char vrs_cpp[]=TKN2SNG(NCO_VERSION); /* [sng] Version from C pre-processor */
 
   /* 20170417: vrs_cpp is typically something like "4.6.6-alpha08" (quotes included) 
-     The quotation marks annyoy me yet are necessary to protect the string in nco.h 
+     The quotation marks annoy me yet are necessary to protect the string in nco.h 
      Here we remove the quotation marks by pointing past the first and putting NUL in the last */
   char *vrs_sng; /* [sng] NCO version */
   vrs_sng=vrs_cpp;

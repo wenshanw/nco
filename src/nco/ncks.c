@@ -435,12 +435,12 @@ main(int argc,char **argv)
     /* Long options with short counterparts */
     {"3",no_argument,0,'3'},
     {"4",no_argument,0,'4'},
-    {"64bit_offset",no_argument,0,'4'},
     {"netcdf4",no_argument,0,'4'},
     {"5",no_argument,0,'5'},
     {"64bit_data",no_argument,0,'5'},
     {"cdf5",no_argument,0,'5'},
     {"pnetcdf",no_argument,0,'5'},
+    {"64bit_offset",no_argument,0,'6'},
     {"7",no_argument,0,'7'},
     {"abc",no_argument,0,'a'},
     {"alphabetize",no_argument,0,'a'},
@@ -561,6 +561,7 @@ main(int argc,char **argv)
       if(!strcmp(opt_crr,"dt_fmt") || !strcmp(opt_crr,"date_format")){
         dt_fmt=strtoul(optarg,&sng_cnv_rcd,NCO_SNG_CNV_BASE10);
 	PRN_CLN_LGB=True;
+	PRN_CDL=True;
       } /* !dt_fmt */
       if(!strcmp(opt_crr,"cnk_byt") || !strcmp(opt_crr,"chunk_byte")){
         cnk_sz_byt=strtoul(optarg,&sng_cnv_rcd,NCO_SNG_CNV_BASE10);
@@ -1191,11 +1192,13 @@ main(int argc,char **argv)
 
     /* No output file was specified so PRN_ tokens refer to screen printing */
     prn_fmt_sct prn_flg;
+    // prn_flg.trd=PRN_TRD || !(PRN_CDL || PRN_XML || PRN_JSN); // 20170522
+    PRN_CDL=PRN_CDL || !(PRN_TRD || PRN_XML || PRN_JSN); // 20170817
     prn_flg.cdl=PRN_CDL;
+    prn_flg.trd=PRN_TRD;
     prn_flg.jsn=PRN_JSN;
     prn_flg.srm=PRN_SRM;
     prn_flg.xml=PRN_XML;
-    prn_flg.trd=PRN_TRD || !(PRN_CDL || PRN_XML || PRN_JSN); // 20170522
     if((prn_flg.cdl || prn_flg.xml) && nco_dbg_lvl >= nco_dbg_std) prn_flg.nfo_xtr=True; else prn_flg.nfo_xtr=False;
     prn_flg.new_fmt=(PRN_CDL || PRN_JSN || PRN_SRM || PRN_XML);
     prn_flg.hdn=PRN_HDN;
@@ -1304,13 +1307,10 @@ main(int argc,char **argv)
       if(ALPHA_BY_FULL_GROUP || ALPHA_BY_STUB_GROUP){
 	/* Ineptly named nco_grp_prn() emits full CDL and XML formats, and partial JSN 
 	   rcd+=nco_grp_prn(in_id,trv_pth,&prn_flg,trv_tbl); */
-
         if(prn_flg.jsn) rcd+=nco_prn_jsn(in_id,trv_pth,&prn_flg,trv_tbl);
         else if(prn_flg.xml) rcd+=nco_prn_xml(in_id,trv_pth,&prn_flg,trv_tbl);
         else if(prn_flg.cdl || prn_flg.trd) rcd+=nco_prn_cdl_trd(in_id,trv_pth,&prn_flg,trv_tbl); 
         /* else rcd+=nco_grp_prn(in_id,trv_pth,&prn_flg,trv_tbl); */
-
- 
       }else{
 	/* Place-holder for other options for organization/alphabetization */
 	if(PRN_VAR_METADATA) (void)nco_prn_xtr_mtd(in_id,&prn_flg,trv_tbl);

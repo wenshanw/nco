@@ -146,7 +146,7 @@ main(int argc,char **argv)
 
   const char * const CVS_Id="$Id$"; 
   const char * const CVS_Revision="$Revision$";
-  const char * const opt_sht_lst="3467ACcD:d:Fg:G:HhL:l:Mn:Oo:p:rRt:u:v:X:x-:";
+  const char * const opt_sht_lst="34567ACcD:d:Fg:G:HhL:l:Mn:Oo:p:rRt:u:v:X:x-:";
 
   cnk_sct cnk; /* [sct] Chunking structure */
 
@@ -300,8 +300,13 @@ main(int argc,char **argv)
     /* Long options with short counterparts */
     {"3",no_argument,0,'3'},
     {"4",no_argument,0,'4'},
-    {"64bit",no_argument,0,'4'},
     {"netcdf4",no_argument,0,'4'},
+    {"5",no_argument,0,'5'},
+    {"64bit_data",no_argument,0,'5'},
+    {"cdf5",no_argument,0,'5'},
+    {"pnetcdf",no_argument,0,'5'},
+    {"64bit_offset",no_argument,0,'6'},
+    {"7",no_argument,0,'7'},
     {"append",no_argument,0,'A'},
     {"coords",no_argument,0,'c'},
     {"crd",no_argument,0,'c'},
@@ -461,7 +466,10 @@ main(int argc,char **argv)
       fl_out_fmt=NC_FORMAT_CLASSIC;
       break;
     case '4': /* Catch-all to prescribe output storage format */
-      if(!strcmp(opt_crr,"64bit")) fl_out_fmt=NC_FORMAT_64BIT; else fl_out_fmt=NC_FORMAT_NETCDF4; 
+      if(!strcmp(opt_crr,"64bit_offset")) fl_out_fmt=NC_FORMAT_64BIT; else fl_out_fmt=NC_FORMAT_NETCDF4; 
+      break;
+    case '5': /* Request netCDF3 64-bit offset+data storage (i.e., pnetCDF) format */
+      fl_out_fmt=NC_FORMAT_CDF5;
       break;
     case '6': /* Request netCDF3 64-bit offset output storage format */
       fl_out_fmt=NC_FORMAT_64BIT;
@@ -773,7 +781,7 @@ main(int argc,char **argv)
         size_t sfx_fst; /* [nbr] Offset of suffix from start of string */
         size_t sfx_lng; /* [nbr] Suffix has this many characters */
 
-        /* Is there a .nc, .cdf, .nc3, or .nc4 suffix? or an .hdf, .HDF, .h5, .H5, or .he5 suffix? */
+        /* Is there a .nc, .cdf, .nc3, .nc4, .nc5, .nc6, or .nc7 suffix? or an .hdf, .HDF, .h5, .H5, or .he5 suffix? */
         fl_in_lng=strlen(fl_in);
         sfx_lng=3L;
         sfx_fst=fl_in_lng-sfx_lng;
@@ -789,7 +797,10 @@ main(int argc,char **argv)
 	     strncmp(fl_in+sfx_fst,".HDF",sfx_lng) && /* HDF-EOS2 (HDF4) suffix used by TRMM, e.g., 3B43.070901.6A.HDF */
 	     strncmp(fl_in+sfx_fst,".he5",sfx_lng) && /* HDF-EOS5 (HDF5) suffix used by HIRDLS, OMI Aerosols, e.g., HIRDLS-Aura_L3ZAD_v06-00-00-c02_2005d022-2008d077.he5, OMI-Aura_L2-OMAERUV_2013m1004t2338-o49057_v003-2013m1005t053932.he5 */
 	     strncmp(fl_in+sfx_fst,".nc3",sfx_lng) && /* netCDF3 variant suffix */
-	     strncmp(fl_in+sfx_fst,".nc4",sfx_lng)){ /* netCDF4 variant suffix */
+	     strncmp(fl_in+sfx_fst,".nc4",sfx_lng) && /* netCDF4 variant suffix */
+	     strncmp(fl_in+sfx_fst,".nc5",sfx_lng) && /* netCDF CDF/PnetCDF variant suffix */
+	     strncmp(fl_in+sfx_fst,".nc6",sfx_lng) && /* netCDF3 64bit_offset variant suffix */
+	     strncmp(fl_in+sfx_fst,".nc7",sfx_lng)){ /* netCDF4 classic variant suffix */
 	    (void)fprintf(stderr,"%s: WARNING GAG filename suffix is unusual---using whole filename as group name\n",nco_prg_nm_get());
 	    sfx_lng=0;
 	  } /* endif */

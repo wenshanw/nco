@@ -51,8 +51,11 @@
 
 # Process configure input with autoconf to produce configure script
 # (package name,version,bug-report-address,tarball name)
-AC_INIT([NCO netCDF Operators],[4.6.8],[nco-bugs@lists.sourceforge.net],[nco])
-#AC_INIT([NCO netCDF Operators],[m4_esyscmd([git describe --abbrev=7 --dirty --always --tags])],[nco-bugs@lists.sourceforge.net],[nco])
+# 20170808: Choose between traditional version and Git-based version
+# If Git, consider that Linux dynamic libraries will have full messy name, MacOSX will not
+# https://stackoverflow.com/questions/43526939/how-to-insert-git-based-version-in-autoconf-managed-project
+AC_INIT([NCO netCDF Operators],[4.6.9-alpha01],[nco-bugs@lists.sourceforge.net],[nco])
+#AC_INIT([NCO netCDF Operators],m4_esyscmd([git describe --abbrev=7 --dirty --always --tags | tr -d '\n']),[nco-bugs@lists.sourceforge.net],[nco])
 
 # Print GNU copyright in configure script
 AC_COPYRIGHT
@@ -420,15 +423,15 @@ if test "${enable_ncoxx}" != 'no'; then
 	    ANTLR_LIB="${ANTLR_ROOT}/lib"
 	fi
     fi
-    if test "${ANTLR_BIN}"; then
+    if test -d "${ANTLR_BIN}"; then
 # Add ${ANTLR_BIN}, if present, to binary search path
 	PATH="${PATH}:${ANTLR_BIN}"
     fi
-    if test "${ANTLR_INC}"; then
+    if test -d "${ANTLR_INC}"; then
 # Add ${ANTLR_INC}, if present, to include search path
 	CPPFLAGS="${CPPFLAGS} -I${ANTLR_INC}"
     fi
-    if test "${ANTLR_LIB}"; then
+    if test -d "${ANTLR_LIB}"; then
 # Add ${ANTLR_LIB}, if present, to library search path
 	LDFLAGS="${LDFLAGS} -L${ANTLR_LIB}"
     fi
@@ -815,7 +818,6 @@ case ${host} in
     i*86-*-linux-gnu | x86_64*-linux* )
 	case ${CC} in
 	    como* ) CFLAGS="${CFLAGS} --c99" ; ;;
-# 20150109: fxm Introduce -D_DEFAULT_SOURCE in place of deprecated (as of gcc 4.9.2) -D_BSD_SOURCE -D_POSIX_SOURCE 
 # 20150525: fxm Remove -no-gcc from icc flags as per ocehugo
 #	    icc* ) CFLAGS="${CFLAGS} -std=c99" ; CPPFLAGS="${CPPFLAGS} -D_BSD_SOURCE -D_POSIX_SOURCE -no-gcc" ; ;;
 	    icc* ) CFLAGS="${CFLAGS} -std=c99" ; CPPFLAGS="${CPPFLAGS} -D_BSD_SOURCE -D_POSIX_SOURCE" ; ;;
@@ -1147,6 +1149,7 @@ fi
 # Tell GNU C compiler to use C99 standard (older gcc versions default to C89)
 # fxm: only do this for gcc, not g++
 if test $ac_compiler_gnu = 'yes'; then
+    # 20150109: fxm Introduce -D_DEFAULT_SOURCE in place of deprecated (as of gcc 4.9.2) -D_BSD_SOURCE -D_POSIX_SOURCE 
     # _BSD_SOURCE needed for backward compatibility with old GCC
     # 20160418: default cori gcc is 4.3.4 from 2008!
     CFLAGS="${CFLAGS} -std=c99 -D_BSD_SOURCE -D_POSIX_SOURCE"

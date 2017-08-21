@@ -1,5 +1,4 @@
 /* $Header$ */
-/* $Header$ */
 
 /* Purpose: Print variables, attributes, metadata */
 
@@ -335,12 +334,11 @@ nco_prn_att /* [fnc] Print all attributes of single variable or group */
       att[idx].val.vp = (void *) nco_malloc(att[idx].sz * nco_typ_lng(att[idx].type));
       (void) nco_get_att(grp_id, var_id, att[idx].nm, att[idx].val.vp, att[idx].type);
 
-      /* an NC_CHAR can have zero length size maybe others ? -create with a single FILL value */
-      if(att[idx].sz==0){
+      /* NC_CHAR can have zero length size maybe others? Create with a single FILL value */
+      if(att[idx].sz == 0L){
         att[idx].val=nco_mss_val_mk(att[idx].type);
         att[idx].sz=1;
-      }
-
+      } /* !att.sz */
     } /* idx == att_nbr */
     
     /* Copy value to avoid indirection in loop over att_sz */
@@ -435,7 +433,8 @@ nco_prn_att /* [fnc] Print all attributes of single variable or group */
 	  rcd_prn=snprintf(val_sng,(size_t)NCO_ATM_SNG_LNG,att_sng_pln,val_flt);
 	  (void)sng_trm_trl_zro(val_sng,prn_flg->nbr_zro);
 	}else{
-	  if(isnan(val_flt)) (void)sprintf(val_sng,"NaNf"); else if(isinf(val_flt)) (void)sprintf(val_sng,"%sInfinityf",(val_flt < 0.0f) ? "-" : "");
+	  if(isnan(val_flt)) (void)sprintf(val_sng,(JSN) ? "null" : "NaNf");
+	  else if(isinf(val_flt)) (void)sprintf(val_sng,"%s",(JSN) ? "null" : (val_flt < 0.0f) ? "-Infinityf" : "Infinityf");
 	} /* endelse */
 	(void)fprintf(stdout,"%s%s",val_sng,(lmn != att_szm1) ? spr_sng : "");
       } /* end loop */
@@ -447,7 +446,8 @@ nco_prn_att /* [fnc] Print all attributes of single variable or group */
 	  rcd_prn=snprintf(val_sng,(size_t)NCO_ATM_SNG_LNG,att_sng_pln,val_dbl);
 	  (void)sng_trm_trl_zro(val_sng,prn_flg->nbr_zro);
 	}else{
-	  if(isnan(val_dbl)) (void)sprintf(val_sng,"NaN"); else if(isinf(val_dbl)) (void)sprintf(val_sng,"%sInfinity",(val_dbl < 0.0) ? "-" : "");
+	  if(isnan(val_dbl)) (void)sprintf(val_sng,(JSN) ? "null" : "NaN");
+	  else if(isinf(val_dbl)) (void)sprintf(val_sng,"%s",(JSN) ? "null" : (val_dbl < 0.0) ? "-Infinity" : "Infinity");
 	} /* endelse */
 	(void)fprintf(stdout,"%s%s",val_sng,(lmn != att_szm1) ? spr_sng : "");
       } /* end loop */
@@ -1944,7 +1944,8 @@ nco_prn_var_val_trv /* [fnc] Print variable data (GTT version) */
             rcd_prn=snprintf(val_sng,(size_t)NCO_ATM_SNG_LNG,fmt_sng,val_flt);
             (void)sng_trm_trl_zro(val_sng,prn_flg->nbr_zro);
           }else{
-            if(isnan(val_flt)) (void)sprintf(val_sng,"NaN"); else if(isinf(val_flt)) (void)sprintf(val_sng,"%sInfinity",(val_flt < 0.0f) ? "-" : "");
+	    if(isnan(val_flt)) (void)sprintf(val_sng,(JSN) ? "null" : "NaNf");
+	    else if(isinf(val_flt)) (void)sprintf(val_sng,"%s",(JSN) ? "null" : (val_flt < 0.0f) ? "-Infinityf" : "Infinityf");
           } /* endelse */
           break;
         case NC_DOUBLE:
@@ -1953,7 +1954,8 @@ nco_prn_var_val_trv /* [fnc] Print variable data (GTT version) */
             rcd_prn=snprintf(val_sng,(size_t)NCO_ATM_SNG_LNG,fmt_sng,val_dbl);
             (void)sng_trm_trl_zro(val_sng,prn_flg->nbr_zro);
           }else{
-            if(isnan(val_dbl)) (void)sprintf(val_sng,"NaN"); else if(isinf(val_dbl)) (void)sprintf(val_sng,"%sInfinity",(val_dbl < 0.0) ? "-" : "");
+	    if(isnan(val_dbl)) (void)sprintf(val_sng,(JSN) ? "null" : "NaN");
+	    else if(isinf(val_dbl)) (void)sprintf(val_sng,"%s",(JSN) ? "null" : (val_dbl < 0.0) ? "-Infinity" : "Infinity");
           } /* endelse */
           break;
         case NC_SHORT: (void)sprintf(val_sng,fmt_sng,var->val.sp[lmn]); break;
@@ -2558,13 +2560,12 @@ nco_grp_prn /* [fnc] Recursively print group contents */
     if(prn_flg->fll_pth) (void)fprintf(stdout," // fullname: %s\n",nco_gpe_evl(prn_flg->gpe,grp_nm_fll)); else (void)fprintf(stdout,"\n");
     if(grp_dpt == 0 && prn_flg->nfo_xtr && prn_flg->PRN_GLB_METADATA) (void)fprintf(stdout,"%*s// %s\n",prn_flg->sxn_fst,spc_sng,prn_flg->smr_sng);
     if(grp_dpt == 0 && prn_flg->nfo_xtr) (void)fprintf(stdout,"%*s// ncgen -k netCDF-4 -b -o %s.nc %s.cdl\n",prn_flg->sxn_fst,spc_sng,prn_flg->fl_stb,prn_flg->fl_stb);
-  } else if(JSN){
-
+  }else if(JSN){
     nm_jsn=nm2sng_jsn(nco_gpe_evl_stb(prn_flg->gpe,trv_tbl->lst[obj_idx].nm_fll));
     /* JSN print main opening brace */
     if(grp_dpt==0) (void)fprintf(stdout,"{\n"); else (void)fprintf(stdout,"%*s\"%s\": {\n",prn_flg->sxn_fst+grp_dpt*prn_flg->spc_per_lvl,spc_sng,nm_jsn);
     nm_jsn=(char *)nco_free(nm_jsn);  
-  }
+  } /* !JSN */
   
   /* Print dimension information for group */
   prn_ndn=prn_flg->ndn=prn_flg->sxn_fst+grp_dpt*prn_flg->spc_per_lvl;
@@ -2996,15 +2997,12 @@ nco_prn_cdl_trd /* [fnc] Recursively print group contents */
   /* Sort dimensions alphabetically */
   if(dmn_nbr > 1) dmn_lst=nco_lst_srt_nm_id(dmn_lst,dmn_nbr,prn_flg->ALPHA_BY_STUB_GROUP);
 
-  { 
-    nm_cdl=nm2sng_cdl(nco_gpe_evl_stb(prn_flg->gpe,trv_tbl->lst[obj_idx].nm_fll));
-    if(grp_dpt == 0 && CDL) (void)fprintf(stdout,"netcdf %s {",prn_flg->fl_stb); else (void)fprintf(stdout,"%*sgroup: %s {",grp_dpt*prn_flg->spc_per_lvl,spc_sng,nm_cdl);
-    nm_cdl=(char *)nco_free(nm_cdl);
-    if(prn_flg->fll_pth) (void)fprintf(stdout," // fullname: %s\n",nco_gpe_evl(prn_flg->gpe,grp_nm_fll)); else (void)fprintf(stdout,"\n");
-    if(grp_dpt == 0 && prn_flg->nfo_xtr && prn_flg->PRN_GLB_METADATA) (void)fprintf(stdout,"%*s// %s\n",prn_flg->sxn_fst,spc_sng,prn_flg->smr_sng);
-    if(grp_dpt == 0 && prn_flg->nfo_xtr) (void)fprintf(stdout,"%*s// ncgen -k netCDF-4 -b -o %s.nc %s.cdl\n",prn_flg->sxn_fst,spc_sng,prn_flg->fl_stb,prn_flg->fl_stb);
-  } 
-
+  nm_cdl=nm2sng_cdl(nco_gpe_evl_stb(prn_flg->gpe,trv_tbl->lst[obj_idx].nm_fll));
+  if(grp_dpt == 0 && CDL) (void)fprintf(stdout,"netcdf %s {",prn_flg->fl_stb); else (void)fprintf(stdout,"%*sgroup: %s {",grp_dpt*prn_flg->spc_per_lvl,spc_sng,nm_cdl);
+  nm_cdl=(char *)nco_free(nm_cdl);
+  if(prn_flg->fll_pth) (void)fprintf(stdout," // fullname: %s\n",nco_gpe_evl(prn_flg->gpe,grp_nm_fll)); else (void)fprintf(stdout,"\n");
+  if(grp_dpt == 0 && prn_flg->nfo_xtr && prn_flg->PRN_GLB_METADATA) (void)fprintf(stdout,"%*s// %s\n",prn_flg->sxn_fst,spc_sng,prn_flg->smr_sng);
+  if(grp_dpt == 0 && prn_flg->nfo_xtr) (void)fprintf(stdout,"%*s// ncgen -k netCDF-4 -b -o %s.nc %s.cdl\n",prn_flg->sxn_fst,spc_sng,prn_flg->fl_stb,prn_flg->fl_stb);
   
   /* Print dimension information for group */
   prn_ndn=prn_flg->ndn=prn_flg->sxn_fst+grp_dpt*prn_flg->spc_per_lvl;
@@ -3386,16 +3384,12 @@ nco_prn_xml /* [fnc] Recursively print group contents */
     sub_grp_nm_fll=(char *)nco_free(sub_grp_nm_fll);
   } /* end loop over grp_idx */
 
-
   /* Mark end of output */
   if(grp_dpt == 0) (void)fprintf(stdout,"</netcdf>\n"); 
   if(grp_dpt > 0) (void)fprintf(stdout,"%*s</group>\n",grp_dpt*prn_flg->spc_per_lvl,spc_sng); 
 
   return rcd;
 } /* end nco_grp_prn_xml() */
-
-
-
 
 int /* [rcd] Return code */
 nco_prn_jsn /* [fnc] Recursively print group contents */
@@ -3488,17 +3482,13 @@ nco_prn_jsn /* [fnc] Recursively print group contents */
     dmn_lst[dmn_idx].nm=strdup(trv_tbl->lst_dmn[dmn_idx_grp[dmn_idx]].nm);
   } /* end loop over dmn_idx */
 
-  /* prn_ndn is the indentation of the group id tag -offsets for vars/atts/groups tag are from this */
-  if(grp_dpt==0)
-      prn_ndn=0;   
-  else
-      prn_ndn=2*grp_dpt*prn_flg->spc_per_lvl;
+  /* prn_ndn is indentation of group ID tag; offsets for vars/atts/groups tag are from this */
+  if(grp_dpt == 0) prn_ndn=0; else prn_ndn=2*grp_dpt*prn_flg->spc_per_lvl;
      
   nm_jsn=nm2sng_jsn(nco_gpe_evl_stb(prn_flg->gpe,trv_tbl->lst[obj_idx].nm_fll));
  
  if(grp_dpt==0) (void)fprintf(stdout,"{\n"); else (void)fprintf(stdout,"%*s\"%s\": {\n",prn_ndn,spc_sng,nm_jsn);
   nm_jsn=(char *)nco_free(nm_jsn);  
-
 
   if(dmn_nbr > 0 ) 
       (void)fprintf(stdout,"%*s\"dimensions\": {\n",prn_ndn+prn_flg->spc_per_lvl,spc_sng);
@@ -3508,11 +3498,7 @@ nco_prn_jsn /* [fnc] Recursively print group contents */
     nm_jsn=nm2sng_jsn(dmn_lst[dmn_idx].nm);
     (void)fprintf(stdout,"%*s\"%s\": %lu",prn_ndn+2*prn_flg->spc_per_lvl,spc_sng,nm_jsn,(unsigned long)trv_tbl->lst_dmn[dmn_lst[dmn_idx].id].lmt_msa.dmn_cnt);   
     /* Add comma and carriage-return unless last element */
-    if(dmn_idx<dmn_nbr-1) 
-          (void)printf(",\n");
-    else
-      (void)printf("\n%*s}",prn_ndn+prn_flg->spc_per_lvl,spc_sng);         
-       
+    if(dmn_idx<dmn_nbr-1) (void)printf(",\n"); else (void)printf("\n%*s}",prn_ndn+prn_flg->spc_per_lvl,spc_sng);         
     nm_jsn=(char *)nco_free(nm_jsn);   
     JSN_BLOCK=True;    
   } /* end loop over dimension */
@@ -3524,7 +3510,6 @@ nco_prn_jsn /* [fnc] Recursively print group contents */
 
   /* Create array to hold names and indices of extracted variables in this group */
   var_lst=(nm_id_sct *)nco_malloc(nbr_var*(sizeof(nm_id_sct)));
-
       
   for(var_idx=0;var_idx<nbr_var;var_idx++){
     /* Get variable name */
@@ -3567,67 +3552,46 @@ nco_prn_jsn /* [fnc] Recursively print group contents */
 
   /* Sort variables alphabetically */
   if(var_nbr_xtr > 1) var_lst=nco_lst_srt_nm_id(var_lst,var_nbr_xtr,prn_flg->ALPHA_BY_STUB_GROUP);
-    
 
   for(var_idx=0;var_idx<var_nbr_xtr;var_idx++){
     trv_sct var_trv=trv_tbl->lst[var_lst[var_idx].id];
     /* Obtain variable ID */
     (void)nco_inq_varid(grp_id,var_trv.nm,&var_id);
-
    
-    /* deal with first iteration */   
-    if(var_idx==0) 
-    { 
-      if(JSN_BLOCK) 
-	(void)fprintf(stdout,",\n"); 
-      else
-	JSN_BLOCK=True;              
-         
+    /* Deal with first iteration */   
+    if(var_idx == 0){ 
+      if(JSN_BLOCK) (void)fprintf(stdout,",\n"); else JSN_BLOCK=True;              
       (void)fprintf(stdout,"%*s\"variables\": {\n",prn_ndn+prn_flg->spc_per_lvl,spc_sng);   
     } 
         
     /* DOES NOT include a return as we may wanna add a COMMA */
     prn_flg->ndn=prn_ndn+2*prn_flg->spc_per_lvl; 
-
     (void)nco_prn_var_dfn(nc_id,prn_flg,&var_trv);
 
-
     /* nco_prn_att() prints the final brace but no return - as we may need to add a comma */ 
-    if( prn_flg->PRN_VAR_METADATA  && nco_att_nbr(grp_id,var_id)>0)
-    {     
+    if(prn_flg->PRN_VAR_METADATA && nco_att_nbr(grp_id,var_id) > 0){     
       (void)fprintf(stdout,",\n");            
       //prn_flg->ndn=prn_ndn+2*prn_flg->spc_per_lvl;  
       (void)nco_prn_att(grp_id,prn_flg,var_id);
     } 
         
-    if( prn_flg->PRN_VAR_DATA)
-    {  
+    if( prn_flg->PRN_VAR_DATA){  
       (void)fprintf(stdout,",\n");  
       // prn_flg->ndn=prn_ndn+2*prn_flg->spc_per_lvl;  
       (void)nco_prn_var_val_trv(nc_id,prn_flg,&trv_tbl->lst[var_lst[var_idx].id],trv_tbl);      
-    }
-    else 
-    {
+    }else{
       (void)fprintf(stdout,"\n");        
     }
-    /* close json tag -but dont add return as we may need to add comma later*/
+    /* Close json tag -but dont add return as we may need to add comma later*/
     (void)fprintf(stdout,"%*s}%s",prn_flg->ndn,spc_sng, (var_idx<var_nbr_xtr-1 ?",\n":"\n")  );   
     
   } /* end loop over var_idx */
 
   /* close out json variable tag */
-  if(var_nbr_xtr>0) 
-    (void)fprintf(stdout,"%*s}",prn_ndn+prn_flg->spc_per_lvl,spc_sng );   
+  if(var_nbr_xtr>0) (void)fprintf(stdout,"%*s}",prn_ndn+prn_flg->spc_per_lvl,spc_sng);   
 
-
-
-  if((nbr_att > 0 || (prn_flg->hdn && grp_dpt == 0)) && prn_flg->PRN_GLB_METADATA)
-  {
-    if(JSN_BLOCK) 
-      (void)fprintf(stdout,",\n"); 
-    else
-      JSN_BLOCK=True;              
-
+  if((nbr_att > 0 || (prn_flg->hdn && grp_dpt == 0)) && prn_flg->PRN_GLB_METADATA){
+    if(JSN_BLOCK) (void)fprintf(stdout,",\n"); else JSN_BLOCK=True;              
     prn_flg->ndn=prn_ndn+prn_flg->spc_per_lvl;  
     nco_prn_att(grp_id,prn_flg,NC_GLOBAL);
   }  
@@ -3638,7 +3602,6 @@ nco_prn_jsn /* [fnc] Recursively print group contents */
   /* Get ready for sub-groups */ 
   grp_ids=(int *)nco_malloc(nbr_grp*sizeof(int)); 
   rcd+=nco_inq_grps(grp_id,(int *)NULL,grp_ids);
-
 
   /*
   if( nbr_grp > 0) 
@@ -3676,20 +3639,14 @@ nco_prn_jsn /* [fnc] Recursively print group contents */
 	  break;
     
     /* Is sub-group to be extracted? If so, recurse */
-    if(trv_tbl->lst[obj_idx].flg_xtr)
-    {  
+    if(trv_tbl->lst[obj_idx].flg_xtr){  
       /* print groups tag for first extracted group */ 
-      if(nbr_grp_xtr++==0)    
-      {   
-         if(JSN_BLOCK) 
-             (void)fprintf(stdout,",\n"); 
-
+      if(nbr_grp_xtr++ == 0){   
+         if(JSN_BLOCK) (void)fprintf(stdout,",\n"); 
          (void)fprintf(stdout,"%*s\"groups\": {\n",prn_ndn+prn_flg->spc_per_lvl,spc_sng);       
-
-      }  
-      else   
+      }else{
          (void)fprintf(stdout,",\n"); 
-
+      }
       rcd+=nco_prn_jsn(nc_id,sub_grp_nm_fll,prn_flg,trv_tbl);        
     }  
 
@@ -3697,19 +3654,13 @@ nco_prn_jsn /* [fnc] Recursively print group contents */
     sub_grp_nm_fll=(char *)nco_free(sub_grp_nm_fll);
   } /* end loop over grp_idx */
 
-  /* print closing tag for group tag */
-  if( nbr_grp>0 && nbr_grp_xtr>0 )     
-    fprintf(stdout,"\n%*s}",prn_ndn+prn_flg->spc_per_lvl,spc_sng);         
-
+  /* Print closing tag for group tag */
+  if(nbr_grp > 0 && nbr_grp_xtr > 0) (void)fprintf(stdout,"\n%*s}",prn_ndn+prn_flg->spc_per_lvl,spc_sng);         
   if(grp_dpt ==0) (void)fprintf(stdout,"\n}\n"); 
-
   if(grp_dpt >0) (void)fprintf(stdout,"\n%*s}",prn_ndn,spc_sng);
   
-
-  
   return rcd;
-  } /* end nco_prn_jsn() */
-
+} /* end nco_prn_jsn() */
 
 nco_bool                            /* O [flg] Variable is compound */
 nco_prn_cpd_chk                     /* [fnc] Check whether variable is compound */

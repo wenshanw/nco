@@ -1362,7 +1362,7 @@ nco_cpy_var_val_mlt_lmt_trv         /* [fnc] Copy variable data from input to ou
   if(nco_prg_id_get() == ncks){
     /* File format needed for decision tree and to enable netCDF4 features */
     (void)nco_inq_format(out_id,&fl_fmt);
-    if(fl_fmt != NC_FORMAT_NETCDF4 && !nco_typ_nc3(var_typ_in)){
+    if(fl_fmt != NC_FORMAT_NETCDF4 && fl_fmt != NC_FORMAT_64BIT_DATA && !nco_typ_nc3(var_typ_in)){
       if(nco_dbg_lvl_get() >= nco_dbg_std) (void)fprintf(stdout,"%s: INFO Autoconverting variable %s from %s of netCDF4 type %s to netCDF3 type %s\n",nco_prg_nm_get(),var_nm,(nbr_dim > 0) ? "array" : "scalar",nco_typ_sng(var_typ_in),nco_typ_sng(nco_typ_nc4_nc3(var_typ_out)));
       var_typ_out=nco_typ_nc4_nc3(var_typ_in);
 
@@ -1558,7 +1558,7 @@ nco_cpy_msa_lmt                     /* [fnc] Copy MSA struct from table to local
 } /* nco_cpy_msa_lmt() */
 
 void
-nco_msa_var_get_trv                 /* [fnc] Get variable data from disk taking account of multihyperslabs */
+nco_msa_var_get_trv                 /* [fnc] Define a 'var_sct' hyperslab fields from a GTT variable */
 (const int nc_id,                   /* I [ID] netCDF file ID */
  var_sct *var_in,                   /* I/O [sct] Variable */
  const trv_tbl_sct * const trv_tbl) /* I [sct] GTT (Group Traversal Table) */
@@ -1606,7 +1606,7 @@ nco_msa_var_get_trv                 /* [fnc] Get variable data from disk taking 
     (void)fprintf(stdout,"%s: DEBUG %s reports reading %s\n",nco_prg_nm_get(),fnc_nm,var_trv->nm_fll);
     for(int idx_dmn=0;idx_dmn<var_trv->nbr_dmn;idx_dmn++){
       (void)fprintf(stdout,"%s: DEBUG %s reports dimension %s has dmn_cnt = %ld",nco_prg_nm_get(),fnc_nm,lmt_msa[idx_dmn]->dmn_nm,lmt_msa[idx_dmn]->dmn_cnt);
-	for(int idx_lmt=0;idx_lmt<lmt_msa[idx_dmn]->lmt_dmn_nbr;idx_lmt++) (void)fprintf(stdout," : %ld (%ld->%ld)",lmt_msa[idx_dmn]->lmt_dmn[idx_lmt]->cnt,lmt_msa[idx_dmn]->lmt_dmn[idx_lmt]->srt,lmt_msa[idx_dmn]->lmt_dmn[idx_lmt]->end);
+  for(int idx_lmt=0;idx_lmt<lmt_msa[idx_dmn]->lmt_dmn_nbr;idx_lmt++) (void)fprintf(stdout," : %ld (%ld->%ld)",lmt_msa[idx_dmn]->lmt_dmn[idx_lmt]->cnt,lmt_msa[idx_dmn]->lmt_dmn[idx_lmt]->srt,lmt_msa[idx_dmn]->lmt_dmn[idx_lmt]->end);
       (void)fprintf(stdout,"\n");
     } /* end loop over dimensions */
   } /* endif dbg */
@@ -1651,6 +1651,98 @@ do_upk:
 
   return;
 } /* end nco_msa_var_get_trv() */
+
+void
+nco_msa_var_get_sct                 /* [fnc] Define a 'var_sct' hyperslab fields from a GTT variable ('trv_sct')*/
+(const int nc_id,                   /* I [ID] netCDF file ID */
+  var_sct *var_in,                  /* I/O [sct] Variable */
+  const trv_sct * const var_trv)    /* I [sct] GTT variable */
+{
+  /* Same as nco_msa_var_get_trv() but with input 'var_trv' '
+  TODO Deprecate nco_msa_var_get_trv() and use this function */
+
+  const char fnc_nm[] = "nco_msa_var_get_sct()"; /* [sng] Function name  */
+
+  int nbr_dim;
+  int grp_id;
+
+  lmt_msa_sct **lmt_msa;
+  lmt_sct **lmt;
+
+  nc_type mss_typ_tmp = NC_NAT; /* CEWI */
+
+  /* Obtain group ID */
+  (void)nco_inq_grp_full_ncid(nc_id, var_trv->grp_nm_fll, &grp_id);
+
+  nbr_dim = var_in->nbr_dim;
+  var_in->nc_id = grp_id;
+
+  assert(nbr_dim == var_trv->nbr_dmn);
+  assert(!strcmp(var_in->nm_fll, var_trv->nm_fll));
+
+  /* Scalars */
+  if (nbr_dim == 0) {
+    var_in->val.vp = nco_malloc(nco_typ_lng(var_in->typ_dsk));
+    (void)nco_get_var1(var_in->nc_id, var_in->id, 0L, var_in->val.vp, var_in->typ_dsk);
+    goto do_upk;
+  } /* end if scalar */
+
+    /* Allocate local MSA */
+  lmt_msa = (lmt_msa_sct **)nco_malloc(var_trv->nbr_dmn * sizeof(lmt_msa_sct *));
+  lmt = (lmt_sct **)nco_malloc(var_trv->nbr_dmn * sizeof(lmt_sct *));
+
+  /* Copy from table to local MSA */
+  (void)nco_cpy_msa_lmt(var_trv, &lmt_msa);
+
+  if (nco_dbg_lvl_get() == nco_dbg_old) {
+    (void)fprintf(stdout, "%s: DEBUG %s reports reading %s\n", nco_prg_nm_get(), fnc_nm, var_trv->nm_fll);
+    for (int idx_dmn = 0; idx_dmn < var_trv->nbr_dmn; idx_dmn++) {
+      (void)fprintf(stdout, "%s: DEBUG %s reports dimension %s has dmn_cnt = %ld", nco_prg_nm_get(), fnc_nm, lmt_msa[idx_dmn]->dmn_nm, lmt_msa[idx_dmn]->dmn_cnt);
+      for (int idx_lmt = 0; idx_lmt < lmt_msa[idx_dmn]->lmt_dmn_nbr; idx_lmt++) (void)fprintf(stdout, " : %ld (%ld->%ld)", lmt_msa[idx_dmn]->lmt_dmn[idx_lmt]->cnt, lmt_msa[idx_dmn]->lmt_dmn[idx_lmt]->srt, lmt_msa[idx_dmn]->lmt_dmn[idx_lmt]->end);
+      (void)fprintf(stdout, "\n");
+    } /* end loop over dimensions */
+  } /* endif dbg */
+
+    /* Call super-dooper recursive routine
+    nco_msa_rcr_clc requires that var_in->type be on-disk type
+    Could replace var->type by var->typ_dsk in nco_msa_rcr_clc() but that seems inelegant
+    Instead, risk putting val and mss_val types briefly out-of-sync by pretending var->type is typ_dsk
+    Save current type of missing value in RAM in temporary variable and conform new variable to that below
+    20140930: This is (too?) confusing and hard-to-follow, a better solution is to add a field mss_val_typ
+    to var_sct and then separately and explicitly track types of both val and mss_val members. */
+  mss_typ_tmp = var_in->type;
+  var_in->type = var_in->typ_dsk;
+  var_in->val.vp = nco_msa_rcr_clc((int)0, nbr_dim, lmt, lmt_msa, var_in);
+  var_in->type = mss_typ_tmp;
+
+  /* Free */
+  (void)nco_lmt_msa_free(var_trv->nbr_dmn, lmt_msa);
+  lmt = (lmt_sct **)nco_free(lmt);
+
+do_upk:
+  /* Missing value type synchronization:
+  Avoid re-reading missing value every ncra record by converting input value to disk type
+  var_in->type still reflects missing value type, not variable value type */
+  if (var_in->pck_dsk && (mss_typ_tmp != var_in->typ_dsk)) var_in = nco_cnv_mss_val_typ(var_in, var_in->typ_dsk);
+  var_in->type = var_in->typ_dsk;
+
+  /* Type of variable and missing value in memory are now same as type on disk */
+
+  /* Packing in RAM is now same as packing on disk pck_dbg
+  fxm: This nco_pck_dsk_inq() call is never necessary for non-packed variables */
+  (void)nco_pck_dsk_inq(grp_id, var_in);
+
+  /* Packing/Unpacking */
+  if (nco_is_rth_opr(nco_prg_id_get())) {
+    /* Arithmetic operators must unpack variables before performing arithmetic
+    Otherwise arithmetic will produce garbage results */
+    /* 20050519: Not sure why I originally made nco_var_upk() call SMP-critical
+    20050629: Making this region multi-threaded causes no problems */
+    if (var_in->pck_dsk) var_in = nco_var_upk(var_in);
+  } /* endif arithmetic operator */
+
+  return;
+} /* end nco_msa_var_get_sct() */
 
 void
 nco_lmt_msa_free                    /* [fnc] Free MSA */

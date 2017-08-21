@@ -12,7 +12,7 @@
 // /usr/local/bin/ncgen -k hdf5-nc3 -b -o in_4c.nc in.cdl
 // /usr/local/bin/ncgen -k hdf5-nc3 -b -o ${HOME}/nco/data/in_4c.nc ${HOME}/nco/data/in.cdl
 
-// URL: 
+// URL:
 // http://dust.ess.uci.edu/nco/in.nc
 // http://dust.ess.uci.edu/nco/in_4.nc
 // http://thredds-test.ucar.edu/thredds/dodsC/testdods/in.nc
@@ -454,6 +454,11 @@ variables:
 	mss_val_scl:long_name = "scalar missing value";
 	mss_val_scl:_FillValue = 1.0e36f;
 
+	float mss_val_scl_sml;
+	mss_val_scl_sml:long_name = "scalar missing value";
+	mss_val_scl_sml:purpose = "Unlike mss_val_scl, mss_val_scl_sml has a missing value that fits within any packed data type range";
+	mss_val_scl_sml:_FillValue = 1.0e4f;
+
 	float mss_val_fst(lon);
 	mss_val_fst:long_name = "offset partial missing value example";
 	mss_val_fst:_FillValue = -999.0f;
@@ -581,6 +586,7 @@ variables:
 	float scalar_var;
 	scalar_var:long_name = "scalar variable";
 	scalar_var:units = "fraction";
+	scalar_var:_FillValue = 1.0e36f;
 
 	float float_var;
 	float_var:long_name = "float";
@@ -673,13 +679,13 @@ variables:
 	zero:long_name = "zero";
 
 	float ppc_zro_flt(time);
-	zero:long_name = "array of single precision floating point zeros";
+	ppc_zro_flt:long_name = "array of single precision floating point zeros";
 
 	double ppc_zro_dbl(time);
-	zero:long_name = "array of double precision floating point zeros";
+	ppc_zro_dbl:long_name = "array of double precision floating point zeros";
 
 	int ppc_zro_int(time);
-	zero:long_name = "array of integer zeros";
+	ppc_zro_int:long_name = "array of integer zeros";
 
 	float one;
 	one:long_name = "one";
@@ -1434,9 +1440,10 @@ data:
 	mss_val_all=1.0e36,1.0e36,1.0e36,1.0e36;
 	mss_val_fst=-999,73,-999,73;
 	mss_val_scl=1.0e36;
-	//	nan_arr=0,nan;
+	mss_val_scl_sml=1.0e4;
+	//nan_arr=0,nan;
 	nan_arr=0,73;
-//	nan_scl=nan;
+	//nan_scl=nan;
 	nan_scl=1;
 	negative_one=-1.;
 	nm_pnd=1;

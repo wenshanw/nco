@@ -3313,7 +3313,7 @@ nco_rgr_map /* [fnc] Regrid with external weights */
 	   Extensive variables (population, counts, numbers of things) depend on gridcell boundaries
 	   Extensive variables are the exception in models, yet are commonly used for sampling information, e.g., 
 	   number of photons, number of overpasses 
-	   Pass NCO the extensive variable list with, e.g., --xtn=TSurfStd_ct,... */
+	   Pass extensive variable list to NCO with, e.g., --xtn=TSurfStd_ct,... */
 	  
 	/* Apply weights */
 	if(!has_mss_val){
@@ -3636,7 +3636,7 @@ nco_lat_wgt_gss /* [fnc] Compute and return sine of Gaussian latitudes and their
   lat_sin_p1=(double *)nco_malloc((lat_nbr+1)*sizeof(double)); // Sine of Gaussian latitudes double precision
   wgt_Gss_p1=(double *)nco_malloc((lat_nbr+1)*sizeof(double)); // Gaussian weights double precision
     
-  /* Use Newton iteration to find abscissas */
+  /* Use Newton iteration to find abscissae */
   c_cff=0.25*(1.0-4.0/(pi*pi));
   lat_nbr_dbl=lat_nbr;
   lat_nbr_rcp2=lat_nbr/2; // NB: Integer arithmetic
@@ -3694,7 +3694,7 @@ nco_lat_wgt_gss /* [fnc] Compute and return sine of Gaussian latitudes and their
   //memcpy(lat_sin,lat_sin_p1,lat_nbr*sizeof(double));
   //memcpy(wgt_Gss,wgt_Gss_p1,lat_nbr*sizeof(double));
   
-  /* Reverse and shift arrays because original CCM code algorithm computed latitudes from north-to-south
+  /* Reverse and shift arrays because original CCM code algorithm computes latitudes from north-to-south
      Shift by one to remove Fortran offset in p1 arrays */
   for(lat_idx=0;lat_idx<lat_nbr;lat_idx++){
     lat_sin[lat_idx]=lat_sin_p1[lat_nbr-lat_idx];
@@ -3729,9 +3729,9 @@ nco_sph_plg_area /* [fnc] Compute area of spherical polygon */
      semi-perimeter = half-perimeter of triangle = 0.5*(a+b+c)
      Spherical Excess (SE) difference between the sum of the angles of a spherical triangle area and a planar triangle area with same interior angles (which has sum equal to pi)
      SE is also the solid angle subtended by the spherical triangle and that's, well, astonishing and pretty cool
-     Wikipedia shows a better SE formula for triangles which are ill-conditioned for L'Huillier's formula because a = b ~ 0.5c
+     Wikipedia shows a better SE formula for triangles which are ill-conditioned for L'Huilier's formula because a = b ~ 0.5c
      https://en.wikipedia.org/wiki/Spherical_trigonometry#Area_and_spherical_excess 
-     See also interesting discussion of L'Huillier by Charles Karney who suggests his own alternative:
+     See also interesting discussion of L'Huilier by Charles Karney who suggests his own alternative:
      http://osgeo-org.1560.x6.nabble.com/Area-of-a-spherical-polygon-td3841625.html
      The discussion mentions Mil94
      Robert D. Miller, Computing the area of a spherical polygon, Graphic Gems IV, chapter II.4, pages 132-137.
@@ -3758,7 +3758,7 @@ nco_sph_plg_area /* [fnc] Compute area of spherical polygon */
      1. Girard method: Loses precision due to mismatch between pi and small spherical excesses
         A. Find interior angles/arc-lengths (a,b,c,d...) using spherical law of cosines along each edge
         B. Apply generalized Girard formula SE_n = Sum(A_n) - (N-2) - pi
-     2. L'Huillier method, N-2 triangle version by Zender: 
+     2. L'Huilier method, N-2 triangle version by Zender: 
         Convert polygon into triangles by cycling spoke through all sides from common apex
         This method requires computation of N-2 (not N) triangles, though fewer sides due to optimization
 	It works on all convex polygons (interior angles less than 180) but not, in general, concave polygons
@@ -3768,16 +3768,16 @@ nco_sph_plg_area /* [fnc] Compute area of spherical polygon */
 	   ii. Third vertice of preceding triangle becomes second vertice of next triangle
 	   iii. Next non-identical point becomes last vertice of next triangle
 	   iv. Side C of previous triangle is side A of next triangle
-	B. For each triangle, compute area with L'Huillier formula unless A = B ~ 0.5*C
-     3. L'Huillier method, N triangle version by Taylor: 
+	B. For each triangle, compute area with L'Huilier formula unless A = B ~ 0.5*C
+     3. L'Huilier method, N triangle version by Taylor: 
         Compute polygon centroid and treat this as hub from which spokes are drawn to all vertices
         This method requires computation of N triangles, though fewer sides due to optimization
 	Moreover, it works on all convex polygons and on slightly concave polygons
 	Centroid/hub has clear view of interior of most simple concave polygons
-     4. L'Huillier method with exact RLL grids by Zender and Agress 20160918
+     4. L'Huilier method with exact RLL grids by Zender and Agress 20160918
         A. Decompose polygon into triangles via and method (e.g., method 2 or 3 above)
 	B. Determine whether triangle is spherical or contains RLL (constant latitude)
-	C. Spherical triangles use L'Huillier, RLL triangles use series expansion */
+	C. Spherical triangles use L'Huilier, RLL triangles use series expansion */
   const char fnc_nm[]="nco_sph_plg_area()";
   const double dgr2rdn=M_PI/180.0;
   short int bnd_idx;
@@ -3921,7 +3921,7 @@ nco_sph_plg_area /* [fnc] Compute area of spherical polygon */
       } /* !ill */
       /* Semi-perimeter */
       prm_smi=0.5*(ngl_a+ngl_b+ngl_c);
-      /* L'Huillier's formula */
+      /* L'Huilier's formula */
       xcs_sph_qtr_tan=sqrt(tan(0.5*prm_smi)*tan(0.5*(prm_smi-ngl_a))*tan(0.5*(prm_smi-ngl_b))*tan(0.5*(prm_smi-ngl_c)));
       xcs_sph=4.0*atan(xcs_sph_qtr_tan);
       area[col_idx]+=xcs_sph;
@@ -6187,8 +6187,13 @@ nco_grd_nfr /* [fnc] Infer SCRIP-format grid file from input data file */
 
   msk_nm_in=rgr->msk_var;
   if(msk_nm_in){
-    /* User-supplied name overrides database */
-    rcd=nco_inq_varid(in_id,msk_nm_in,&msk_id);
+    if(!strcasecmp(msk_nm_in,"none")){
+      /* 20170814: Some variables named "*mask*" are, e.g., quality control masks not regridding masks per se */
+      msk_nm_in=(char *)nco_free(msk_nm_in);
+    }else{
+      /* User-supplied name overrides database */
+      rcd=nco_inq_varid(in_id,msk_nm_in,&msk_id);
+    } /* !msk_nm_in */
   }else{
     /* Otherwise search database */
     if((rcd=nco_inq_varid_flg(in_id,"mask",&msk_id)) == NC_NOERR) msk_nm_in=strdup("mask");
@@ -6201,7 +6206,7 @@ nco_grd_nfr /* [fnc] Infer SCRIP-format grid file from input data file */
   /* Mask field requires special handling for non-conformant models */
   if(msk_id != NC_MIN_INT){
     /* 20151201: All models tested define mask as NC_INT except CICE which uses NC_FLOAT
-       20160111: No observations tested define mask except AMSR which uses NC_SHORT to store bitmasks. Bitmask is 1 for missing data, and up to 128 for various quality levels of valid data. Hence, almost better to ignore AMSR mask variable. */
+       20160111: Few observations tested define mask. Exceptions include AMSR and GHRSST. AMSR uses NC_SHORT to store bitmasks. Bitmask is 1 for missing data, and up to 128 for various quality levels of valid data. Hence, almost better to ignore AMSR mask variable. GHRSST uses NC_BYTE for its 3D "mask" bit-mask of surface-type values 1,2,4,8,16. */
     rcd=nco_inq_varndims(in_id,msk_id,&msk_rnk_nbr);
     if(msk_rnk_nbr != grd_rnk_nbr && nco_dbg_lvl_get() >= nco_dbg_std) (void)fprintf(stdout,"%s: INFO %s reports input mask variable \"%s\" is rank %d while grid is rank %ld so will use first timestep/layer to determine output mask\n",nco_prg_nm_get(),fnc_nm,msk_nm_in,msk_rnk_nbr,grd_rnk_nbr);
     rcd=nco_inq_vartype(in_id,msk_id,&msk_typ);
@@ -6960,7 +6965,7 @@ nco_grd_nfr /* [fnc] Infer SCRIP-format grid file from input data file */
        20150526: T42 grid from SCRIP and related maps are only accurate to ~eight digits
        20150611: map_ne120np4_to_fv801x1600_bilin.150418.nc has yc_b[1600]=-89.775000006 not expected exact value lat_ctr[1]=-89.775000000000006
        20170521: T62 grid from NCEP-NCAR Reanalysis 1 worse than single precision, has yc_[192]=-86.6531 not expected exact value lat_ctr[1]=-86.6532 */
-    if(lat_ctr[0] > lat_ctr[lat_nbr-1L]) (void)fprintf(stderr,"%s: WARNING %s reports lat_ctr[0] = %g > %g = lat_ctr[%ld]. Grid inferral currently assumes 2D global grids run from south-to-north, not north-to-south. Global N-to-S grids may not be correctly recognized. Please contact us if full support for inferring N-to-S grids is important to you.\nHINT: If present command fails, re-try inferring grid after reversing input dataset's latitude coordinate (with, e.g., ncpdq -a time,-lat,lon in.nc out.nc)\n",nco_prg_nm_get(),fnc_nm,lat_ctr[0],lat_ctr[lat_nbr-1L],lat_nbr-1L);
+    if(lat_ctr[0] > lat_ctr[lat_nbr-1L]) (void)fprintf(stderr,"%s: WARNING %s reports lat_ctr[0] = %g > %g = lat_ctr[%ld]. Grid inferral currently assumes 2D grids run from south-to-north, not north-to-south. N-to-S grids may not be correctly recognized. Please contact us if full support for inferring N-to-S grids is important to you.\nHINT: If present command fails, re-try inferring grid after reversing input dataset's latitude coordinate (with, e.g., ncpdq -a time,-lat,lon in.nc out.nc)\n",nco_prg_nm_get(),fnc_nm,lat_ctr[0],lat_ctr[lat_nbr-1L],lat_nbr-1L);
     if((float)lat_ctr[1] == (float)lat_ctr_tst_eqa) lat_typ=nco_grd_lat_eqa;
     if((float)lat_ctr[1] == (float)lat_ctr_tst_fv) lat_typ=nco_grd_lat_fv;
     double *lat_sin=NULL_CEWI; // [frc] Sine of Gaussian latitudes double precision
@@ -7325,9 +7330,14 @@ nco_grd_nfr /* [fnc] Infer SCRIP-format grid file from input data file */
        Applications: 
        ALM/CLM mask (landmask) is NC_FLOAT and defines but does not use NC_FLOAT missing value
        CICE mask (tmask/umask) is NC_FLOAT and defines and uses NC_FLOAT missing value
-       AMSR mask is NC_SHORT and has no missing value */
-  switch(msk_typ){
-    case NC_FLOAT:
+       AMSR mask is NC_SHORT and has no missing value
+       GHRSST mask is NC_BYTE and is a multi-valued surface-type flag with missing value == -1b */
+    if(msk_typ != NC_INT){
+      if(nco_dbg_lvl_get() == nco_dbg_std) (void)fprintf(stderr,"%s: INFO %s mask variable \"%s\" has odd type = %s. Re-run with higher debugging level for more information.\n",nco_prg_nm_get(),fnc_nm,msk_nm,nco_typ_sng(msk_typ));
+      if(nco_dbg_lvl_get() > nco_dbg_std) (void)fprintf(stderr,"%s: INFO %s mask variable \"%s\" has odd type = %s. Regridding weight generators require a mask variable of type NC_INT to specify points to include/exclude as sources/destinations. Points where the mask variable is zero will be excluded (ignored) in regridding, all other points will be included. When inferring gridfiles, NCO assumes the first variable with a \"mask\"-like name (\"mask\", \"Mask\", \"grid_imask\", \"landmask\", or \"tmask\"), or the variable designated by the \"--msk_[src/dst]=msk_nm\" option, is this mask. However the variable \"%s\" in this file is not type NC_INT and so may not be intended as a regridding mask, hence this pleasant informational warning. To prevent NCO from interpreting \"%s\" as a regridding mask, specify \"--msk_src=none\" and/or \"--msk_dst=none\", as appropriate. To utilize some other variable as the mask variable, specify \"--msk_src=msk_nm\" and/or \"--msk_dst=msk_nm\", as appropriate. Mask treatment is subtle, and NCO tries to \"do the right thing\". Whether it does is often easiest to discern by visual inspection of the regridded results.\n",nco_prg_nm_get(),fnc_nm,msk_nm,nco_typ_sng(msk_typ),msk_nm,msk_nm);
+    } /* msk_typ */
+    switch(msk_typ){
+      case NC_FLOAT:
       if(has_mss_val_msk){
 	const float mss_val_flt=mss_val_msk_dbl;
 	for(idx=0;idx<grd_sz_nbr;idx++)
@@ -7370,8 +7380,19 @@ nco_grd_nfr /* [fnc] Infer SCRIP-format grid file from input data file */
 	//	for(idx=0;idx<grd_sz_nbr;idx++) if(msk[idx] == 1) msk[idx]=0;
       } /* !mss_val */
       break;
+    case NC_BYTE:
+      if(has_mss_val_msk){
+	const nco_byte mss_val_byt=mss_val_msk_dbl;
+	for(idx=0;idx<grd_sz_nbr;idx++)
+	  if(msk_unn.bp[idx] == mss_val_byt || msk_unn.bp[idx] == ((nco_byte)0)) msk[idx]=0;
+      }else{
+	for(idx=0;idx<grd_sz_nbr;idx++)
+	  if(msk_unn.bp[idx] == ((nco_byte)0)) msk[idx]=0;
+	/* 20170811: GHRSST kludge? */
+      } /* !mss_val */
+      break;
     default:
-      (void)fprintf(stderr,"%s: ERROR %s unknown mask type\n",nco_prg_nm_get(),fnc_nm);
+      (void)fprintf(stderr,"%s: ERROR %s mask variable \"%s\" has unsupported type = %s\n",nco_prg_nm_get(),fnc_nm,msk_nm,nco_typ_sng(msk_typ));
       nco_dfl_case_generic_err();
       return NCO_ERR;
       break;

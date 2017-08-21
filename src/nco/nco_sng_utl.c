@@ -263,6 +263,8 @@ nm2sng_cdl /* [fnc] Turn variable/dimension/attribute name into legal CDL */
   while(*chr_in_ptr){
     if(isascii(*chr_in_ptr)){
       if(iscntrl(*chr_in_ptr)){	/* Render control chars as two hex digits, \%xx */
+	/* 20170810: GCC7.x produces -Wformat-truncation warning here, that 4 B destination is too small
+	   False-positive warning? How to eliminate? */
 	snprintf(chr_out_ptr,4,"\\%%%.2x",*chr_in_ptr);
 	chr_out_ptr+=4;
       }else{
@@ -342,12 +344,9 @@ nm2sng_jsn /* [fnc] Turn variable/dimension/attribute name into legal CDL */
   chr_out_ptr[0]='\0';
 
   /* Search and replace special characters */
-  while(*chr_in_ptr)
-  {
-    if(iscntrl(*chr_in_ptr))
-    { 
-      switch(*chr_in_ptr)
-      {    
+  while(*chr_in_ptr){
+    if(iscntrl(*chr_in_ptr)){ 
+      switch(*chr_in_ptr){    
          case '\b':
          case '\f':
          case '\n':
@@ -355,24 +354,22 @@ nm2sng_jsn /* [fnc] Turn variable/dimension/attribute name into legal CDL */
          case '\t': 
          case '\\': 
          case '\"': 
-	 /* according to json spec control char  '/' should be escaped bu this is mangles filepaths so leave it out for now */
+	 /* According to json spec control char  '/' should be escaped but this is mangles filepaths so leave it out for now */
          /* case '\/': */
-         case '\0':	
+         case '\0':
            *chr_out_ptr++='\\';
 	   *chr_out_ptr++=*chr_in_ptr;
 	   break;
          default: 
             /* ignore other control chars */
       	  break;
-      }
-    }
-    else
-    {
+      } /* !switch */
+    }else{ /* !iscntrl() */
       *chr_out_ptr++=*chr_in_ptr;
-    }
+    } /* !iscntrl() */
     /* Advance character */
     chr_in_ptr++;
-  }      
+  } /* !while() */
   /* NUL-terminate */
   *chr_out_ptr='\0';
 
@@ -381,8 +378,6 @@ nm2sng_jsn /* [fnc] Turn variable/dimension/attribute name into legal CDL */
 
   return nm_jsn;
 } /* end nm2sng_jsn() */
-
-
 
 char * /* O [sng] CDL-compatible name */
 nm2sng_fl /* [fnc] Turn file name into legal string for shell commands */
@@ -423,6 +418,8 @@ nm2sng_fl /* [fnc] Turn file name into legal string for shell commands */
   while(*chr_in_ptr){
     if(isascii(*chr_in_ptr)){
       if(iscntrl(*chr_in_ptr)){	/* Render control chars as two hex digits, \%xx */
+	/* 20170810: GCC7.x produces -Wformat-truncation warning here, that 4 B destination is too small 
+	   False-positive warning? How to eliminate? */
 	snprintf(chr_out_ptr,4,"\\%%%.2x",*chr_in_ptr);
 	chr_out_ptr+=4;
       }else{
