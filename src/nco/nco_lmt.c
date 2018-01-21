@@ -2,7 +2,7 @@
 
 /* Purpose: Hyperslab limits */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -526,7 +526,7 @@ nco_prn_lmt                    /* [fnc] Print limit information */
 
   (void)fprintf(stderr,"Dimension hyperslabber nco_lmt_evl() diagnostics:\n");
   (void)fprintf(stderr,"Dimension name = %s\n",lmt.nm);
-  (void)fprintf(stderr,"Limit type is %s\n",(min_lmt_typ == lmt_crd_val) ? "coordinate value" : (FORTRAN_IDX_CNV) ? "one-based dimension index" : "zero-based dimension index");
+  (void)fprintf(stderr,"Limit type is %s\n",((min_lmt_typ == lmt_crd_val) || (min_lmt_typ == lmt_udu_sng)) ? "coordinate value" : (FORTRAN_IDX_CNV) ? "one-based dimension index" : "zero-based dimension index");
   (void)fprintf(stderr,"Limit %s user-specified\n",(lmt.is_usr_spc_lmt) ? "is" : "is not");
   (void)fprintf(stderr,"Limit %s record dimension\n",(lmt.is_rec_dmn) ? "is" : "is not");
   (void)fprintf(stderr,"Current file %s specified hyperslab, data %s be read\n",(flg_no_data_ok) ? "is superfluous to" : "is required by",(flg_no_data_ok) ? "will not" : "will");
@@ -569,6 +569,8 @@ nco_lmt_evl /* [fnc] Parse user-specified limits into hyperslab specifications *
   /* Purpose: Take parsed list of dimension names, minima, and
      maxima strings and find appropriate indices into dimensions 
      for formulation of dimension start and count vectors, or fail trying. */
+
+  const char fnc_nm[]="nco_lmt_evl()";
 
   char *fl_udu_sng=NULL_CEWI;   /* Store units attribute of coordinate dimension */
   char *msg_sng=NULL_CEWI; /* [sng] Error message */
@@ -727,8 +729,8 @@ nco_lmt_evl /* [fnc] Parse user-specified limits into hyperslab specifications *
   if(min_lmt_typ != max_lmt_typ){
     (void)fprintf(stdout,"%s: ERROR -d %s,%s,%s\n",nco_prg_nm_get(),lmt.nm,lmt.min_sng,lmt.max_sng);
     (void)fprintf(stdout,"Limits on dimension \"%s\" must be of same numeric type:\n",lmt.nm);
-    (void)fprintf(stdout,"\"%s\" was interpreted as a %s.\n",lmt.min_sng,(min_lmt_typ == lmt_crd_val) ? "coordinate value" : (FORTRAN_IDX_CNV) ? "one-based dimension index" : "zero-based dimension index");
-    (void)fprintf(stdout,"\"%s\" was interpreted as a %s.\n",lmt.max_sng,(max_lmt_typ == lmt_crd_val) ? "coordinate value" : (FORTRAN_IDX_CNV) ? "one-based dimension index" : "zero-based dimension index");
+    (void)fprintf(stdout,"\"%s\" was interpreted as a %s.\n",lmt.min_sng,((min_lmt_typ == lmt_crd_val) || (min_lmt_typ == lmt_udu_sng)) ? "coordinate value" : (FORTRAN_IDX_CNV) ? "one-based dimension index" : "zero-based dimension index");
+    (void)fprintf(stdout,"\"%s\" was interpreted as a %s.\n",lmt.max_sng,((max_lmt_typ == lmt_crd_val) || (max_lmt_typ == lmt_udu_sng)) ? "coordinate value" : (FORTRAN_IDX_CNV) ? "one-based dimension index" : "zero-based dimension index");
     (void)fprintf(stdout,"(Limit arguments containing a decimal point (or in exponential format) are interpreted as coordinate values; arguments without a decimal point are interpreted as zero-based or one-based (depending on -F switch) dimensional indices.)\n");
     nco_exit(EXIT_FAILURE);
   } /* end if */
@@ -745,9 +747,12 @@ nco_lmt_evl /* [fnc] Parse user-specified limits into hyperslab specifications *
     cln_sng=nco_lmt_get_udu_att(grp_id,dim.cid,"calendar"); /* Calendar attribute */
 
     if(rec_dmn_and_mfo && fl_udu_sng && lmt.rbs_sng){ 
+
 #ifdef ENABLE_UDUNITS
-      /* Re-base and reset origin to 0.0 if re-basing fails */
+      /* Re-base and reset origin to 0.0 if re-basing fails 
       if(nco_cln_clc_org(fl_udu_sng,lmt.rbs_sng,lmt.lmt_cln,&lmt.origin) != NCO_NOERR) lmt.origin=0.0;
+      */
+
 #endif /* !ENABLE_UDUNITS */
     } /* endif */
 
@@ -824,16 +829,16 @@ nco_lmt_evl /* [fnc] Parse user-specified limits into hyperslab specifications *
 
       if(!fl_udu_sng){ 
         (void)fprintf(stdout,"%s: ERROR attempting to read units attribute from variable \"%s\" \n",nco_prg_nm_get(),dim.nm);
-        nco_exit(EXIT_FAILURE);
+          nco_exit(EXIT_FAILURE);
       } /* end if */
 
       if(lmt.min_sng)
-	if(nco_cln_clc_org(lmt.min_sng,fl_udu_sng,lmt.lmt_cln,&lmt.min_val) != NCO_NOERR) 
-	  nco_exit(EXIT_FAILURE);
+ 	if(nco_cln_clc_dbl_org(lmt.min_sng,fl_udu_sng,lmt.lmt_cln,&lmt.min_val) != NCO_NOERR)
+           nco_exit(EXIT_FAILURE);
 
       if(lmt.max_sng)
-	if(nco_cln_clc_org(lmt.max_sng,fl_udu_sng,lmt.lmt_cln,&lmt.max_val) != NCO_NOERR) 
-	  nco_exit(EXIT_FAILURE);
+ 	if(nco_cln_clc_dbl_org(lmt.max_sng,fl_udu_sng,lmt.lmt_cln,&lmt.max_val) != NCO_NOERR)
+           nco_exit(EXIT_FAILURE);
 
     }else{ /* end UDUnits conversion */
       /* Convert user-specified limits into double precision numeric values, or supply defaults */
@@ -847,11 +852,20 @@ nco_lmt_evl /* [fnc] Parse user-specified limits into hyperslab specifications *
       } /* !lmt.max_sng */
 
       /* Re-base coordinates as necessary in multi-file operatators (MFOs)
-      lmt.origin was calculated earlier in routine */
-      if(rec_dmn_and_mfo){ 
-        if(lmt.min_sng) lmt.min_val-=lmt.origin;
-        if(lmt.max_sng) lmt.max_val-=lmt.origin;   
-      }  /* endif MFO */
+	 lmt.origin was calculated earlier in routine */
+      if(rec_dmn_and_mfo && fl_udu_sng && lmt.rbs_sng && strcmp(fl_udu_sng,lmt.rbs_sng)){ 
+
+        if(lmt.min_sng) 
+	  if(nco_cln_clc_dbl_var_dff(lmt.rbs_sng,fl_udu_sng,lmt.lmt_cln,&lmt.min_val,(var_sct *)NULL) != NCO_NOERR)
+	    nco_exit(EXIT_FAILURE);
+
+        if(lmt.max_sng) 
+	  if(nco_cln_clc_dbl_var_dff(lmt.rbs_sng,fl_udu_sng,lmt.lmt_cln,&lmt.max_val,(var_sct *)NULL) != NCO_NOERR)
+	    nco_exit(EXIT_FAILURE);   
+
+        if(nco_dbg_lvl_get() > nco_dbg_std) fprintf(stdout,"%s: INFO nco_lmt rebasing min_val=%f max_val=%f\n",nco_prg_nm_get(),lmt.min_val,lmt.max_val);  
+
+      } /* endif MFO */
     } /* end UDUnits conversion */
 
     /* Warn when min_val > max_val (i.e., wrapped coordinate) */
@@ -1064,9 +1078,20 @@ nco_lmt_evl /* [fnc] Parse user-specified limits into hyperslab specifications *
       if(lmt.max_idx > 0L) lmt.max_idx--;
     } /* end if */
 
-    /* 20120709 Negative integer as min or max element of hyperslab specification indicates offset from end */
-    if(lmt.min_idx < 0L) lmt.min_idx+=dmn_sz-1L;
-    if(lmt.max_idx < 0L) lmt.max_idx+=dmn_sz-1L;
+    /* Negative integer as min or max element of hyperslab specification indicates offset from end
+       pharoahs--20120708 Negative integers produce domain error
+       20120709--20141001 Negative integer is elements away from last element, e.g., -1 is penultimate element
+       20141002--forever  -1 is last element, e.g., -2 is penultimate element, -N is first element (Python convention) */
+    nco_bool flg_old_usg=False;
+    if(lmt.min_idx == 0L && lmt.min_sng)
+      if(lmt.min_sng[0] == '-') 
+	flg_old_usg=True;
+    if(lmt.max_idx == 0L && lmt.max_sng)
+      if(lmt.max_sng[0] == '-')
+	flg_old_usg=True;
+    if(flg_old_usg) (void)fprintf(stdout,"%s: WARNING Only NCO 4.4.6 treats negative zero as the last element of a dimension. Beginning 20141002, NCO uses the Python convention where negative one is the last element of a dimension, and negative zero is the same as zero and so selects the first element of a dimension. Negative zero also causes this warning to be printed in case the 4.4.6 behavior was intended.\n",nco_prg_nm_get());
+    if(lmt.min_idx < 0L) lmt.min_idx+=dmn_sz;
+    if(lmt.max_idx < 0L) lmt.max_idx+=dmn_sz;
 
     /* Exit if requested indices are always invalid for all operators... */
     if(lmt.min_idx < 0L){
@@ -1238,13 +1263,16 @@ nco_lmt_evl /* [fnc] Parse user-specified limits into hyperslab specifications *
      Out-of-domain errors will soon exit with error, while WRP conditions will proceed */
   if(flg_no_data_err) lmt.cnt=0L;
 
-  /* Exit when valid bracketed range contains no coordinates and that is not legal,
-     i.e., this is not a superfluous file in an MFO */
+  /* Exit when valid bracketed range contains no coordinates and this is not a superfluous file in an MFO */
   if(lmt.cnt == 0){
-    if(lmt.lmt_typ == lmt_crd_val) (void)fprintf(stdout,"%s: ERROR Domain %g <= %s <= %g brackets no coordinate values.\n",nco_prg_nm_get(),lmt.min_val,lmt.nm,lmt.max_val); 
-    if(lmt.lmt_typ == lmt_dmn_idx) (void)fprintf(stdout,"%s: ERROR Empty domain for %s\n",nco_prg_nm_get(),lmt.nm); 
+    if(lmt.lmt_typ == lmt_crd_val || lmt.lmt_typ == lmt_udu_sng){
+       (void)fprintf(stdout,"%s: ERROR %s reports domain %15.9e <= %s <= %15.9e brackets no coordinate values\n",nco_prg_nm_get(),fnc_nm,lmt.min_val,lmt.nm,lmt.max_val);
+       if(lmt.min_sng) (void)fprintf(stdout,"%s: INFO user-specified coordinate minimum: \"%s\"\n",nco_prg_nm_get(),lmt.min_sng);
+       if(lmt.max_sng) (void)fprintf(stdout,"%s: INFO user-specified coordinate maximum: \"%s\"\n",nco_prg_nm_get(),lmt.max_sng);
+    } /* !lmt_typ */
+    if(lmt.lmt_typ == lmt_dmn_idx) (void)fprintf(stdout,"%s: ERROR Indices bracket empty domain for %s\n",nco_prg_nm_get(),lmt.nm); 
     nco_exit(EXIT_FAILURE);
-  } /* end if */
+  } /* !lmt.cnt */
 
   /* Coordinate-valued limits that bracket no values in current file jump here with goto
      Index-valued limits with no values in current file flow here naturally */
@@ -1482,8 +1510,8 @@ nco_lmt_evl_dmn_crd            /* [fnc] Parse user-specified limits into hypersl
   if(min_lmt_typ != max_lmt_typ){
     (void)fprintf(stdout,"%s: ERROR -d %s,%s,%s\n",nco_prg_nm_get(),lmt.nm,lmt.min_sng,lmt.max_sng);
     (void)fprintf(stdout,"Limits on dimension \"%s\" must be of same numeric type:\n",lmt.nm);
-    (void)fprintf(stdout,"\"%s\" was interpreted as a %s.\n",lmt.min_sng,(min_lmt_typ == lmt_crd_val) ? "coordinate value" : (FORTRAN_IDX_CNV) ? "one-based dimension index" : "zero-based dimension index");
-    (void)fprintf(stdout,"\"%s\" was interpreted as a %s.\n",lmt.max_sng,(max_lmt_typ == lmt_crd_val) ? "coordinate value" : (FORTRAN_IDX_CNV) ? "one-based dimension index" : "zero-based dimension index");
+    (void)fprintf(stdout,"\"%s\" was interpreted as a %s.\n",lmt.min_sng,((min_lmt_typ == lmt_crd_val) || (min_lmt_typ == lmt_udu_sng)) ? "coordinate value" : (FORTRAN_IDX_CNV) ? "one-based dimension index" : "zero-based dimension index");
+    (void)fprintf(stdout,"\"%s\" was interpreted as a %s.\n",lmt.max_sng,((max_lmt_typ == lmt_crd_val) || (max_lmt_typ == lmt_udu_sng)) ? "coordinate value" : (FORTRAN_IDX_CNV) ? "one-based dimension index" : "zero-based dimension index");
     (void)fprintf(stdout,"(Limit arguments containing a decimal point (or in exponential format) are interpreted as coordinate values; arguments without a decimal point are interpreted as zero-based or one-based (depending on -F switch) dimensional indices.)\n");
     nco_exit(EXIT_FAILURE);
   } /* end if */
@@ -1509,7 +1537,7 @@ nco_lmt_evl_dmn_crd            /* [fnc] Parse user-specified limits into hypersl
     if(rec_dmn_and_mfo && fl_udu_sng && lmt.rbs_sng){ 
 #ifdef ENABLE_UDUNITS
       /* Re-base and reset origin to 0.0 if re-basing fails */
-      if(nco_cln_clc_org(fl_udu_sng,lmt.rbs_sng,lmt.lmt_cln,&lmt.origin) != NCO_NOERR) lmt.origin=0.0;
+      // if(nco_cln_clc_org(fl_udu_sng,lmt.rbs_sng,lmt.lmt_cln,&lmt.origin) != NCO_NOERR) lmt.origin=0.0;
 #endif /* !ENABLE_UDUNITS */
     } /* endif */
 
@@ -1588,11 +1616,11 @@ nco_lmt_evl_dmn_crd            /* [fnc] Parse user-specified limits into hypersl
       } /* end if */
 
       if(lmt.min_sng)
-	if(nco_cln_clc_org(lmt.min_sng,fl_udu_sng,lmt.lmt_cln,&lmt.min_val) != NCO_NOERR) 
+ 	if(nco_cln_clc_dbl_org(lmt.min_sng,fl_udu_sng,lmt.lmt_cln,&lmt.min_val) != NCO_NOERR)
 	  nco_exit(EXIT_FAILURE);
 
       if(lmt.max_sng)
-	if(nco_cln_clc_org(lmt.max_sng,fl_udu_sng,lmt.lmt_cln,&lmt.max_val) != NCO_NOERR) 
+ 	if(nco_cln_clc_dbl_org(lmt.max_sng,fl_udu_sng,lmt.lmt_cln,&lmt.max_val) != NCO_NOERR)
 	  nco_exit(EXIT_FAILURE);
 
     }else{ /* end UDUnits conversion */
@@ -1608,9 +1636,24 @@ nco_lmt_evl_dmn_crd            /* [fnc] Parse user-specified limits into hypersl
 
       /* Re-base coordinates as necessary in multi-file operatators (MFOs)
 	 lmt.origin was calculated earlier in routine */
+      /* 
       if(rec_dmn_and_mfo){ 
         if(lmt.min_sng) lmt.min_val-=lmt.origin;
         if(lmt.max_sng) lmt.max_val-=lmt.origin;   
+      } 
+      */
+      if(rec_dmn_and_mfo && fl_udu_sng && lmt.rbs_sng && strcmp(fl_udu_sng, lmt.rbs_sng) ){ 
+
+        if(lmt.min_sng) 
+	  if(nco_cln_clc_dbl_var_dff(lmt.rbs_sng,fl_udu_sng,lmt.lmt_cln,&lmt.min_val,(var_sct*)NULL) != NCO_NOERR)
+             nco_exit(EXIT_FAILURE);
+
+        if(lmt.max_sng) 
+	  if(nco_cln_clc_dbl_var_dff(lmt.rbs_sng,fl_udu_sng,lmt.lmt_cln,&lmt.max_val,(var_sct*)NULL) != NCO_NOERR)
+             nco_exit(EXIT_FAILURE);   
+
+        if(nco_dbg_lvl_get() > nco_dbg_std) fprintf(stdout,"%s: INFO nco_lmt rebasing min_val=%f max_val=%f\n",nco_prg_nm_get(),lmt.min_val,lmt.max_val);
+
       }  /* endif MFO */
     } /* end UDUnits conversion */
 
@@ -1826,7 +1869,7 @@ nco_lmt_evl_dmn_crd            /* [fnc] Parse user-specified limits into hypersl
 
     /* Negative integer as min or max element of hyperslab specification indicates offset from end
        pharoahs--20120708 Negative integers produce domain error
-       20120709--20151001 Negative integer is elements away from last element, e.g., -1 is penultimate element
+       20120709--20141001 Negative integer is elements away from last element, e.g., -1 is penultimate element
        20141002--forever  -1 is last element, e.g., -2 is penultimate element, -N is first element (Python convention) */
     nco_bool flg_old_usg=False;
     if(lmt.min_idx == 0L && lmt.min_sng)
@@ -1997,13 +2040,16 @@ nco_lmt_evl_dmn_crd            /* [fnc] Parse user-specified limits into hypersl
      Out-of-domain errors will soon exit with error, while WRP conditions will proceed */
   if(flg_no_data_err) lmt.cnt=0L;
 
-  /* Exit when valid bracketed range contains no coordinates and that is not legal,
-     i.e., this is not a superfluous file in an MFO */
+  /* Exit when valid bracketed range contains no coordinates and this is not a superfluous file in an MFO */
   if(lmt.cnt == 0){
-    if(lmt.lmt_typ == lmt_crd_val) (void)fprintf(stdout,"%s: ERROR Domain %g <= %s <= %g brackets no coordinate values.\n",nco_prg_nm_get(),lmt.min_val,lmt.nm,lmt.max_val); 
-    if(lmt.lmt_typ == lmt_dmn_idx) (void)fprintf(stdout,"%s: ERROR Empty domain for %s\n",nco_prg_nm_get(),lmt.nm); 
+    if(lmt.lmt_typ == lmt_crd_val || lmt.lmt_typ == lmt_udu_sng){
+       (void)fprintf(stdout,"%s: ERROR %s reports domain %15.9e <= %s <= %15.9e brackets no coordinate values\n",nco_prg_nm_get(),fnc_nm,lmt.min_val,lmt.nm,lmt.max_val);
+       if(lmt.min_sng) (void)fprintf(stdout,"%s: INFO user-specified coordinate minimum: \"%s\"\n",nco_prg_nm_get(),lmt.min_sng);
+       if(lmt.max_sng) (void)fprintf(stdout,"%s: INFO user-specified coordinate maximum: \"%s\"\n",nco_prg_nm_get(),lmt.max_sng);
+    } /* !lmt_typ */
+    if(lmt.lmt_typ == lmt_dmn_idx) (void)fprintf(stdout,"%s: ERROR Indices bracket empty domain for %s\n",nco_prg_nm_get(),lmt.nm); 
     nco_exit(EXIT_FAILURE);
-  } /* end if */
+  } /* !lmt.cnt */
 
   /* Coordinate-valued limits that bracket no values in current file jump here with goto
      Index-valued limits with no values in current file flow here naturally */

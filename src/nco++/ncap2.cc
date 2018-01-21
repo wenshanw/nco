@@ -4,7 +4,7 @@
 
 /* Purpose: Compute user-defined derived fields using forward algebraic notation applied to netCDF files */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3.
@@ -35,7 +35,8 @@
    ncap2 -O -v -s 'defdim("dmn_tmp")=5;foo[$dmn_tmp]={0,2,4,6,8};foo2=one_dmn_rec_var(foo);print(foo);print(foo2);' ~/nco/data/in.nc ~/foo.nc;
    ncap2 -O -v -s 'foo=0*three_dmn_var_dbl;where(three_dmn_var_dbl>30){foo=three_dmn_var_dbl;}elsewhere{foo=three_dmn_var_dbl@_FillValue;};foo_avg=foo.avg($time);print(foo_avg);' ~/nco/data/in.nc ~/foo.nc
    ncap2 -O -v -D 1 -s 'one_dmn_rec_var(0)=one_dmn_rec_var(0)+1' ~/nco/data/in.nc ~/foo.nc
-   ncap2 -O -v -D 1 -s 'three_dmn_rec_var(0,,)=three_dmn_rec_var(0,,)+1' ~/nco/data/in.nc ~/foo.nc */
+   ncap2 -O -v -D 1 -s 'three_dmn_rec_var(0,,)=three_dmn_rec_var(0,,)+1' ~/nco/data/in.nc ~/foo.nc
+   ncap2 -O -v -D 1 -s 'time=10.0*gsl_rng_uniform(time)' ~/nco/data/in.nc ~/foo.nc */
 
 #ifdef HAVE_CONFIG_H
 # include "config.h" /* Autotools tokens */
@@ -95,8 +96,8 @@ void ram_vars_add(prs_cls *prs_arg);
 int 
 main(int argc,char **argv)
 {
-  const char fnc_nm[]="main"; 
   FILE *yyin; /* File handle used to check file existence */
+
   int parse_antlr(std::vector<prs_cls> &prs_vtr ,char*,char*);
   
   /* fxm TODO nco652 */
@@ -128,8 +129,10 @@ main(int argc,char **argv)
   const char * const CVS_Id="$Id$"; 
   const char * const CVS_Revision="$Revision$";
   const char * const att_nm_tmp="eulaVlliF_"; /* For netCDF4 name hack */
-  const char * const opt_sht_lst="3467ACcD:FfhL:l:n:Oo:p:Rrs:S:t:vx-:"; /* [sng] Single letter command line options */
+  const char * const opt_sht_lst="34567ACcD:FfhL:l:n:Oo:p:Rrs:S:t:vx-:"; /* [sng] Single letter command line options */
   
+  const char fnc_nm[]="main()";
+
   cnk_sct cnk; /* [sct] Chunking structure */
 
   dmn_sct **dmn_in=NULL_CEWI;  /* [lst] Dimensions in input file */
@@ -161,10 +164,11 @@ main(int argc,char **argv)
   int nbr_var_fix; /* nbr_var_fix gets incremented */
   int nbr_var_fl;/* number of vars in a file */
   int nbr_var_prc; /* nbr_var_prc gets incremented */
-  int xtr_nbr=0; /* xtr_nbr will not otherwise be set for -c with no -v */
+  int xtr_nbr=0; /* [nbr] xtr_nbr will not otherwise be set for -c with no -v */
   int opt;
   int out_id;  
   int rcd=NC_NOERR; /* [rcd] Return code */
+  int antlr_ret=EXIT_SUCCESS; /* exit return code from script */
   int var_id;
   int thr_nbr=int_CEWI; /* [nbr] Thread number Option t */
   
@@ -204,13 +208,16 @@ main(int argc,char **argv)
   nco_bool RAM_OPEN=False; /* [flg] Open (netCDF3-only) file(s) in RAM */
   nco_bool RM_RMT_FL_PST_PRC=True; /* Option R */
   nco_bool WRT_TMP_FL=True; /* [flg] Write output to temporary file */
-  nco_bool flg_cln=True; /* [flg] Clean memory prior to exit */
+  nco_bool flg_mmr_cln=True;  /* [flg] Clean memory prior to exit */
+  nco_bool flg_cll_mth=False;  /* [flg] Add/modify cell_methods attributes */
+
   
   nm_id_sct *dmn_lst=NULL_CEWI;
   nm_id_sct *xtr_lst=NULL_CEWI; /* Non-processed variables to copy to OUTPUT */
   nm_id_sct *xtr_lst_a=NULL_CEWI; /* Initialize to ALL variables in OUTPUT file */
   
   size_t bfr_sz_hnt=NC_SIZEHINT_DEFAULT; /* [B] Buffer size hint */
+  size_t cnk_csh_byt=NCO_CNK_CSH_BYT_DFL; /* [B] Chunk cache size */
   size_t cnk_min_byt=NCO_CNK_SZ_MIN_BYT_DFL; /* [B] Minimize size of variable to chunk */
   size_t cnk_sz_byt=0UL; /* [B] Chunk size in bytes */
   size_t cnk_sz_scl=0UL; /* [nbr] Chunk size scalar */
@@ -227,8 +234,11 @@ main(int argc,char **argv)
   
   static struct option opt_lng[]={ /* Structure ordered by short option key if possible */
     /* Long options with no argument, no short option counterpart */
-    {"cln",no_argument,0,0}, /* [flg] Clean memory prior to exit */
     {"clean",no_argument,0,0}, /* [flg] Clean memory prior to exit */
+    {"cll_mth",no_argument,0,0}, /* [flg] Add/modify cell_methods attributes */
+    {"cell_methods",no_argument,0,0}, /* [flg] Add/modify cell_methods attributes */
+    {"no_cll_mth",no_argument,0,0}, /* [flg] Do not add/modify cell_methods attributes */
+    {"no_cell_methods",no_argument,0,0}, /* [flg] Do not add/modify cell_methods attributes */
     {"mmr_cln",no_argument,0,0}, /* [flg] Clean memory prior to exit */
     {"drt",no_argument,0,0}, /* [flg] Allow dirty memory on exit */
     {"dirty",no_argument,0,0}, /* [flg] Allow dirty memory on exit */
@@ -236,6 +246,8 @@ main(int argc,char **argv)
     {"hdf4",no_argument,0,0}, /* [flg] Treat file as HDF4 */
     {"hdf_upk",no_argument,0,0}, /* [flg] HDF unpack convention: unpacked=scale_factor*(packed-add_offset) */
     {"hdf_unpack",no_argument,0,0}, /* [flg] HDF unpack convention: unpacked=scale_factor*(packed-add_offset) */
+    {"help",no_argument,0,0},
+    {"hlp",no_argument,0,0},
     {"lbr",no_argument,0,0},
     {"library",no_argument,0,0},
     {"ram_all",no_argument,0,0}, /* [flg] Open (netCDF3) and create file(s) in RAM */
@@ -252,6 +264,8 @@ main(int argc,char **argv)
     {"buffer_size_hint",required_argument,0,0}, /* [B] Buffer size hint */
     {"cnk_byt",required_argument,0,0}, /* [B] Chunk size in bytes */
     {"chunk_byte",required_argument,0,0}, /* [B] Chunk size in bytes */
+    {"cnk_csh",required_argument,0,0}, /* [B] Chunk cache size in bytes */
+    {"chunk_cache",required_argument,0,0}, /* [B] Chunk cache size in bytes */
     {"cnk_dmn",required_argument,0,0}, /* [nbr] Chunk size */
     {"chunk_dimension",required_argument,0,0}, /* [nbr] Chunk size */
     {"cnk_map",required_argument,0,0}, /* [nbr] Chunking map */
@@ -271,8 +285,12 @@ main(int argc,char **argv)
     /* Long options with short counterparts */
     {"3",no_argument,0,'3'},
     {"4",no_argument,0,'4'},
-    {"64bit",no_argument,0,'4'},
     {"netcdf4",no_argument,0,'4'},
+    {"5",no_argument,0,'5'},
+    {"64bit_data",no_argument,0,'5'},
+    {"cdf5",no_argument,0,'5'},
+    {"pnetcdf",no_argument,0,'5'},
+    {"64bit_offset",no_argument,0,'6'},
     {"7",no_argument,0,'7'},
     {"append",no_argument,0,'A'},
     {"coords",no_argument,0,'c'},
@@ -312,8 +330,6 @@ main(int argc,char **argv)
     {"variable",no_argument,0,'v'},
     {"exclude",no_argument,0,'x'},
     {"xcl",no_argument,0,'x'},
-    {"help",no_argument,0,'?'},
-    {"hlp",no_argument,0,'?'},
     {0,0,0,0}
   }; /* end opt_lng */
   int opt_idx=0; /* Index of current long option into opt_lng array */
@@ -342,6 +358,10 @@ main(int argc,char **argv)
         cnk_sz_byt=strtoul(optarg,&sng_cnv_rcd,NCO_SNG_CNV_BASE10);
         if(*sng_cnv_rcd) nco_sng_cnv_err(optarg,"strtoul",sng_cnv_rcd);
       } /* endif cnk_byt */
+      if(!strcmp(opt_crr,"cnk_csh") || !strcmp(opt_crr,"chunk_cache")){
+        cnk_csh_byt=strtoul(optarg,&sng_cnv_rcd,NCO_SNG_CNV_BASE10);
+        if(*sng_cnv_rcd) nco_sng_cnv_err(optarg,"strtoul",sng_cnv_rcd);
+      } /* endif cnk_csh_byt */
       if(!strcmp(opt_crr,"cnk_min") || !strcmp(opt_crr,"chunk_min")){
         cnk_min_byt=strtoul(optarg,&sng_cnv_rcd,NCO_SNG_CNV_BASE10);
         if(*sng_cnv_rcd) nco_sng_cnv_err(optarg,"strtoul",sng_cnv_rcd);
@@ -365,8 +385,8 @@ main(int argc,char **argv)
 	cnk_plc_sng=(char *)strdup(optarg);
 	cnk_plc=nco_cnk_plc_get(cnk_plc_sng);
       } /* endif cnk */
-      if(!strcmp(opt_crr,"cln") || !strcmp(opt_crr,"mmr_cln") || !strcmp(opt_crr,"clean")) flg_cln=True; /* [flg] Clean memory prior to exit */
-      if(!strcmp(opt_crr,"drt") || !strcmp(opt_crr,"mmr_drt") || !strcmp(opt_crr,"dirty")) flg_cln=False; /* [flg] Clean memory prior to exit */
+      if(!strcmp(opt_crr,"mmr_cln") || !strcmp(opt_crr,"clean")) flg_mmr_cln=True; /* [flg] Clean memory prior to exit */
+      if(!strcmp(opt_crr,"drt") || !strcmp(opt_crr,"mmr_drt") || !strcmp(opt_crr,"dirty")) flg_mmr_cln=False; /* [flg] Clean memory prior to exit */
       if(!strcmp(opt_crr,"fl_fmt") || !strcmp(opt_crr,"file_format")) rcd=nco_create_mode_prs(optarg,&fl_out_fmt);
       if(!strcmp(opt_crr,"gaa") || !strcmp(opt_crr,"glb_att_add")){
         gaa_arg=(char **)nco_realloc(gaa_arg,(gaa_nbr+1)*sizeof(char *));
@@ -378,6 +398,10 @@ main(int argc,char **argv)
         if(*sng_cnv_rcd) nco_sng_cnv_err(optarg,"strtoul",sng_cnv_rcd);
       } /* endif "hdr_pad" */
       if(!strcmp(opt_crr,"hdf_upk") || !strcmp(opt_crr,"hdf_unpack")) nco_upk_cnv=nco_upk_HDF_MOD10; /* [flg] HDF unpack convention: unpacked=scale_factor*(packed-add_offset) */
+      if(!strcmp(opt_crr,"help") || !strcmp(opt_crr,"hlp")){
+	(void)nco_usg_prn();
+	nco_exit(EXIT_SUCCESS);
+      } /* endif "help" */
       if(!strcmp(opt_crr,"lbr") || !strcmp(opt_crr,"library")){
         (void)nco_lbr_vrs_prn();
         nco_exit(EXIT_SUCCESS);
@@ -388,8 +412,15 @@ main(int argc,char **argv)
 	(void)nco_vrs_prn(CVS_Id,CVS_Revision);
 	nco_exit(EXIT_SUCCESS);
       } /* endif "vrs" */
+
       if(!strcmp(opt_crr,"wrt_tmp_fl") || !strcmp(opt_crr,"write_tmp_fl")) WRT_TMP_FL=True;
       if(!strcmp(opt_crr,"no_tmp_fl")) WRT_TMP_FL=False;
+      if(!strcmp(opt_crr,"cll_mth") || !strcmp(opt_crr,"cell_methods")) flg_cll_mth=True; /* [flg] Add/modify cell_methods attributes */
+
+      if(!strcmp(opt_crr,"cll_mth") || !strcmp(opt_crr,"cell_methods")) flg_cll_mth=True; /* [flg] Add/modify cell_methods attributes */
+      if(!strcmp(opt_crr,"no_cll_mth") || !strcmp(opt_crr,"no_cell_methods")) flg_cll_mth=False; /* [flg] Add/modify cell_methods attributes */
+
+
     } /* opt != 0 */
     /* Process short options */
     switch(opt){
@@ -398,11 +429,14 @@ main(int argc,char **argv)
     case '3': /* Request netCDF3 output storage format */
       fl_out_fmt=NC_FORMAT_CLASSIC;
       break;
-    case '4': /* Catch-all to prescribe output storage format */
-      if(!strcmp(opt_crr,"64bit")) fl_out_fmt=NC_FORMAT_64BIT; else fl_out_fmt=NC_FORMAT_NETCDF4; 
+    case '4': /* Request netCDF4 output storage format */
+      fl_out_fmt=NC_FORMAT_NETCDF4; 
+      break;
+    case '5': /* Request netCDF3 64-bit offset+data storage (i.e., pnetCDF) format */
+      fl_out_fmt=NC_FORMAT_CDF5;
       break;
     case '6': /* Request netCDF3 64-bit offset output storage format */
-      fl_out_fmt=NC_FORMAT_64BIT;
+      fl_out_fmt=NC_FORMAT_64BIT_OFFSET;
       break;
     case '7': /* Request netCDF4-classic output storage format */
       fl_out_fmt=NC_FORMAT_NETCDF4_CLASSIC;
@@ -478,9 +512,10 @@ main(int argc,char **argv)
       PROCESS_ALL_VARS=False;
       xtr_nbr=0;
       break;
-    case '?': /* Print proper usage */
+    case '?': /* Question mark means unrecognized option, print proper usage then EXIT_FAILURE */
+      (void)fprintf(stdout,"%s: ERROR in command-line syntax/options. Missing or unrecognized option. Please reformulate command accordingly.\n",nco_prg_nm_get());
       (void)nco_usg_prn();
-      nco_exit(EXIT_SUCCESS);
+      nco_exit(EXIT_FAILURE);
       break;
     case '-': /* Long options are not allowed */
       err_prn(fnc_nm,"Long options are not available in this build. Use single letter options instead.\n");
@@ -494,6 +529,9 @@ main(int argc,char **argv)
     if(opt_crr) opt_crr=(char *)nco_free(opt_crr);
   } /* end while loop */
   
+  /* Set/report global chunk cache */
+  rcd+=nco_cnk_csh_ini(cnk_csh_byt);
+
   /* Append ";\n" to command-script arguments, then concatenate them */
   for(idx=0;idx<nbr_spt;idx++){
     sng_lng=strlen(spt_arg[idx]);
@@ -575,6 +613,13 @@ main(int argc,char **argv)
   (void)pop_fmc_vtr(fmc_vtr,&vlist_obj);
   (void)pop_fmc_vtr(fmc_vtr,&print_obj);
   (void)pop_fmc_vtr(fmc_vtr,&bnds_obj);
+  
+#ifdef ENABLE_UDUNITS
+# ifdef HAVE_UDUNITS2_H
+  udunits_cls udunits_obj(true);
+  (void)pop_fmc_vtr(fmc_vtr,&udunits_obj);
+#endif
+#endif
 
 #ifdef ENABLE_GSL
 # ifdef ENABLE_NCO_GSL
@@ -676,7 +721,8 @@ main(int argc,char **argv)
   } /* Existing file */
   
   /* Initialize chunking from user-specified inputs */
-  if(fl_out_fmt == NC_FORMAT_NETCDF4 || fl_out_fmt == NC_FORMAT_NETCDF4_CLASSIC) rcd+=nco_cnk_ini(in_id,fl_out,cnk_arg,cnk_nbr,cnk_map,cnk_plc,cnk_min_byt,cnk_sz_byt,cnk_sz_scl,&cnk);
+  if(fl_out_fmt == NC_FORMAT_NETCDF4 || fl_out_fmt == NC_FORMAT_NETCDF4_CLASSIC)
+    rcd+=nco_cnk_ini(in_id,fl_out,cnk_arg,cnk_nbr,cnk_map,cnk_plc,cnk_csh_byt,cnk_min_byt,cnk_sz_byt,cnk_sz_scl,&cnk);
 
   /* Copy global attributes */
   (void)nco_att_cpy(in_id,out_id,NC_GLOBAL,NC_GLOBAL,(nco_bool)True);
@@ -712,9 +758,9 @@ main(int argc,char **argv)
   prs_arg.ATT_PROPAGATE=ATT_PROPAGATE;      
   prs_arg.ATT_INHERIT=ATT_INHERIT;
   prs_arg.NCAP_MPI_SORT=(thr_nbr > 1 ? true:false);
-  
+  prs_arg.FLG_CLL_MTH=(flg_cll_mth ? true:false);
   prs_arg.dfl_lvl=dfl_lvl;  /* [enm] Deflate level */
-  prs_arg.cnk_sz=(size_t*)NULL; /* Chunk sizes NULL for now */ 
+  prs_arg.cnk_in=&cnk; /* chunking sct */
   
 #ifdef NCO_NETCDF4_AND_FILLVALUE
   prs_arg.NCAP4_FILL=(fl_out_fmt == NC_FORMAT_NETCDF4 || fl_out_fmt == NC_FORMAT_NETCDF4_CLASSIC);
@@ -800,7 +846,7 @@ main(int argc,char **argv)
         (void)fprintf(stderr,"spt_arg[%d] = %s\n",idx,spt_arg[idx]);
     } /* endif debug */
      /* Invoke ANTLR parser */
-    rcd=parse_antlr(prs_vtr,fl_cmd_usr,spt_arg_cat);
+    antlr_ret=parse_antlr(prs_vtr,fl_cmd_usr,spt_arg_cat);
   }
   
   // execute in ANTLR user specified script 
@@ -809,7 +855,7 @@ main(int argc,char **argv)
       err_prn(fnc_nm,"Unable to open script file "+std::string(fl_spt_usr));
     fclose(yyin); 
     /* Invoke ANTLR parser */
-    rcd=parse_antlr(prs_vtr,fl_spt_usr,(char *)NULL);
+    antlr_ret=parse_antlr(prs_vtr,fl_spt_usr,(char *)NULL);
   }
 
 
@@ -971,7 +1017,7 @@ main(int argc,char **argv)
     } */
     if(var_vtr[idx]->xpr_typ == ncap_att){
       /* Skip missing values (for now) */
-      if(var_vtr[idx]->getAtt() == nco_mss_val_sng_get()) continue;     
+      if(var_vtr[idx]->getAtt() == nco_mss_val_sng_get() || var_vtr[idx]->flg_mem  ) continue;
       /* skip NC_STRING without warning - we  use NC_STRING as  variable pointers */  
       if( fl_out_fmt != NC_FORMAT_NETCDF4 &&  var_vtr[idx]->var->type==NC_STRING ) continue;   
       att_item.att_nm=strdup(var_vtr[idx]->getAtt().c_str());
@@ -1003,7 +1049,16 @@ main(int argc,char **argv)
   } /* end for */
   
   /* Set chunksize parameters */
-  if(fl_out_fmt == NC_FORMAT_NETCDF4 || fl_out_fmt == NC_FORMAT_NETCDF4_CLASSIC) (void)nco_cnk_sz_set(out_id,(lmt_msa_sct **)NULL_CEWI,(int)0,&cnk_map,&cnk_plc,cnk_sz_scl,cnk.cnk_dmn,cnk_nbr);
+  if(fl_out_fmt == NC_FORMAT_NETCDF4 || fl_out_fmt == NC_FORMAT_NETCDF4_CLASSIC){
+    //(void) nco_cnk_sz_set(out_id, (lmt_msa_sct **) NULL_CEWI, (int) 0, &cnk_map, &cnk_plc, cnk_sz_scl, cnk.cnk_dmn,cnk_nbr);
+    dmn_cmn_sct cmn[NC_MAX_DIMS];
+    /* update member dmn_cmn_vtr() from dmn_out_vtr */
+    prs_arg.ncap_pop_dmn_cmn();
+    for(idx=0;idx<nbr_var_fix;idx++){
+      prs_arg.ncap_pop_var_dmn_cmn(var_fix[idx], cmn);
+      (void)nco_cnk_sz_set_trv(in_id,out_id,&cnk,var_fix[idx]->nm,cmn);
+    }
+  }
 
   /* Turn-off default filling behavior to enhance efficiency */
   nco_set_fill(out_id,NC_NOFILL,&fll_md_old);
@@ -1032,7 +1087,7 @@ main(int argc,char **argv)
   if(FL_OUT_NEW) (void)nco_fl_out_cls(fl_out,fl_out_tmp,out_id); else nco_close(out_id);
   
   /* Clean memory unless dirty memory allowed */
-  if(flg_cln){
+  if(flg_mmr_cln){
     /* ncap-specific memory */
     if(fl_spt_usr) fl_spt_usr=(char *)nco_free(fl_spt_usr);
     
@@ -1095,10 +1150,15 @@ main(int argc,char **argv)
     var_prc_out=(var_sct **)nco_free(var_prc_out);
     var_fix=(var_sct **)nco_free(var_fix);
     var_fix_out=(var_sct **)nco_free(var_fix_out);
-  } /* !flg_cln */
+  } /* !flg_mmr_cln */
   
-  nco_exit_gracefully();
-  return EXIT_SUCCESS;
+  // nco_exit_gracefully();
+  (void)fclose(stderr);
+  (void)fclose(stdin);
+  (void)fclose(stdout);
+  (void)nco_free(nco_prg_nm_get());
+
+  nco_exit(antlr_ret);
 } /* end main() */
 
 // Copy vector elements
@@ -1117,6 +1177,9 @@ void
 ram_vars_add
 (prs_cls *prs_arg)
 {
+  char buff[20]={0};
+  double dnan;
+
   var_sct *var1;
   
   var1=ncap_sclr_var_mk(std::string("NC_BYTE"),nco_int(NC_NAT));
@@ -1176,8 +1239,6 @@ ram_vars_add
   prs_arg->ncap_var_write(var1,true);
 #endif // !HUGE_VAL
 
-  char buff[20];
-  double dnan;
 #ifndef _MSC_VER
   if((dnan=nan(buff))){
     var1=ncap_sclr_var_mk(std::string("nan"),dnan); // double

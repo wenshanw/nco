@@ -26,6 +26,8 @@ else
 bin_PROGRAMS = ${NCAP} ncatted ncbo ncecat ncflint ncks ncpdq ncra ncrename ${NCWA}
 endif
 
+BUILT_SOURCES = ncap_yacc.h
+
 AM_YFLAGS = -d --name-prefix=nco_yy
 
 ncap_SOURCES = ncap_utl.c ncap.c ncap_yacc.y ncap_lex.l
@@ -100,11 +102,13 @@ nco_grp_utl.h \
 nco_grp_trv.h \
 nco_lmt.h \
 nco_lst_utl.h \
+nco_map.h \
 nco_md5.h \
 nco_mmr.h \
 nco_mpi.h \
 nco_msa.h \
 nco_mss_val.h \
+nco_mta.h \
 nco_netcdf.h \
 nco_omp.h \
 nco_pck.h \
@@ -161,10 +165,12 @@ nco_grp_utl.c \
 nco_grp_trv.c \
 nco_lmt.c \
 nco_lst_utl.c \
+nco_map.c \
 nco_md5.c \
 nco_mmr.c \
 nco_msa.c \
 nco_mss_val.c \
+nco_mta.c \
 nco_netcdf.c \
 nco_omp.c \
 nco_pck.c \

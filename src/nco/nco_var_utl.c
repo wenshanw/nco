@@ -2,7 +2,7 @@
 
 /* Purpose: Variable utilities */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -1155,7 +1155,7 @@ nco_var_dfn /* [fnc] Define variables and write their attributes to output file 
   const char fnc_nm[]="nco_var_dfn()"; /* [sng] Function name */
 
   int dmn_nbr=0;
-  int dmn_id_vec[NC_MAX_DIMS];
+  int dmn_id_vec[NC_MAX_VAR_DIMS];
   int idx;
   int dmn_idx;
   int fl_fmt; /* [enm] Output file format */
@@ -1386,9 +1386,10 @@ nco_var_val_cpy /* [fnc] Copy variables data from input to output file */
 
 nco_bool /* [flg] Variable is listed in this CF attribute, thereby associated */
 nco_is_spc_in_cf_att /* [fnc] Variable is listed in this CF attribute, thereby associated */
-(const int nc_id, /* I [id] netCDF file ID */
- const char * const cf_nm, /* I [sng] CF convention ("ancillary_variables", "bounds", "climatology", "coordinates", and "grid_mapping") */
- const int var_trg_id) /* I [id] Variable ID */
+(const int nc_id,    /* I [id] netCDF file ID */
+ const char *const cf_nm, /* I [sng] cf att name */
+ const int var_trg_id,  /* I [id] CF Variable ID */
+ int *cf_var_id) /* O [id] CF Variable ID */
 {
   /* Purpose: Is variable specified in an associated attribute?
      Associated attributes include "ancillary_variables", "bounds", "climatology", "coordinates", "grid_mapping"
@@ -1418,6 +1419,7 @@ nco_is_spc_in_cf_att /* [fnc] Variable is listed in this CF attribute, thereby a
   int var_id; /* [id] Variable ID */
   long att_sz;
   nc_type att_typ;
+  static nco_bool FIRST_WARNING=True;
 
   /* May need variable name for later comparison to those listed in this attribute */
   rcd+=nco_inq_varname(nc_id,var_trg_id,var_trg_nm);
@@ -1437,7 +1439,8 @@ nco_is_spc_in_cf_att /* [fnc] Variable is listed in this CF attribute, thereby a
         rcd+=nco_inq_att(nc_id,var_id,att_nm,&att_typ,&att_sz);
         if(att_typ != NC_CHAR){
           rcd=nco_inq_varname(nc_id,var_id,var_nm);
-          (void)fprintf(stderr,"%s: WARNING the \"%s\" attribute for variable %s is type %s, not %s. This violates the CF convention for specifying additional attributes. Therefore %s will skip this attribute.\n",nco_prg_nm_get(),att_nm,var_nm,nco_typ_sng(att_typ),nco_typ_sng(NC_CHAR),fnc_nm);
+          if(FIRST_WARNING) (void)fprintf(stderr,"%s: WARNING the \"%s\" attribute for variable %s is type %s, not %s. This violates the CF convention for specifying additional attributes. Therefore %s will skip this attribute. NB: To avoid excessive noise, NCO prints this WARNING at most once per dataset.\n",nco_prg_nm_get(),att_nm,var_nm,nco_typ_sng(att_typ),nco_typ_sng(NC_CHAR),fnc_nm);
+	  FIRST_WARNING=False;
           return IS_SPC_IN_CF_ATT;
         } /* end if */
         att_val=(char *)nco_malloc((att_sz+1L)*sizeof(char));
@@ -1452,16 +1455,109 @@ nco_is_spc_in_cf_att /* [fnc] Variable is listed in this CF attribute, thereby a
           /* Does variable match name specified in CF attribute list? */
           if(!strcmp(var_trg_nm,cf_lst[idx_cf])) break;
         } /* end loop over coordinates in list */
-        if(idx_cf!=nbr_cf) IS_SPC_IN_CF_ATT=True;
         /* Free allocated memory */
         att_val=(char *)nco_free(att_val);
         cf_lst=nco_sng_lst_free(cf_lst,nbr_cf);
+
+        if(idx_cf!=nbr_cf){
+           IS_SPC_IN_CF_ATT = True;
+           if(cf_var_id) *cf_var_id=var_id;
+           goto end_lbl; /* break out of all loops */
+        }
       } /* !coordinates */
     } /* end loop over attributes */
   } /* end loop over idx_var */
 
+  end_lbl: ;
+
   return IS_SPC_IN_CF_ATT; /* [flg] Variable is listed in this CF attribute */
 } /* end nco_is_spc_in_cf_att() */
+
+
+char *** /* O [ptr] List of lists - each ragged array terminated with empty string */
+nco_lst_cf_att /* [fnc] look in all vars for att cf_nm */
+(const int nc_id, /* I [id] netCDF file ID */
+ const char *const cf_nm, /* I [sng] CF att name */
+ int *nbr_lst) /* O [nbr] number of ragged arrays returned */
+{
+  /* Purpose: Is variable specified in an associated attribute?
+     Associated attributes include "ancillary_variables", "bounds", "climatology", "coordinates", "grid_mapping"
+     One of these ("ancillary_variables") can contain "non-grid" variables
+     The others contain variables that should, more or less, be treated as coordinates
+     However this function does not care about such distinctions
+     It simply returns true or false depending on whether the variable appears in the indicated attribute value
+     This function coaslesces (and makes obsolete) four earlier functions with the same purpose
+     Those functions were identical except for the attribute name, so this function takes the attribute name as an argument
+     It is based on nco_is_spc_in_crd_att() */
+
+  const char dlm_sng[]=" "; /* [sng] Delimiter string */
+  char **cf_lst; /* [sng] 1D array of list elements */
+  char **int_lst=NULL_CEWI; /* store pointer to ragged array */
+  char *att_val;
+  char ***ra_lst=NULL_CEWI; /* array of ragged array */
+  char att_nm[NC_MAX_NAME];
+  char var_nm[NC_MAX_NAME];
+  int idx;
+  int jdx;
+  int nbr_att;
+  int nbr_cf; /* [nbr] Number of variables listed in this CF attribute */
+  int nbr_var; /* [nbr] Number of variables in file */
+  int rcd=NC_NOERR; /* [rcd] Return code */
+  int var_id; /* [id] Variable ID */
+  long att_sz;
+  nc_type att_typ;
+
+  *nbr_lst=0;
+  rcd+=nco_inq_nvars(nc_id,&nbr_var);
+
+  /* This assumption, praise the Lord, is valid in netCDF2, netCDF3, and netCDF4 */
+  for(var_id=0;var_id<nbr_var;var_id++){
+
+    nco_inq_varname(nc_id,var_id,var_nm);
+
+    /* Find number of attributes */
+    rcd+=nco_inq_varnatts(nc_id,var_id,&nbr_att);
+    for(idx=0;idx<nbr_att;idx++){
+      rcd+=nco_inq_attname(nc_id,var_id,idx,att_nm);
+      /* Is attribute part of CF convention? */
+      if(!strcmp(att_nm,cf_nm)){
+        /* Yes, get list of specified attributes */
+        rcd+=nco_inq_att(nc_id,var_id,att_nm,&att_typ,&att_sz);
+        if(att_typ != NC_CHAR) continue;
+
+        att_val=(char *)nco_malloc((att_sz+1L)*sizeof(char));
+        if(att_sz > 0) rcd=nco_get_att(nc_id,var_id,att_nm,(void *)att_val,NC_CHAR);
+        /* NUL-terminate attribute */
+        att_val[att_sz]='\0';
+        /* Split list into separate variable names
+	   Use nco_lst_prs_sgl_2D() not nco_lst_prs_2D() to avert TODO nco944 */
+        cf_lst=nco_lst_prs_sgl_2D(att_val,dlm_sng,&nbr_cf);
+
+        int_lst=(char **)nco_malloc((nbr_cf+3)*sizeof(char *));
+        int_lst[0]=strdup(var_nm);
+        int_lst[1]=strdup(cf_nm);
+
+        for(jdx=0;jdx<nbr_cf;jdx++)
+          int_lst[jdx+2]=strdup(cf_lst[jdx]);
+
+        /* very important - ragged array is terminated by an empty string */
+        int_lst[nbr_cf+2]=strdup("");
+
+        /* add ragged array to list */
+        ra_lst=(char ***)nco_realloc(ra_lst,sizeof(char**)*(*nbr_lst+1));
+        ra_lst[*nbr_lst]=int_lst;
+        ++*nbr_lst;
+
+        att_val=(char *)nco_free(att_val);
+        cf_lst=nco_sng_lst_free(cf_lst,nbr_cf);
+        // cf_lst=nco_free(cf_lst);
+        int_lst=(char **)NULL_CEWI;
+      }
+    } /* end loop over attributes */
+  } /* end loop over var_id */
+
+  return ra_lst;
+} /* end nco_lst_cf_att() */
 
 nco_bool /* [flg] Variable is listed in a "coordinates" attribute */
 nco_is_spc_in_crd_att /* [fnc] Variable is listed in a "coordinates" attribute */
@@ -1997,10 +2093,10 @@ nco_var_fll /* [fnc] Allocate variable structure and fill with metadata */
   
   /* 20130112: Variables associated with "bounds", "climatology", "coordinates", and "grid_mapping" attributes should,
      in most cases, be treated as coordinates */
-  if(nco_is_spc_in_cf_att(var->nc_id,"bounds",var->id)) var->is_crd_var=True;
-  if(nco_is_spc_in_cf_att(var->nc_id,"climatology",var->id)) var->is_crd_var=True;
-  if(nco_is_spc_in_cf_att(var->nc_id,"coordinates",var->id)) var->is_crd_var=True;
-  if(nco_is_spc_in_cf_att(var->nc_id,"grid_mapping",var->id)) var->is_crd_var=True;
+  if(nco_is_spc_in_cf_att(var->nc_id, "bounds", var->id, NULL)) var->is_crd_var=True;
+  if(nco_is_spc_in_cf_att(var->nc_id, "climatology", var->id, NULL)) var->is_crd_var=True;
+  if(nco_is_spc_in_cf_att(var->nc_id, "coordinates", var->id, NULL)) var->is_crd_var=True;
+  if(nco_is_spc_in_cf_att(var->nc_id, "grid_mapping", var->id, NULL)) var->is_crd_var=True;
   
   /* Portions of variable structure depend on packing properties, e.g., typ_upk
      nco_pck_dsk_inq() fills in these portions harmlessly */

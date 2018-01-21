@@ -9,7 +9,7 @@
    specfied variables of multiple input netCDF files and output them 
    to a single file. */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3.
@@ -103,6 +103,12 @@
 #include "nco.h" /* netCDF Operator (NCO) definitions */
 #include "libnco.h" /* netCDF Operator (NCO) library */
 
+
+/* forward declaration */
+nco_bool ra_lst_chk(char ***ra_lst, int nbr_lst, char *var_nm, char *bnds_nm);
+void ra_lst_free(char ***ra_lst, int nbr_lst);
+
+
 /* Define inline'd functions in header so source is visible to calling files
    C99 only: Declare prototype in exactly one header
    http://www.drdobbs.com/the-new-c-inline-functions/184401540 */
@@ -148,7 +154,7 @@ main(int argc,char **argv)
 
   const char * const CVS_Id="$Id$"; 
   const char * const CVS_Revision="$Revision$";
-  const char * const opt_sht_lst="3467ACcD:d:FG:g:HhL:l:Nn:Oo:p:P:rRt:v:w:X:xY:y:-:";
+  const char * const opt_sht_lst="34567ACcD:d:FG:g:HhL:l:Nn:Oo:p:P:rRt:v:w:X:xY:y:-:";
 
   clm_bnd_sct *cb=NULL;
   
@@ -241,6 +247,8 @@ main(int argc,char **argv)
   nco_bool EXCLUDE_INPUT_LIST=False; /* Option c */
   nco_bool EXTRACT_ALL_COORDINATES=False; /* Option c */
   nco_bool EXTRACT_ASSOCIATED_COORDINATES=True; /* Option C */
+  nco_bool EXTRACT_CLL_MSR=True; /* [flg] Extract cell_measures variables */
+  nco_bool EXTRACT_FRM_TRM=True; /* [flg] Extract formula_terms variables */
   nco_bool FLG_BFR_NRM=False; /* [flg] Current output buffers need normalization */
   nco_bool FLG_MRO=False; /* [flg] Multi-Record Output */
   nco_bool FL_LST_IN_APPEND=True; /* Option H */
@@ -264,7 +272,7 @@ main(int argc,char **argv)
   nco_bool flg_cll_mth=True; /* [flg] Add/modify cell_methods attributes */
   nco_bool flg_cb=False; /* [flg] Climatology bounds */
   nco_bool flg_c2b=False; /* [flg] Climatology bounds-to-time bounds */
-  nco_bool flg_cln=True; /* [flg] Clean memory prior to exit */
+  nco_bool flg_mmr_cln=True; /* [flg] Clean memory prior to exit */
   nco_bool flg_skp1; /* [flg] Current record is not dimension of this variable */
   nco_bool flg_skp2; /* [flg] Current record is not dimension of this variable */
 
@@ -279,6 +287,7 @@ main(int argc,char **argv)
   scv_sct wgt_avg_scv;
   
   size_t bfr_sz_hnt=NC_SIZEHINT_DEFAULT; /* [B] Buffer size hint */
+  size_t cnk_csh_byt=NCO_CNK_CSH_BYT_DFL; /* [B] Chunk cache size */
   size_t cnk_min_byt=NCO_CNK_SZ_MIN_BYT_DFL; /* [B] Minimize size of variable to chunk */
   size_t cnk_sz_byt=0UL; /* [B] Chunk size in bytes */
   size_t cnk_sz_scl=0UL; /* [nbr] Chunk size scalar */
@@ -312,14 +321,22 @@ main(int argc,char **argv)
   
   static struct option opt_lng[]={ /* Structure ordered by short option key if possible */
     /* Long options with no argument, no short option counterpart */
+    {"cll_msr",no_argument,0,0}, /* [flg] Extract cell_measures variables */
+    {"cell_measures",no_argument,0,0}, /* [flg] Extract cell_measures variables */
+    {"no_cll_msr",no_argument,0,0}, /* [flg] Do not extract cell_measures variables */
+    {"no_cell_measures",no_argument,0,0}, /* [flg] Do not extract cell_measures variables */
+    {"frm_trm",no_argument,0,0}, /* [flg] Extract formula_terms variables */
+    {"formula_terms",no_argument,0,0}, /* [flg] Extract formula_terms variables */
+    {"no_frm_trm",no_argument,0,0}, /* [flg] Do not extract formula_terms variables */
+    {"no_formula_terms",no_argument,0,0}, /* [flg] Do not extract formula_terms variables */
     {"cll_mth",no_argument,0,0}, /* [flg] Add/modify cell_methods attributes */
     {"cell_methods",no_argument,0,0}, /* [flg] Add/modify cell_methods attributes */
     {"no_cll_mth",no_argument,0,0}, /* [flg] Do not add/modify cell_methods attributes */
+    {"no_cell_methods",no_argument,0,0}, /* [flg] Do not add/modify cell_methods attributes */
     {"clm_bnd",no_argument,0,0}, /* [sct] Climatology bounds */
     {"cb",no_argument,0,0}, /* [sct] Climatology bounds */
     {"clm2bnd",no_argument,0,0}, /* [sct] Climatology bounds-to-time bounds */
     {"c2b",no_argument,0,0}, /* [sct] Climatology bounds-to-time bounds */
-    {"cln",no_argument,0,0}, /* [flg] Clean memory prior to exit */
     {"clean",no_argument,0,0}, /* [flg] Clean memory prior to exit */
     {"mmr_cln",no_argument,0,0}, /* [flg] Clean memory prior to exit */
     {"drt",no_argument,0,0}, /* [flg] Allow dirty memory on exit */
@@ -332,6 +349,8 @@ main(int argc,char **argv)
     {"hdf4",no_argument,0,0}, /* [flg] Treat file as HDF4 */
     {"hdf_upk",no_argument,0,0}, /* [flg] HDF unpack convention: unpacked=scale_factor*(packed-add_offset) */
     {"hdf_unpack",no_argument,0,0}, /* [flg] HDF unpack convention: unpacked=scale_factor*(packed-add_offset) */
+    {"help",no_argument,0,0},
+    {"hlp",no_argument,0,0},
     {"md5_dgs",no_argument,0,0}, /* [flg] Perform MD5 digests */
     {"md5_digest",no_argument,0,0}, /* [flg] Perform MD5 digests */
     {"mro",no_argument,0,0}, /* [flg] Multi-Record Output */
@@ -356,6 +375,8 @@ main(int argc,char **argv)
     {"buffer_size_hint",required_argument,0,0}, /* [B] Buffer size hint */
     {"cnk_byt",required_argument,0,0}, /* [B] Chunk size in bytes */
     {"chunk_byte",required_argument,0,0}, /* [B] Chunk size in bytes */
+    {"cnk_csh",required_argument,0,0}, /* [B] Chunk cache size in bytes */
+    {"chunk_cache",required_argument,0,0}, /* [B] Chunk cache size in bytes */
     {"cnk_dmn",required_argument,0,0}, /* [nbr] Chunk size */
     {"chunk_dimension",required_argument,0,0}, /* [nbr] Chunk size */
     {"cnk_map",required_argument,0,0}, /* [nbr] Chunking map */
@@ -380,8 +401,13 @@ main(int argc,char **argv)
     /* Long options with short counterparts */
     {"3",no_argument,0,'3'},
     {"4",no_argument,0,'4'},
-    {"64bit",no_argument,0,'4'},
     {"netcdf4",no_argument,0,'4'},
+    {"5",no_argument,0,'5'},
+    {"64bit_data",no_argument,0,'5'},
+    {"cdf5",no_argument,0,'5'},
+    {"pnetcdf",no_argument,0,'5'},
+    {"64bit_offset",no_argument,0,'6'},
+    {"7",no_argument,0,'7'},
     {"append",no_argument,0,'A'},
     {"coords",no_argument,0,'c'},
     {"crd",no_argument,0,'c'},
@@ -428,8 +454,6 @@ main(int argc,char **argv)
     {"math",required_argument,0,'y'},
     {"operation",required_argument,0,'y'},
     {"op_typ",required_argument,0,'y'},
-    {"help",no_argument,0,'?'},
-    {"hlp",no_argument,0,'?'},
     {0,0,0,0}
   }; /* end opt_lng */
   int opt_idx=0; /* Index of current long option into opt_lng array */
@@ -480,6 +504,10 @@ main(int argc,char **argv)
         cnk_sz_byt=strtoul(optarg,&sng_cnv_rcd,NCO_SNG_CNV_BASE10);
         if(*sng_cnv_rcd) nco_sng_cnv_err(optarg,"strtoul",sng_cnv_rcd);
       } /* endif cnk_byt */
+      if(!strcmp(opt_crr,"cnk_csh") || !strcmp(opt_crr,"chunk_cache")){
+        cnk_csh_byt=strtoul(optarg,&sng_cnv_rcd,NCO_SNG_CNV_BASE10);
+        if(*sng_cnv_rcd) nco_sng_cnv_err(optarg,"strtoul",sng_cnv_rcd);
+      } /* endif cnk_csh_byt */
       if(!strcmp(opt_crr,"cnk_min") || !strcmp(opt_crr,"chunk_min")){
         cnk_min_byt=strtoul(optarg,&sng_cnv_rcd,NCO_SNG_CNV_BASE10);
         if(*sng_cnv_rcd) nco_sng_cnv_err(optarg,"strtoul",sng_cnv_rcd);
@@ -503,10 +531,14 @@ main(int argc,char **argv)
         cnk_plc_sng=(char *)strdup(optarg);
         cnk_plc=nco_cnk_plc_get(cnk_plc_sng);
       } /* endif cnk */
+      if(!strcmp(opt_crr,"cll_msr") || !strcmp(opt_crr,"cell_measures")) EXTRACT_CLL_MSR=True; /* [flg] Extract cell_measures variables */
+      if(!strcmp(opt_crr,"no_cll_msr") || !strcmp(opt_crr,"no_cell_measures")) EXTRACT_CLL_MSR=False; /* [flg] Do not extract cell_measures variables */
+      if(!strcmp(opt_crr,"frm_trm") || !strcmp(opt_crr,"formula_terms")) EXTRACT_FRM_TRM=True; /* [flg] Extract formula_terms variables */
+      if(!strcmp(opt_crr,"no_frm_trm") || !strcmp(opt_crr,"no_formula_terms")) EXTRACT_FRM_TRM=False; /* [flg] Do not extract formula_terms variables */
       if(!strcmp(opt_crr,"cll_mth") || !strcmp(opt_crr,"cell_methods")) flg_cll_mth=True; /* [flg] Add/modify cell_methods attributes */
       if(!strcmp(opt_crr,"no_cll_mth") || !strcmp(opt_crr,"no_cell_methods")) flg_cll_mth=False; /* [flg] Add/modify cell_methods attributes */
-      if(!strcmp(opt_crr,"cln") || !strcmp(opt_crr,"mmr_cln") || !strcmp(opt_crr,"clean")) flg_cln=True; /* [flg] Clean memory prior to exit */
-      if(!strcmp(opt_crr,"drt") || !strcmp(opt_crr,"mmr_drt") || !strcmp(opt_crr,"dirty")) flg_cln=False; /* [flg] Clean memory prior to exit */
+      if(!strcmp(opt_crr,"mmr_cln") || !strcmp(opt_crr,"clean")) flg_mmr_cln=True; /* [flg] Clean memory prior to exit */
+      if(!strcmp(opt_crr,"drt") || !strcmp(opt_crr,"mmr_drt") || !strcmp(opt_crr,"dirty")) flg_mmr_cln=False; /* [flg] Clean memory prior to exit */
       if(!strcmp(opt_crr,"clm_bnd") || !strcmp(opt_crr,"cb")) flg_cb=True; /* [sct] Climatology bounds */
       if(!strcmp(opt_crr,"clm2bnd") || !strcmp(opt_crr,"c2b")) flg_c2b=flg_cb=True; /* [sct] Climatology bounds-to-time bounds */
       if(!strcmp(opt_crr,"fl_fmt") || !strcmp(opt_crr,"file_format")) rcd=nco_create_mode_prs(optarg,&fl_out_fmt);
@@ -522,6 +554,10 @@ main(int argc,char **argv)
         hdr_pad=strtoul(optarg,&sng_cnv_rcd,NCO_SNG_CNV_BASE10);
         if(*sng_cnv_rcd) nco_sng_cnv_err(optarg,"strtoul",sng_cnv_rcd);
       } /* endif "hdr_pad" */
+      if(!strcmp(opt_crr,"help") || !strcmp(opt_crr,"hlp")){
+	(void)nco_usg_prn();
+	nco_exit(EXIT_SUCCESS);
+      } /* endif "help" */
       if(!strcmp(opt_crr,"md5_dgs") || !strcmp(opt_crr,"md5_digest")){
         if(!md5) md5=nco_md5_ini();
         md5->dgs=True;
@@ -562,11 +598,14 @@ main(int argc,char **argv)
     case '3': /* Request netCDF3 output storage format */
       fl_out_fmt=NC_FORMAT_CLASSIC;
       break;
-    case '4': /* Catch-all to prescribe output storage format */
-      if(!strcmp(opt_crr,"64bit")) fl_out_fmt=NC_FORMAT_64BIT; else fl_out_fmt=NC_FORMAT_NETCDF4; 
+    case '4': /* Request netCDF4 output storage format */
+      fl_out_fmt=NC_FORMAT_NETCDF4; 
+      break;
+    case '5': /* Request netCDF3 64-bit offset+data storage (i.e., pnetCDF) format */
+      fl_out_fmt=NC_FORMAT_CDF5;
       break;
     case '6': /* Request netCDF3 64-bit offset output storage format */
-      fl_out_fmt=NC_FORMAT_64BIT;
+      fl_out_fmt=NC_FORMAT_64BIT_OFFSET;
       break;
     case '7': /* Request netCDF4-classic output storage format */
       fl_out_fmt=NC_FORMAT_NETCDF4_CLASSIC;
@@ -701,9 +740,10 @@ main(int argc,char **argv)
       nco_op_typ_sng=(char *)strdup(optarg);
       if(nco_prg_id == ncra || nco_prg_id == ncfe) nco_op_typ=nco_op_typ_get(nco_op_typ_sng);
       break;
-    case '?': /* Print proper usage */
+    case '?': /* Question mark means unrecognized option, print proper usage then EXIT_FAILURE */
+      (void)fprintf(stdout,"%s: ERROR in command-line syntax/options. Missing or unrecognized option. Please reformulate command accordingly.\n",nco_prg_nm_get());
       (void)nco_usg_prn();
-      nco_exit(EXIT_SUCCESS);
+      nco_exit(EXIT_FAILURE);
       break;
     case '-': /* Long options are not allowed */
       (void)fprintf(stderr,"%s: ERROR Long options are not available in this build. Use single letter options instead.\n",nco_prg_nm_get());
@@ -717,6 +757,9 @@ main(int argc,char **argv)
     } /* end switch */
     if(opt_crr) opt_crr=(char *)nco_free(opt_crr);
   } /* end while loop */
+
+  /* Set/report global chunk cache */
+  rcd+=nco_cnk_csh_ini(cnk_csh_byt);
 
   /* Process positional arguments and fill in filenames */
   fl_lst_in=nco_fl_lst_mk(argv,argc,optind,&fl_nbr,&fl_out,&FL_LST_IN_FROM_STDIN);
@@ -738,8 +781,8 @@ main(int argc,char **argv)
   trv_tbl_init(&trv_tbl); 
 
   /* Construct GTT, Group Traversal Table (groups,variables,dimensions, limits) */
-  (void)nco_bld_trv_tbl(in_id,trv_pth,lmt_nbr,lmt_arg,aux_nbr,aux_arg,MSA_USR_RDR,FORTRAN_IDX_CNV,grp_lst_in,grp_lst_in_nbr,var_lst_in,var_lst_in_nbr,EXTRACT_ALL_COORDINATES,GRP_VAR_UNN,False,EXCLUDE_INPUT_LIST,EXTRACT_ASSOCIATED_COORDINATES,nco_pck_plc_nil,&flg_dne,trv_tbl);
-
+  (void)nco_bld_trv_tbl(in_id,trv_pth,lmt_nbr,lmt_arg,aux_nbr,aux_arg,MSA_USR_RDR,FORTRAN_IDX_CNV,grp_lst_in,grp_lst_in_nbr,var_lst_in,var_lst_in_nbr,EXTRACT_ALL_COORDINATES,GRP_VAR_UNN,False,EXCLUDE_INPUT_LIST,EXTRACT_ASSOCIATED_COORDINATES,EXTRACT_CLL_MSR,EXTRACT_FRM_TRM,nco_pck_plc_nil,&flg_dne,trv_tbl);
+  
   /* Were all user-specified dimensions found? */ 
   (void)nco_chk_dmn(lmt_nbr,flg_dne);     
 
@@ -814,7 +857,7 @@ main(int argc,char **argv)
   fl_out_tmp=nco_fl_out_open(fl_out,&FORCE_APPEND,FORCE_OVERWRITE,fl_out_fmt,&bfr_sz_hnt,RAM_CREATE,RAM_OPEN,WRT_TMP_FL,&out_id);
 
   /* Initialize chunking from user-specified inputs */
-  if(fl_out_fmt == NC_FORMAT_NETCDF4 || fl_out_fmt == NC_FORMAT_NETCDF4_CLASSIC) rcd+=nco_cnk_ini(in_id,fl_out,cnk_arg,cnk_nbr,cnk_map,cnk_plc,cnk_min_byt,cnk_sz_byt,cnk_sz_scl,&cnk);
+  if(fl_out_fmt == NC_FORMAT_NETCDF4 || fl_out_fmt == NC_FORMAT_NETCDF4_CLASSIC) rcd+=nco_cnk_ini(in_id,fl_out,cnk_arg,cnk_nbr,cnk_map,cnk_plc,cnk_csh_byt,cnk_min_byt,cnk_sz_byt,cnk_sz_scl,&cnk);
 
   /* Define dimensions, extracted groups, variables, and attributes in output file */
   (void)nco_xtr_dfn(in_id,out_id,&cnk,dfl_lvl,gpe,md5,!FORCE_APPEND,True,False,nco_pck_plc_nil,(char *)NULL,trv_tbl);
@@ -894,7 +937,7 @@ main(int argc,char **argv)
 
       /* Input file must have either (but not both) time bounds or climatology bounds */
       if(cb->tm_bnd_in && cb->clm_bnd_in){
-	(void)fprintf(stderr,"%s: WARNING Climatology bounds invoked on time coordinate with both time bounds attribute \"%s\" and climatology bounds attribute \"%s\". Results would be ambiguous. Turning-off climatology bounds mode.\n",nco_prg_nm_get(),bnd_sng,clm_sng);
+	(void)fprintf(stderr,"%s: WARNING Climatology bounds invoked on time coordinate with both time bounds attribute \"%s\" (value = \"%s\") and climatology bounds attribute \"%s\" (value = \"%s\"). Results would be ambiguous. Turning-off climatology bounds mode.\n",nco_prg_nm_get(),bnd_sng,cb->tm_bnd_nm,clm_sng,cb->clm_bnd_nm);
 	flg_cb=False;
 	goto skp_cb;
       } /* !(cb->tm_bnd_in && cb->clm_bnd_in) */
@@ -907,13 +950,14 @@ main(int argc,char **argv)
     }else{ /* !tm_crd_id_in */
       if(nco_dbg_lvl >= nco_dbg_std) (void)fprintf(stderr,"%s: WARNING Climatology bounds invoked on dataset with unknown time coordinate. Turning-off climatology bounds mode.\n",nco_prg_nm_get());
       flg_cb=False;
+      rcd=NC_NOERR;
       goto skp_cb; 
     } /* !tm_crd_in */
 
     if(flg_c2b && cb->clm_bnd_in) cb->clm2bnd=True;
     if(cb->clm_bnd_in) cb->clm2clm=True;
     if(cb->tm_bnd_in) cb->bnd2clm=True;
-    
+
     if(cb->tm_bnd_in){
       rcd=nco_inq_varid_flg(in_id,cb->tm_bnd_nm,&cb->tm_bnd_id_in); 
       if(cb->tm_bnd_id_in == NC_MIN_INT){
@@ -1095,7 +1139,7 @@ main(int argc,char **argv)
 
   if(wgt_nm && (nco_op_typ == nco_op_avg || nco_op_typ == nco_op_mebs)){
     /* Find weight variable that matches current variable */
-    wgt=nco_var_get_wgt_trv(in_id,wgt_nm,var_prc[0],trv_tbl);
+    wgt=nco_var_get_wgt_trv(in_id,lmt_nbr,lmt_arg,MSA_USR_RDR,FORTRAN_IDX_CNV,wgt_nm,var_prc[0],trv_tbl);
     assert(wgt->nbr_dim < 2);
     /* Change wgt from a normal full variable to one that only holds one record at a time
        This differs from ncwa wgt treatment
@@ -1160,12 +1204,26 @@ main(int argc,char **argv)
 
       /* Loop over number of different record dimensions in file */
       for(idx_rec=0;idx_rec<nbr_rec;idx_rec++){
+        char *fl_udu_sng=NULL_CEWI;
+        char ***ra_bnds_lst=NULL_CEWI;
+        char ***ra_climo_lst=NULL_CEWI;
+        int ra_bnds_nbr=0;
+        int ra_climo_nbr=0;
 
         /* Obtain group ID */
         (void)nco_inq_grp_full_ncid(in_id,lmt_rec[idx_rec]->grp_nm_fll,&grp_id);
 
         /* Fill record array */
         (void)nco_lmt_evl(grp_id,lmt_rec[idx_rec],rec_usd_cml[idx_rec],FORTRAN_IDX_CNV);
+
+        if(lmt_rec[idx_rec]->is_rec_dmn){
+          int mid=-1;
+          if(nco_inq_varid_flg(grp_id,lmt_rec[idx_rec]->nm,&mid) == NC_NOERR && mid >= 0){
+            fl_udu_sng=nco_lmt_get_udu_att(grp_id,mid,"units"); /* Units attribute of coordinate variable */
+            ra_bnds_lst=nco_lst_cf_att(grp_id,"bounds",&ra_bnds_nbr);
+            ra_climo_lst=nco_lst_cf_att(grp_id,"climatology",&ra_climo_nbr);
+          } /* !mid */
+        } /* !is_rec_dmn */
 
         if(REC_APN){
           /* Append records directly to output file */
@@ -1178,7 +1236,7 @@ main(int argc,char **argv)
           (void)nco_inq_dimlen(grp_out_id,rec_dmn_out_id,&idx_rec_out[idx_rec]);
         } /* !REC_APN */
 
-        if(nco_dbg_lvl_get() == nco_dbg_old) (void)fprintf(fp_stdout,"%s: DEBUG record %d id %d name %s rec_dmn_sz %ld\n",nco_prg_nm_get(),idx_rec,lmt_rec[idx_rec]->id,lmt_rec[idx_rec]->nm_fll,lmt_rec[idx_rec]->rec_dmn_sz);                    
+        if(nco_dbg_lvl_get() == nco_dbg_std)  (void)fprintf(fp_stdout,"%s: DEBUG record %d id %d name %s rec_dmn_sz %ld units=\"%s\"\n",nco_prg_nm_get(),idx_rec,lmt_rec[idx_rec]->id,lmt_rec[idx_rec]->nm_fll,lmt_rec[idx_rec]->rec_dmn_sz,fl_udu_sng);
         /* Two distinct ways to specify MRO are --mro and -d dmn,a,b,c,d,[m,M] */
         if(FLG_MRO) lmt_rec[idx_rec]->flg_mro=True;
         if(lmt_rec[idx_rec]->flg_mro) FLG_MRO=True;
@@ -1235,7 +1293,7 @@ main(int argc,char **argv)
           if(nco_dbg_lvl >= nco_dbg_scl) (void)fprintf(fp_stdout,"%s: INFO Record %ld of %s contributes to output record %ld\n",nco_prg_nm_get(),idx_rec_crr_in,fl_in,idx_rec_out[idx_rec]);
 
 #ifdef _OPENMP
-#pragma omp parallel for default(none) private(idx,in_id) shared(CNV_ARM,FLG_BFR_NRM,FLG_MRO,NORMALIZE_BY_WEIGHT,REC_FRS_GRP,REC_LST_DSR,base_time_crr,base_time_srt,fl_idx,fl_in,fl_nbr,fl_out,flg_skp1,flg_skp2,gpe,grp_id,grp_out_fll,grp_out_id,idx_rec,idx_rec_crr_in,idx_rec_out,in_id_arr,lmt_rec,md5,nbr_dmn_fl,nbr_rec,nbr_var_prc,nco_dbg_lvl,nco_op_typ,nco_prg_id,out_id,rcd,rec_usd_cml,trv_tbl,var_out_id,var_prc,var_prc_out,var_prc_typ_pre_prm,var_trv,wgt_arr,wgt_avg,wgt_avg_scl,wgt_nbr,wgt_nm,wgt_out,wgt_scv)
+#pragma omp parallel for default(none) private(idx,in_id) shared(CNV_ARM,FLG_BFR_NRM,FLG_MRO,NORMALIZE_BY_WEIGHT,REC_FRS_GRP,REC_LST_DSR,base_time_crr,base_time_srt,fl_idx,fl_in,fl_nbr,fl_out,flg_skp1,flg_skp2,gpe,grp_id,grp_out_fll,grp_out_id,idx_rec,idx_rec_crr_in,idx_rec_out,in_id_arr,lmt_rec,md5,nbr_dmn_fl,nbr_rec,nbr_var_prc,nco_dbg_lvl,nco_op_typ,nco_prg_id,out_id,rcd,rec_usd_cml,trv_tbl,var_out_id,var_prc,var_prc_out,var_prc_typ_pre_prm,var_trv,wgt_arr,wgt_avg,wgt_avg_scl,wgt_nbr,wgt_nm,wgt_out,wgt_scv,fl_udu_sng,ra_bnds_lst, ra_climo_lst, ra_bnds_nbr, ra_climo_nbr)
 #endif /* !_OPENMP */
           for(idx=0;idx<nbr_var_prc;idx++){
 
@@ -1270,18 +1328,28 @@ main(int argc,char **argv)
             if(nco_prg_id == ncra) FLG_BFR_NRM=True; /* [flg] Current output buffers need normalization */
 
             /* Re-base record coordinate and bounds if necessary (e.g., time, time_bnds) */
-            if(lmt_rec[idx_rec]->origin != 0.0 && (var_prc[idx]->is_crd_var || nco_is_spc_in_cf_att(grp_id,"bounds",var_prc[idx]->id) || nco_is_spc_in_cf_att(grp_id,"climatology",var_prc[idx]->id))){
-              var_sct *var_crd;
-              scv_sct scv;
-              /* De-reference */
-              var_crd=var_prc[idx];
-              scv.val.d=lmt_rec[idx_rec]->origin;              
-              scv.type=NC_DOUBLE;  
-              /* Convert scalar to variable type */
-              nco_scv_cnf_typ(var_crd->type,&scv);
-              (void)nco_var_scv_add(var_crd->type,var_crd->sz,var_crd->has_mss_val,var_crd->mss_val,var_crd->val,&scv);
-            } /* end re-basing */
+            /* if(var_prc[idx]->is_crd_var|| nco_is_spc_in_cf_att(grp_id,"bounds",var_prc[idx]->id) || nco_is_spc_in_cf_att(grp_id,"climatology",var_prc[idx]->id)) */
 
+            /* Re-base coordinate variable to units of coordinate in the first input file
+	       If record hyperslab indice(s) are double or strings then coordinate variable and limits
+	       are (re)-read earlier by nco_lmt_evl() and if units between files are incompatible 
+	       then ncra will die in that call and not in nco_cln_clc_dbl_var_dff() below */
+            if(var_prc[idx]->is_crd_var){
+              nco_bool do_rebase=False;
+              if(!strcmp(var_prc[idx]->nm,lmt_rec[idx_rec]->nm) ||
+		 ra_lst_chk(ra_bnds_lst,ra_bnds_nbr,lmt_rec[idx_rec]->nm,var_prc[idx]->nm) ||
+		 ra_lst_chk(ra_climo_lst,ra_climo_nbr,lmt_rec[idx_rec]->nm,var_prc[idx]->nm))
+		do_rebase=True;
+              //(void)fprintf(fp_stderr,"%s: converting variable \"%s\" from units \"%s\" to \" %s\"\n",nco_prg_nm_get(),var_prc[idx]->nm,fl_udu_sng,lmt_rec[idx_rec]->rbs_sng);
+              if(do_rebase && fl_udu_sng && lmt_rec[idx_rec]->rbs_sng){
+                if(nco_cln_clc_dbl_var_dff(fl_udu_sng,lmt_rec[idx_rec]->rbs_sng,lmt_rec[idx_rec]->lmt_cln,(double*)NULL,var_prc[idx]) != NCO_NOERR){
+                  (void)fprintf(fp_stderr,"%s: problem converting variable \"%s\" from units \"%s\" to \" %s\"\n",nco_prg_nm_get(), var_prc[idx]->nm, fl_udu_sng, lmt_rec[idx_rec]->rbs_sng);
+                  nco_exit(EXIT_FAILURE);
+                } /* !nco_cln_clc_dbl_var_dff() */
+                //nco_free(fl_udu_sng);
+              } /* end !do_rebase */
+            } /* !crd_var */
+              
             if(nco_prg_id == ncra){
               nco_bool flg_rth_ntl;
               if(!rec_usd_cml[idx_rec] || (FLG_MRO && REC_FRS_GRP)) flg_rth_ntl=True; else flg_rth_ntl=False;
@@ -1486,6 +1554,13 @@ main(int argc,char **argv)
           } /* end if */
         } /* end if */
 
+
+        if(fl_udu_sng) fl_udu_sng=(char*)nco_free(fl_udu_sng);
+
+        ra_lst_free(ra_bnds_lst, ra_bnds_nbr);
+        ra_lst_free(ra_climo_lst, ra_climo_nbr);
+
+
       } /* end idx_rec loop over different record variables to process */
 
       if(flg_cb && nco_prg_id == ncra){
@@ -1556,7 +1631,7 @@ main(int argc,char **argv)
       trv_tbl_init(&trv_tbl1); 
 
       /* Construct GTT using current file ID */
-      (void)nco_bld_trv_tbl(in_id,trv_pth,lmt_nbr,lmt_arg,aux_nbr,aux_arg,MSA_USR_RDR,FORTRAN_IDX_CNV,grp_lst_in,grp_lst_in_nbr,var_lst_in,var_lst_in_nbr,EXTRACT_ALL_COORDINATES,GRP_VAR_UNN,False,EXCLUDE_INPUT_LIST,EXTRACT_ASSOCIATED_COORDINATES,nco_pck_plc_nil,&flg_dne,trv_tbl1);
+      (void)nco_bld_trv_tbl(in_id,trv_pth,lmt_nbr,lmt_arg,aux_nbr,aux_arg,MSA_USR_RDR,FORTRAN_IDX_CNV,grp_lst_in,grp_lst_in_nbr,var_lst_in,var_lst_in_nbr,EXTRACT_ALL_COORDINATES,GRP_VAR_UNN,False,EXCLUDE_INPUT_LIST,EXTRACT_ASSOCIATED_COORDINATES,EXTRACT_CLL_MSR,EXTRACT_FRM_TRM,nco_pck_plc_nil,&flg_dne,trv_tbl1);
 
       /* Were all user-specified dimensions found? */ 
       (void)nco_chk_dmn(lmt_nbr,flg_dne);  
@@ -1662,7 +1737,7 @@ main(int argc,char **argv)
     for(idx_rec=0;idx_rec<nbr_rec;idx_rec++){
       /* Check subcycle for each record */
       if(lmt_rec[idx_rec]->ssc != 1L && (lmt_rec[idx_rec]->lmt_typ == lmt_crd_val || lmt_rec[idx_rec]->lmt_typ == lmt_udu_sng)){
-        (void)fprintf(stderr,"\n%s: WARNING Subcycle argument SSC used in hyperslab specification for %s which will be determined based on coordinate values rather than dimension indices. The behavior of the subcycle hyperslab argument is ambiguous for coordinate-based hyperslabs---it could mean select the first SSC elements that are within the min and max coordinate values beginning with each strided point, or it could mean always select the first _consecutive_ SSC elements beginning with each strided point (regardless of their values relative to min and max). For such hyperslabs, NCO adopts the latter definition and always selects the group of SSC records beginning with each strided point. Strided points are guaranteed to be within the min and max coordinates, but the subsequent members of each group are not, though this is only the case if the record coordinate is not monotonic. The record coordinate is almost always monotonic, so surprises are only expected in a corner case unlikely to affect the vast majority of users. You have been warned. Use at your own risk.\n",nco_prg_nm_get(),lmt_rec[idx_rec]->nm);
+        (void)fprintf(stderr,"\n%s: WARNING Subcycle argument SSC used in hyperslab specification for %s which will be determined based on coordinate values rather than dimension indices. The behavior of the subcycle hyperslab argument is ambiguous for coordinate-based hyperslabs---it could mean select the first SSC elements that are within the min and max coordinate values beginning with each strided point, or it could mean always select the first _consecutive_ SSC elements beginning with each strided point (regardless of their values relative to min and max). For such hyperslabs, NCO adopts the latter definition and always selects the group of SSC records beginning with each strided point. Strided points are themselves guaranteed to be within the min and max coordinates, though the subsequent members of each group are not. This is only the case when the record coordinate is not monotonic. The record coordinate is usually monotonic, so unpleasant surprises are only expected in corner cases unlikely to affect the majority of users.\n",nco_prg_nm_get(),lmt_rec[idx_rec]->nm);
       } /* Check subcycle for each record */
     } /* !idx_rec */
   } /* Subcycle argument warning */
@@ -1779,7 +1854,7 @@ main(int argc,char **argv)
   (void)nco_fl_out_cls(fl_out,fl_out_tmp,out_id);
 
   /* Clean memory unless dirty memory allowed */
-  if(flg_cln){
+  if(flg_mmr_cln){
     /* NCO-generic clean-up */
     /* Free individual strings/arrays */
     if(cmd_ln) cmd_ln=(char *)nco_free(cmd_ln);
@@ -1837,7 +1912,7 @@ main(int argc,char **argv)
     if(rec_usd_cml) rec_usd_cml=(long *)nco_free(rec_usd_cml);
     if(REC_LST_DSR) REC_LST_DSR=(nco_bool *)nco_free(REC_LST_DSR);
 
-  } /* !flg_cln */
+  } /* !flg_mmr_cln */
 
 #ifdef ENABLE_MPI
   MPI_Finalize();
@@ -1851,3 +1926,47 @@ main(int argc,char **argv)
   nco_exit_gracefully();
   return EXIT_SUCCESS;
 } /* end main() */
+
+
+/* remember ra_lst is a list of ragged arrays */
+/* the first element the is var_nm
+   the second element the cf_nm
+   the rest of the elements are the var names mentioned in attribute var_nm@cf_nm
+*/
+nco_bool
+ra_lst_chk(char ***ra_lst, int nbr_lst, char *var_nm, char *bnds_nm)
+{
+  int idx=0;
+  int jdx=0;
+
+  for( idx=0;idx<nbr_lst;idx++)
+    if(!strcmp(var_nm, ra_lst[idx][0]))
+      break;
+
+  if(idx==nbr_lst)
+      return False;
+
+  jdx=2;
+  while( strlen(ra_lst[idx][jdx])>0 )
+     if(!strcmp(ra_lst[idx][jdx++], bnds_nm ))
+       return True;
+
+  return False;
+
+}
+
+/* remember ra_lst is a list of ragged arrays */
+/* the end of the ragged array is indicated by a zero-length (not null) string */
+void ra_lst_free(char ***ra_lst, int nbr_lst){
+  int sz=1;
+  int fdx;
+    for (fdx = 0; fdx < nbr_lst; fdx++) {
+      while (strlen(ra_lst[fdx][sz]) > 0) sz++;
+      ra_lst[fdx] = nco_sng_lst_free(ra_lst[fdx], sz);
+    }
+}
+
+
+
+
+

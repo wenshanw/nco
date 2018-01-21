@@ -12,7 +12,7 @@
 // /usr/local/bin/ncgen -k hdf5-nc3 -b -o in_4c.nc in.cdl
 // /usr/local/bin/ncgen -k hdf5-nc3 -b -o ${HOME}/nco/data/in_4c.nc ${HOME}/nco/data/in.cdl
 
-// URL: 
+// URL:
 // http://dust.ess.uci.edu/nco/in.nc
 // http://dust.ess.uci.edu/nco/in_4.nc
 // http://thredds-test.ucar.edu/thredds/dodsC/testdods/in.nc
@@ -66,7 +66,7 @@ dimensions:
   dgn=1,bnd=2,lat=2,lat_grd=3,lev=3,rlev=3,ilev=4,lon=4,lon_grd=5,char_dmn_lng80=80,char_dmn_lng26=26,char_dmn_lng04=4,date_dmn=5,fl_dmn=3,lsmlev=6,wvl=2,time_udunits=3;lon_T42=128,lat_T42=64,lat_times_lon=8,gds_crd=8,gds_ncd=8,vrt_nbr=2,lon_cal=10,lat_cal=10,Lon=4,Lat=2,time=unlimited;
 variables:
   :Conventions = "CF-1.5";
-  :history = "History global attribute.\nTextual attributes like history often have embedded newlines like this.\nSuch newlines should serve as linebreaks on the screen to enhance legibility like this.\nFriendly CDL converters print a single NC_CHAR attribute as a comma-separated list of strings where each embedded delimiter marks a linebreak. This makes poetry embedded in CDL much nicer to read:\n\nA POET by Hafiz\n\nA poet is someone\nWho can pour light into a cup,\nThen raise it to nourish\nYour beautiful parched, holy mouth\n";
+  :history = "History global attribute.\nTextual attributes like history often have embedded newlines like this.\nSuch newlines should serve as linebreaks on the screen to enhance legibility like this.\nFriendly CDL converters print a single NC_CHAR attribute as a comma-separated list of strings where each embedded delimiter marks a linebreak. This makes poetry embedded in CDL much nicer to read (except for the printed literal \\n\'s---those are an eyesore):\n\nA POET by Hafiz\n\nA poet is someone\nWho can pour light into a cup,\nThen raise it to nourish\nYour beautiful parched, holy mouth\n";
   :lorem_ipsum = "The Lorem Ipsum attribute demonstrates the legibility of text without embedded linebreaks:\nLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Lady Gaga amat indueris vestimento laetus. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.";
   :julian_day = 200000.04;
   :RCS_Header = "$Header$";
@@ -225,6 +225,9 @@ variables:
 	lat_cal:units = "days since 1964-2-28"; 
 	lat_cal:calendar = "360_day";
 
+	double tm_scn;
+        tm_scn:units = "seconds since 2013-01-01";
+
 	double tm_std;
         tm_std:units = "days since 2013-01-01";
 
@@ -257,6 +260,12 @@ variables:
 	wvl:units = "meter";
 
 	int od(time);
+
+	double areacella(lat,lon);
+        areacella:standard_name = "area";
+        areacella:long_name = "area";
+	areacella:units = "meter2";
+	areacella:purpose = "Variable to hold cell areas of 2D fields. Intended to be pointed to by cell_measures attribute of 2D fields. Would have named it plain-old area but too many regression tests already depend on 1D float area below. areacella is name used by ESGF-distributed versions of some CESM simulations anyway, e.g., baseURL: http://cmip-pcmdi.llnl.gov/CMIP5/dataLocation gridspecFile: gridspec_atmos_fx_CCSM4_amip_r0i0p0.nc areacella: areacella_fx_CCSM4_amip_r0i0p0.nc";
 
 	float area(lat);
 	area:long_name = "area";
@@ -445,6 +454,11 @@ variables:
 	mss_val_scl:long_name = "scalar missing value";
 	mss_val_scl:_FillValue = 1.0e36f;
 
+	float mss_val_scl_sml;
+	mss_val_scl_sml:long_name = "scalar missing value";
+	mss_val_scl_sml:purpose = "Unlike mss_val_scl, mss_val_scl_sml has a missing value that fits within any packed data type range";
+	mss_val_scl_sml:_FillValue = 1.0e4f;
+
 	float mss_val_fst(lon);
 	mss_val_fst:long_name = "offset partial missing value example";
 	mss_val_fst:_FillValue = -999.0f;
@@ -572,6 +586,7 @@ variables:
 	float scalar_var;
 	scalar_var:long_name = "scalar variable";
 	scalar_var:units = "fraction";
+	scalar_var:_FillValue = 1.0e36f;
 
 	float float_var;
 	float_var:long_name = "float";
@@ -612,9 +627,21 @@ variables:
 	char_var_space:long_name = "Character variable with whitespace on ends";
 
 	char char_var_nul;
-	char_var_nul:long_name = "Character variable containing one NUL";
+	char_var_nul:long_name = "Character variable containing one NUL specified as empty string: \"\"";
 
-	// 20131015: This confuses the XML parser. Omit it for now.
+	char char_var_nul_c_format;
+	char_var_nul_c_format:long_name = "Character variable containing one NUL specified in C-format: \'\\0\'";
+
+	char char_var_zero;
+	char_var_zero:long_name = "Character variable containing zero";
+
+	char char_var_1D_arr(time);
+        char_var_1D_arr:long_name = "char-type 1D variable array";
+
+	char char_var_2D_arr(lat,lon);
+        char_var_2D_arr:long_name = "char-type 2D variable array";
+	
+        // 20131015: This confuses the XML parser. Omit it for now.
 	// char char_var_multinul(lev);
 	// char_var_multinul:long_name = "Character variable containing multiple NULs";
 
@@ -628,6 +655,10 @@ variables:
 	char fl_nm_rec(time,char_dmn_lng80);
 	fl_nm_rec:long_name = "A record variable of file names";
 	fl_nm_rec:units = "[sng]";
+
+	char date_sng(char_dmn_lng26);
+	date_sng:long_name = "A single date string";
+	date_sng:units = "[sng]";
 
 	char date_rec(time,char_dmn_lng26);
 	date_rec:long_name = "A record variable of date strings";
@@ -660,13 +691,13 @@ variables:
 	zero:long_name = "zero";
 
 	float ppc_zro_flt(time);
-	zero:long_name = "array of single precision floating point zeros";
+	ppc_zro_flt:long_name = "array of single precision floating point zeros";
 
 	double ppc_zro_dbl(time);
-	zero:long_name = "array of double precision floating point zeros";
+	ppc_zro_dbl:long_name = "array of double precision floating point zeros";
 
 	int ppc_zro_int(time);
-	zero:long_name = "array of integer zeros";
+	ppc_zro_int:long_name = "array of integer zeros";
 
 	float one;
 	one:long_name = "one";
@@ -743,6 +774,44 @@ variables:
         att_var:float_att = 73.0f,72.0f,71.0f,70.010f,69.0010f,68.010000f,67.01000100f;
 	att_var:double_att = 73.0,72.0,71.0,70.010,69.0010,68.010000,67.01000100;
 
+	int att_var_jsn;
+        att_var_jsn:char\ att\ with\ whitespace = "cf-json.org <http://cf-json.org>";
+        att_var_jsn:double\ att\ with\ whitespace = 3.14;
+        att_var_jsn:int\ att\ with\ whitespace = 1;
+        att_var_jsn:int_array\ att\ with\ whitespace = 1,2;
+
+	// Purpose: Test special characters in names
+	// Most special characters need backslash protection
+	int att_var_spc_chr;
+	att_var_spc_chr:space\ in\ name = "foo";
+	att_var_spc_chr:comma_in_name\, = "foo";
+	att_var_spc_chr:lt_in_name\< = "foo";
+	att_var_spc_chr:gt_in_name\> = "foo";
+	att_var_spc_chr:hash_in_name\# = "foo";
+	att_var_spc_chr:xclaim_in_name\! = "foo";
+	att_var_spc_chr:dollar_in_name\$ = "foo";
+	att_var_spc_chr:ampersand_in_name\& = "foo";
+	att_var_spc_chr:equals_in_name\= = "foo";
+	att_var_spc_chr:semicolon_in_name\; = "foo";
+	att_var_spc_chr:colon_in_name\: = "foo";
+	att_var_spc_chr:lbrace_in_name\{ = "foo";
+	att_var_spc_chr:rbrace_in_name\} = "foo";
+	att_var_spc_chr:lparen_in_name\( = "foo";
+	att_var_spc_chr:rparen_in_name\) = "foo";
+	att_var_spc_chr:lbracket_in_name\[ = "foo";
+	att_var_spc_chr:rbracket_in_name\] = "foo";
+	att_var_spc_chr:plus_in_name+ = "foo";
+	//  : period_in_name. = "foo"; // Likely to cause DAP server error
+	att_var_spc_chr:hyphen_in_name- = "foo";
+	att_var_spc_chr:at_in_name@ = "foo";
+
+	// Purpose test special chars in char atts 
+        int att_sng;
+        att_sng:nul_sng = '\0';
+	att_sng:empty_sng = "";
+        att_sng:space_sng = " ";
+	att_sng:zero_sng = "0";
+	
 	int bnd_var(lev,bnd);
 	bnd_var:byte_att = '\0';
 	bnd_var:char_att = "Sentence one.\nSentence two.\n";
@@ -911,6 +980,23 @@ variables:
 	float ORO(lat,lon);
 	ORO:long_name = "Orography, an enumerated yet continuous type: ocean=0.0, land=1.0, sea ice=2.0";
 	ORO:units = "fraction";
+
+	float orog(lat,lon);
+	orog:long_name = "Orography, an enumerated yet continuous type: ocean=0.0, land=1.0, sea ice=2.0";
+	orog:units = "fraction";
+        orog:original_name = "ORO" ;
+        orog:cell_measures = "area: areacella" ;
+        orog:purpose = "Replicate processing of files produced by CESM and distributed on ESGF" ;
+
+	float orog2(lat,lon);
+	orog2:long_name = "Value of 1 everywhere on latxlon grid";
+	orog2:units = "fraction";
+        orog2:purpose = "debug TODO nco1138" ;
+
+	float orog3(lat,lon);
+	orog3:long_name = "Value of 0 first half, 1 second half on latxlon grid";
+	orog3:units = "fraction";
+        orog3:purpose = "debug TODO nco1138" ;
 
 	float weight(lat);
 	weight:long_name = "Gaussian weight";
@@ -1123,6 +1209,18 @@ variables:
         rec_var_dbl_mss_val_sht_pck_sht:scale_factor = -9.15541313801785e-05;
 	rec_var_dbl_mss_val_sht_pck_sht:add_offset = 5.;
 
+	float rec_var_flt_mss_val_flt_pck_flt(time);
+	rec_var_flt_mss_val_flt_pck_flt:long_name = "record variable, float packed as float, with float missing values";
+	rec_var_flt_mss_val_flt_pck_flt:purpose = "CESM POP2 ocean model packs SALT, WVEL etc this way";
+	rec_var_flt_mss_val_flt_pck_flt:_FillValue = -9.96921e+33;
+        rec_var_flt_mss_val_flt_pck_flt:scale_factor = 1000.0;
+
+	float SALT(time);
+	SALT:long_name = "record variable, float packed as float, with float missing values";
+	SALT:purpose = "CESM POP2 ocean model packs SALT, WVEL etc this way";
+	SALT:_FillValue = -9.96921e+33;
+        SALT:scale_factor = 1000.0;
+	
 	char one_dmn_rec_var_sng(time);
 	one_dmn_rec_var_sng:long_name = "one dimensional record variable of string";
         one_dmn_rec_var_sng:NB = "20131222: HDF4 ncgen fails on this variable: /usr/bin/hncgen -b -o ~/in.hdf ~/nco/data/in.cdl produces error message that \"string won't fit in this variable\"";
@@ -1137,15 +1235,28 @@ variables:
 	two_dmn_rec_var:long_name = "two dimensional record variable";
 	two_dmn_rec_var:units = "watt meter-2";
 
-	float three_dmn_rec_var(time,lat,lon);
-	three_dmn_rec_var:long_name = "three dimensional record variable";
-	three_dmn_rec_var:units = "watt meter-2";
-	three_dmn_rec_var:coordinates = "time lat lon";
-
 	double three_dmn_var_dbl(time,lat,lon);
 	three_dmn_var_dbl:long_name = "three dimensional record variable of type double";
 	three_dmn_var_dbl:units = "watt meter-2";
 	three_dmn_var_dbl:_FillValue = -99.;
+
+	float zg(time,lev,lon);
+	zg:long_name = "three dimensional record variable to demonstrate hyperslab bug";
+	zg:units = "watt meter-2";
+	zg:_FillValue = -99.;
+
+	float three_dmn_rec_var(time,lat,lon);
+	three_dmn_rec_var:long_name = "three dimensional record variable";
+	three_dmn_rec_var:units = "watt meter-2";
+	three_dmn_rec_var:_FillValue = -99.;
+
+	short three_dmn_rec_var_pck(time,lat,lon);
+	three_dmn_rec_var_pck:long_name = "three dimensional record variable";
+	three_dmn_rec_var_pck:purpose = "should unpack into identical values with three_dmn_rec_var (i.e., 1..80)";
+	three_dmn_rec_var_pck:units = "watt meter-2";
+	three_dmn_rec_var_pck:_FillValue = -99.;
+        three_dmn_rec_var_pck:add_offset = 40.5f ;
+        three_dmn_rec_var_pck:scale_factor = -0.001205518f ;
 
 	int three_dmn_var_int(time,lat,lon);
 	three_dmn_var_int:long_name = "three dimensional record variable of type int";
@@ -1242,9 +1353,13 @@ data:
 //	None in this file
 //	netCDF3 atomic types:
 	att_var=10.0,10.1,10.20,10.3000,10.40101,10.500001,10.60000001,10.7000001,10.80,10.9900;
+	att_var_jsn=73;
+	att_var_spc_chr=73;
+	att_sng=20;
 	area=10.,10.;
 	area2=20.,5.;
 	area_asm=1.,2.;
+	areacella=1.,1.,2.,2.,3.,3.,4.,4.;
 	bnd_var=1,2,3,4,5,6;
 	byt_arr=0,1,2,3,4,5,6,7;
 	byt_2D=0,1,2,3,4,5,6,7;
@@ -1265,9 +1380,20 @@ data:
 	// 20131015: This confuses the XML parser
 	//	char_var_multinul="\b\n\0";
 	// char_var_multinul='0','\n','\0';
-	char_var_nul='\0';
+	// 20180111: Historically we specified char_var_nul as '\0'
+	// However, ncgen apparently turns '\0' into a zero
+	// "correct" (meaning ncgen-supported) way to specify a scalar NUL character is with ""
+	// As of today we specify char_var_nul as "" and char_var_nul_c_format as '\0'
+	// char_var_nul_c_format indicates what happens when specifying characters in C-format
+	// I think ncgen should support C-format byte codes for characters, though ncgen does not yet do so correctly
+	char_var_nul="";
+	char_var_nul_c_format='\0';
+	char_var_zero="0";
 	char_var_space=" ";
+        char_var_1D_arr="two words";
+        char_var_2D_arr="one","two";
         cnv_CF_grd=1,2,3,4,5,6,7,8;
+	albers_conical_equal_area="";
 	cnv_CF_crd=273.1,273.2,273.3,273.4,273.5,273.6,273.7,273.8;
 	cnv_CF_ncl=1.,2.,3.,4.,5.,6.,7.,8.,9.,10.;
 	cnv_CF_ncl_var_1=11.,22.,23.,24.,25.,26.,27.,28.,29.,30.;
@@ -1369,9 +1495,11 @@ data:
 	var_mss_1=0.,_,2.,3.;
 	var_mss_2=0.,1.,_,3.;
 	var_mss_3=0.,1.,2.,_;
-	var_msk=0.,1.,0.,0.,1.,1.,0.,2.;
 	ORO=0.,1.,0.,0.,1.,1.,0.,2.;
-	mask=0.,1.,0.,0.,1.,1.,0.,2.;
+	orog=0.,1.,0.,0.,1.,1.,0.,2.;
+	orog2=1.,1.,1.,1.,1.,1.,1.,1.;
+	orog3=0.,0.,0.,0.,1.,1.,1.,1.;
+	mask=0.,1.,0.,0.,1.,1.,0.,1.;
 //	mask=0.,0.,0.,0.,0.,0.,0.,0.;
 //	mask=1.,1.,1.,1.,1.,1.,1.,1.;
 	fll_val=73,-999,73,-999;
@@ -1383,9 +1511,10 @@ data:
 	mss_val_all=1.0e36,1.0e36,1.0e36,1.0e36;
 	mss_val_fst=-999,73,-999,73;
 	mss_val_scl=1.0e36;
-	//	nan_arr=0,nan;
+	mss_val_scl_sml=1.0e4;
+	//nan_arr=0,nan;
 	nan_arr=0,73;
-//	nan_scl=nan;
+	//nan_scl=nan;
 	nan_scl=1;
 	negative_one=-1.;
 	nm_pnd=1;
@@ -1542,6 +1671,8 @@ data:
 	rec_var_dbl_mss_val_dbl_pck=-999,32767,21845,10922,0,-10922,-21845,-32767,-999,-999;
 	rec_var_dbl_mss_val_dbl_pck_lng=-999,32767,21845,10922,0,-10922,-21845,-32767,-999,-999;
 	rec_var_dbl_mss_val_sht_pck_sht=-999,32767,21845,10922,0,-10922,-21845,-32767,-999,-999;
+	rec_var_flt_mss_val_flt_pck_flt=-9.96921e+33,0.032,0.033,0.034,0.035,0.036,0.037,0.038,-9.96921e+33,-9.96921e+33;
+	SALT=-9.96921e+33,0.032,0.033,0.034,0.035,0.036,0.037,0.038,-9.96921e+33,-9.96921e+33;
 	rec_var_dbl_mss_val_dbl_upk=-999.,2.,3.,4.,5.,6.,7.,8.,-999.,-999.;
 	rec_var_dbl_mss_val_sht_pck=-999,32767,21845,10922,0,-10922,-21845,-32767,-999,-999;
 	rec_var_dbl_mss_val_sht_upk=-999.,2.,3.,4.,5.,6.,7.,8.,-999.,-999.;
@@ -1568,6 +1699,7 @@ data:
 	time=1.,2.,3.,4.,5.,6.,7.,8.,9.,10.;
 	time_bnds=0.5,1.5,1.5,2.5,2.5,3.5,3.5,4.5,4.5,5.5,5.5,6.5,6.5,7.5,7.5,8.5,8.5,9.5,9.5,10.5;
 	climatology_bounds=0.5,1.5,1.5,2.5,2.5,3.5,3.5,4.5,4.5,5.5,5.5,6.5,6.5,7.5,7.5,8.5,8.5,9.5,9.5,10.5;
+	tm_scn=59;
 	tm_std=59;
 	tm_grg=59;
 	tm_jln=59;
@@ -1619,6 +1751,7 @@ data:
 	  "/data/zender/dstccm04/dstccm04_8589_08.nc",
 	  "/data/zender/dstccm04/dstccm04_8589_09.nc",
 	  "/data/zender/dstccm04/dstccm04_8589_10.nc";
+	date_sng="2010-11-01T00:00:00.000000";
 	date_rec="2010-11-01T00:00:00.000000",
 	  "2010-11-01T01:00:00.000000",
 	  "2010-11-01T02:00:00.000000",
@@ -1669,6 +1802,16 @@ data:
 				57,58,59,60,61,62,63,64,
 				65,66,67,68,69,70,71,72,
 				73,74,75,76,77,78,79,80;
+	three_dmn_rec_var_pck=  32766, 31936, 31107, 30277, 29448, 28618, 27789, 26959, 
+	  26130, 25300, 24471, 23641, 22812, 21982, 21153, 20323, 
+	  19494, 18664, 17835, 17005, 16176, 15346, 14517, 13687, 
+	  12858, 12028, 11199, 10369, 9539, 8710, 7880, 7051, 
+	  6221, 5392, 4562, 3733, 2903, 2074, 1244, 415, 
+	  -415, -1244, -2074, -2903, -3733, -4562, -5392, -6221, 
+	  -7051, -7880, -8710, -9539, -10369, -11199, -12028, -12858, 
+	  -13687, -14517, -15346, -16176, -17005, -17835, -18664, -19494, 
+	  -20323, -21153, -21982, -22812, -23641, -24471, -25300, -26130, 
+	  -26959, -27789, -28618, -29448, -30277, -31107, -31936, -32766 ; 
 	prs_sfc=		 1, 2, 3, 4, 5, 6, 7, 8,
 				 9,10,11,12,13,14,15,16,
 				17,18,19,20,21,22,23,24,
@@ -1699,6 +1842,16 @@ data:
 				-99,58,59,60,61,62,63,64,
 				65,66,67,68,69,70,71,72,
 				-99,74,75,76,77,78,79,-99;
+	zg=              	 1, 2, 3, 4, 5, 6, 7, 8,9,10,11,12,
+				13,14,15,16,17,18,19,20,21,22,23,24,
+	                        25,26,27,28,29,30,31,32,33,34,35,36,
+				37,38,39,40,41,42,43,44,45,46,47,48,
+				49,50,51,52,53,54,55,56,57,58,59,60,
+                                61,62,63,64,65,66,67,68,69,70,71,72,
+				73,74,75,76,77,78,79,80,81,82,83,84,
+                                85,86,87,88,89,90,91,92,93,94,95,96,
+                                97,98,99,100,101,102,103,104,105,106,107,108,
+                                109,110,111,112,113,114,115,116,117,118,119,120;
 	three_dmn_var_int= 	 1, 2, 3, 4, 5, 6, 7, 8,
 				 9,10,11,12,13,14,15,16,
 				-99,-99,-99,-99,-99,-99,-99,-99,

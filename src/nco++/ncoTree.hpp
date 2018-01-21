@@ -3,7 +3,7 @@
 
 #include <antlr/config.hpp>
 #include "ncoParserTokenTypes.hpp"
-/* $ANTLR 2.7.7 (2006-11-01): "ncoGrammer.g" -> "ncoTree.hpp"$ */
+/* $ANTLR 2.7.7 (20161013): "ncoGrammer.g" -> "ncoTree.hpp"$ */
 #include <antlr/TreeParser.hpp>
 
 #line 1 "ncoGrammer.g"
@@ -12,7 +12,7 @@
 
 /* Purpose: ANTLR Grammar and support files for ncap2 */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2017 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -33,9 +33,12 @@
     #include <fstream>
     #include <string>
   
+    // custom exception -used for "exit" function
+    #include "ExitException.hpp" 
     // Custom Headers
     #include "prs_cls.hh"
     #include "ncap2_utl.hh"
+    #include "ncap2_att.hh"
     #include "fmc_cls.hh"
     #include "NcapVar.hh"
     #include "NcapVarVector.hh"
@@ -48,10 +51,10 @@
     ANTLR_USING_NAMESPACE(std);
     ANTLR_USING_NAMESPACE(antlr);
 
-#line 52 "ncoTree.hpp"
+#line 55 "ncoTree.hpp"
 class CUSTOM_API ncoTree : public ANTLR_USE_NAMESPACE(antlr)TreeParser, public ncoParserTokenTypes
 {
-#line 662 "ncoGrammer.g"
+#line 697 "ncoGrammer.g"
 
 
 private:
@@ -478,7 +481,7 @@ if( nbr_dmn!=lmt_init(lmt,ast_lmt_vtr) )
     for(idx=0 ; idx < nbr_stmt; idx++){
       ntyp=ntr->getType();
       // we have hit an IF or a basic block
-      if(ntyp==BLOCK || ntyp==IF ||ntyp==DEFDIM || ntyp==WHILE ||ntyp==FOR || ntyp==FEXPR ||ntyp==WHERE) {
+      if(ntyp==BLOCK || ntyp==IF ||ntyp==DEFDIM || ntyp==WHILE ||ntyp==FOR || ntyp==FEXPR ||ntyp==WHERE || ntyp==EXIT) {
       //  if(ntyp != EXPR ){ 
         if(icnt>0) 
          (void)run_dbl(etr,icnt);
@@ -515,7 +518,7 @@ RefAST nco_dupList(RefAST tr){
       */ 
       return otr; 
      }
-#line 56 "ncoTree.hpp"
+#line 59 "ncoTree.hpp"
 public:
 	ncoTree();
 	static void initializeASTFactory( ANTLR_USE_NAMESPACE(antlr)ASTFactory& factory );
@@ -545,7 +548,9 @@ public:
 	public: var_sct * att_plain(ANTLR_USE_NAMESPACE(antlr)RefAST _t);
 	public:  RefAST  att2var(ANTLR_USE_NAMESPACE(antlr)RefAST _t);
 	public: var_sct * value_list(ANTLR_USE_NAMESPACE(antlr)RefAST _t);
-	public: var_sct * value_list_string(ANTLR_USE_NAMESPACE(antlr)RefAST _t,
+	public: var_sct * value_list_string(ANTLR_USE_NAMESPACE(antlr)RefAST _t);
+	public: var_sct * value_list_old(ANTLR_USE_NAMESPACE(antlr)RefAST _t);
+	public: var_sct * value_list_string_old(ANTLR_USE_NAMESPACE(antlr)RefAST _t,
 		 std::vector<var_sct*> &exp_vtr
 	);
 	public: bool  where_assign(ANTLR_USE_NAMESPACE(antlr)RefAST _t,
@@ -568,10 +573,10 @@ protected:
 private:
 	static const char* tokenNames[];
 #ifndef NO_STATIC_CONSTS
-	static const int NUM_TOKENS = 117;
+	static const int NUM_TOKENS = 118;
 #else
 	enum {
-		NUM_TOKENS = 117
+		NUM_TOKENS = 118
 	};
 #endif
 	

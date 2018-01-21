@@ -2,7 +2,7 @@
 
 /* Purpose: Missing value utilities */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -56,12 +56,12 @@ nco_mss_val_cp /* [fnc] Copy missing value from var1 to var2 */
  var_sct * const var2); /* I/O [sct] Variable with missing value to fill in/overwrite */
 
 int /* O [flg] Variable has missing value on output */
-nco_mss_val_get /* [fnc] Update number of attributes, missing_value of variable */
+nco_mss_val_get /* [fnc] Update number of attributes, missing value of variable */
 (const int nc_id, /* I [id] netCDF input-file ID */
  var_sct * const var); /* I/O [sct] Variable with missing_value to update */
 
 nco_bool /* O [flg] Variable has missing value */
-nco_mss_val_get_dbl /* [fnc] Return missing_value of variable, if any, as double precision number */
+nco_mss_val_get_dbl /* [fnc] Return missing value of variable, if any, as double precision number */
 (const int nc_id, /* I [id] netCDF input-file ID */
  const int var_id, /* I [id] netCDF variable ID */
  double *mss_val_dbl); /* O [frc] Missing value in double precision */

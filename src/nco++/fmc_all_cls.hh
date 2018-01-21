@@ -1,6 +1,6 @@
 /* Purpose: netCDF arithmetic processor class methods */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -8,7 +8,7 @@
 // Standard C++ headers
 #ifndef FMC_ALL_CLS_HH
 #define FMC_ALL_CLS_HH
-
+#include <time.h>
 #include <math.h>
 
 #include <string>
@@ -19,17 +19,20 @@
 #include "ncoTree.hpp"
 #include "ncap2_utl.hh"
 #include "vtl_cls.hh"
+#include "nco_cln_utl.h" /* Calendar utilities */
 #include "nco_rth_flt.h" /* Float-precision arithmetic, MSVC macros */
 
 #include "sym_cls.hh" // holder for float/double math function pointers
 #include "map_srt_tmp.hh" // template -used in srt_cls
 #include <assert.h>
 
+
   /* Math float prototypes required by AIX, Solaris, but not by Linux, IRIX */
   /* Basic math: acos, asin, atan, cos, exp, fabs, log, log10, sin, sqrt, tan */
   
   /* GNU g++ barfs at these float declartions -- remove if g++ used */
-#ifndef __GNUG__
+  /* MSVC complains because dllimport is not used */
+#if !defined(__GNUG__) && !defined(_MSC_VER)
   extern float acosf(float);
   extern float asinf(float);
   extern float atanf(float);
@@ -76,11 +79,13 @@ public:
     var_sct *fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker);
 };
 
+
 //Aggregate Functions /***************************************/
 class agg_cls: public vtl_cls {
 private:
-  enum{ PAVG ,PAVGSQR , PMIBS, PMABS, PMEBS, PMAX ,PMIN ,PRMS,
-	PRMSSDN, PSQRAVG, PTTL};
+  /* we want the enums to be exactly identical to the values of nco_op_typ */
+  enum{ PAVG=nco_op_avg ,PAVGSQR=nco_op_avgsqr , PMIBS=nco_op_mibs, PMABS=nco_op_mabs, PMEBS=nco_op_mebs, PMAX=nco_op_max ,PMIN=nco_op_min ,PRMS=nco_op_rms,
+	PRMSSDN=nco_op_rmssdn, PSQRAVG=nco_op_sqravg, PTTL=nco_op_ttl, PTABS=nco_op_tabs};
   bool _flg_dbg;
 public:
   agg_cls(bool flg_dbg);
@@ -90,13 +95,20 @@ public:
 //Utility Functions /****************************************/
 class utl_cls: public vtl_cls {
 private:
-  enum {SET_MISS,CH_MISS,DEL_MISS,GET_MISS,NUM_MISS,HAS_MISS, RAM_WRITE,RAM_DELETE};
+  enum {SET_MISS,CH_MISS,DEL_MISS,GET_MISS,NUM_MISS,HAS_MISS, RAM_WRITE,RAM_DELETE, MASK_MISS,LINEAR_FILL_MISS, SIMPLE_FILL_MISS, WEIGHT_FILL_MISS};
    bool _flg_dbg;
 public:
   utl_cls(bool flg_dbg);
   var_sct *fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker);
   var_sct *is_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker);  
-  var_sct *get_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker);  
+  var_sct *get_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker);
+    var_sct *mask_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker);
+  var_sct *fill_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker);
+  var_sct *linear_fill_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker);
+  int simple_fill(var_sct *var, void* msk_vp);
+  int weight_fill(var_sct *var, void* msk_vp, double *lat, double *lon);
+  double point2point(double lat1,double lon1,double lat2, double lon2);
+
 };
 
 //Basic Functions /****************************************/
@@ -123,11 +135,13 @@ public:
 //Maths2 - Maths functions that take 2 args /*********/
 class mth2_cls: public vtl_cls {
 private:
-   enum {PPOW,PATAN2,PCONVERT};
+  enum {PPOW,PATAN2,PCONVERT, PXRATIO, PSOLARZENITHANGLE};
    bool _flg_dbg;
 public:
   mth2_cls(bool flg_dbg);
   var_sct *fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker);
+  void solar_geometry(float latitude_rad, float calendar_day_of_year, int num_longitudes, float *local_time, float *cosSZA, float *eccentricity_factor);
+
 };
 
 //PDQ Functions /****************************************/
@@ -289,6 +303,19 @@ private:
 public:
   print_cls(bool flg_dbg);
   var_sct *fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker);
+};
+
+
+// udunits  Functions       /***************************************/
+class udunits_cls: public vtl_cls {
+private:
+  enum{ PUNITS1,PSTRFTIME,PREGULAR};
+  bool _flg_dbg;
+public:
+  udunits_cls(bool flg_dbg);
+  var_sct *fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker);
+  var_sct *strftime_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker);
+  var_sct *regular_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker);
 };
 
 

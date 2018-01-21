@@ -2,7 +2,7 @@
 
 /* Purpose: NCO utilities for Precision-Preserving Compression (PPC) */
 
-/* Copyright (C) 2015--2016 Charlie Zender
+/* Copyright (C) 2015--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -64,11 +64,9 @@ nco_ppc_ini /* Set PPC based on user specifications */
  const int ppc_arg_nbr, /* I [nbr] Number of PPC specified */
  trv_tbl_sct * const trv_tbl) /* I/O [sct] Traversal table */
 {
-  int ppc_arg_idx; /* [idx] Index over ppc_arg (i.e., separate invocations of "--ppc var1[,var2]=val") */
   int ppc_var_idx; /* [idx] Index over ppc_lst (i.e., all names explicitly specified in all "--ppc var1[,var2]=val" options) */
   int ppc_var_nbr=0;
   kvm_sct *ppc_lst; /* [sct] List of all PPC specifications */
-  kvm_sct kvm;
 
   if(fl_out_fmt == NC_FORMAT_NETCDF4 || fl_out_fmt == NC_FORMAT_NETCDF4_CLASSIC){
     /* If user did not explicitly set deflate level for this file ... */
@@ -80,31 +78,42 @@ nco_ppc_ini /* Set PPC based on user specifications */
     if(nco_dbg_lvl_get() >= nco_dbg_std) (void)fprintf(stderr,"%s: INFO Requested Precision-Preserving Compression (PPC) on netCDF3 output dataset. Unlike netCDF4, netCDF3 does not support internal compression. To take full advantage of PPC consider writing file as netCDF4 enhanced (e.g., %s -4 ...) or classic (e.g., %s -7 ...). Or consider compressing the netCDF3 file afterwards with, e.g., gzip or bzip2. File must then be uncompressed with, e.g., gunzip or bunzip2 before netCDF readers will recognize it. See http://nco.sf.net/nco.html#ppc for more information on PPC strategies.\n",nco_prg_nm_get(),nco_prg_nm_get(),nco_prg_nm_get());
   } /* endelse */
 
-  ppc_lst=(kvm_sct *)nco_malloc(NC_MAX_VARS*sizeof(kvm_sct));
+  char *sng_fnl=NULL;
 
-  /* Parse PPCs */
-  for(ppc_arg_idx=0;ppc_arg_idx<ppc_arg_nbr;ppc_arg_idx++){
-    if(!strstr(ppc_arg[ppc_arg_idx],"=")){
-      (void)fprintf(stdout,"%s: Invalid --ppc specification: %s. Must contain \"=\" sign.\n",nco_prg_nm_get(),ppc_arg[ppc_arg_idx]);
-      if(ppc_lst) ppc_lst=(kvm_sct *)nco_free(ppc_lst);
-      nco_exit(EXIT_FAILURE);
-    } /* endif */
-    kvm=nco_sng2kvm(ppc_arg[ppc_arg_idx]);
-    /* nco_sng2kvm() converts argument "--ppc one,two=3" into kvm.key="one,two" and kvm.val=3
-       Then nco_lst_prs_2D() converts kvm.key into two items, "one" and "two", with the same value, 3 */
-    if(kvm.key){
-      int var_idx; /* [idx] Index over variables in current PPC argument */
-      int var_nbr; /* [nbr] Number of variables in current PPC argument */
-      char **var_lst;
-      var_lst=nco_lst_prs_2D(kvm.key,",",&var_nbr);
-      for(var_idx=0;var_idx<var_nbr;var_idx++){ /* Expand multi-variable specification */
-        ppc_lst[ppc_var_nbr].key=strdup(var_lst[var_idx]);
-        ppc_lst[ppc_var_nbr].val=strdup(kvm.val);
-        ppc_var_nbr++;
-      } /* end for */
-      var_lst=nco_sng_lst_free(var_lst,var_nbr);
-    } /* end if */
-  } /* end for */
+  /* Join arguments together */
+  sng_fnl=nco_join_sng(ppc_arg, ppc_arg_nbr);
+  ppc_lst=nco_arg_mlt_prs(sng_fnl);
+
+  if(sng_fnl) sng_fnl=(char *)nco_free(sng_fnl);
+
+  /* jm fxm use more descriptive name than i---what does i count? */
+  for(int index=0;(ppc_lst+index)->key;index++, ppc_var_nbr++); /* end loop over i */
+
+  // ppc_lst=(kvm_sct *)nco_malloc(NC_MAX_VARS*sizeof(kvm_sct));
+
+  // /* Parse PPCs */
+  // for(ppc_arg_idx=0;ppc_arg_idx<ppc_arg_nbr;ppc_arg_idx++){
+  //   if(!strstr(ppc_arg[ppc_arg_idx],"=")){
+  //     (void)fprintf(stdout,"%s: Invalid --ppc specification: %s. Must contain \"=\" sign.\n",nco_prg_nm_get(),ppc_arg[ppc_arg_idx]);
+  //     if(ppc_lst) ppc_lst=(kvm_sct *)nco_free(ppc_lst);
+  //     nco_exit(EXIT_FAILURE);
+  //   } /* endif */
+  //   kvm=nco_sng2kvm(ppc_arg[ppc_arg_idx]);
+  //   /* nco_sng2kvm() converts argument "--ppc one,two=3" into kvm.key="one,two" and kvm.val=3
+  //      Then nco_lst_prs_2D() converts kvm.key into two items, "one" and "two", with the same value, 3 */
+  //   if(kvm.key){
+  //     int var_idx; /* [idx] Index over variables in current PPC argument */
+  //     int var_nbr; /* [nbr] Number of variables in current PPC argument */
+  //     char **var_lst;
+  //     var_lst=nco_lst_prs_2D(kvm.key,",",&var_nbr);
+  //     for(var_idx=0;var_idx<var_nbr;var_idx++){ /* Expand multi-variable specification */
+  //       ppc_lst[ppc_var_nbr].key=strdup(var_lst[var_idx]);
+  //       ppc_lst[ppc_var_nbr].val=strdup(kvm.val);
+  //       ppc_var_nbr++;
+  //     } /* end for */
+  //     var_lst=nco_sng_lst_free(var_lst,var_nbr);
+  //   } /* end if */
+  // } /* end for */
 
   /* PPC "default" specified, set all non-coordinate variables to default first */
   for(ppc_var_idx=0;ppc_var_idx<ppc_var_nbr;ppc_var_idx++){
@@ -230,7 +239,9 @@ nco_ppc_set_dflt /* Set PPC value for all non-coordinate variables for --ppc def
 	int var_id;
 	nco_inq_grp_full_ncid(nc_id,trv_tbl->lst[idx_tbl].grp_nm_fll,&grp_id);
 	nco_inq_varid(grp_id,trv_tbl->lst[idx_tbl].nm,&var_id);
-	if(!nco_is_spc_in_cf_att(grp_id,"bounds",var_id) && !nco_is_spc_in_cf_att(grp_id,"climatology",var_id) && !nco_is_spc_in_cf_att(grp_id,"coordinates",var_id)){
+	if(!nco_is_spc_in_cf_att(grp_id, "bounds", var_id, NULL) && !nco_is_spc_in_cf_att(grp_id, "climatology", var_id,
+                                                                                      NULL) && !nco_is_spc_in_cf_att(
+    grp_id, "coordinates", var_id, NULL)){
 	  trv_tbl->lst[idx_tbl].ppc=ppc_val;
 	  trv_tbl->lst[idx_tbl].flg_nsd=flg_nsd;
 	} /* endif */
@@ -770,7 +781,7 @@ nco_ppc_bitmask_scl /* [fnc] Round input value significand by specified number o
 {
   /* Purpose: Mask-out bit_xpl_nbr_zro least most significant bits of a scalar double precision value
      Code originally from nco_ppc_bitmask() (bitmasking is my signature move)
-     Code used in nco_rgr_map() when diagnosing whether quadrature weights properly normalized */
+     Code used in nco_rgr_wgt() when diagnosing whether quadrature weights properly normalized */
 
   const int bit_xpl_nbr_sgn_dbl=53; /* [nbr] Bits 0-52 of DP significands are explicit. Bit 53 is implicit. */
   double val_rnd; /* [frc] Rounded version of exact value */

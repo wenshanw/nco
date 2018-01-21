@@ -2,7 +2,7 @@
 
 /* Purpose: Missing value utilities */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -51,7 +51,7 @@ nco_mss_val_mk /* [fnc] Return default missing value for type type */
 nco_bool /* O [flg] One or both operands have missing value */
 nco_mss_val_cnf /* [fnc] Change missing_value of var2 to missing_value of var1 */
 (var_sct * const var1, /* I [sct] Variable with template missing value to copy */
- var_sct * const var2) /* I/O [sct] Variable with missing value to fill in/overwrite */
+ var_sct * const var2) /* I/O [sct] Variable with missing value to fill-in/overwrite */
 {
   /* Purpose: 
      1. Change missing_value of var2 to missing_value of var1 when both exist 
@@ -90,7 +90,6 @@ nco_mss_val_cnf /* [fnc] Change missing_value of var2 to missing_value of var1 *
     default: nco_dfl_case_nc_type_err(); break;
     } /* end switch */
     if(!MSS_VAL_EQL){
-      /* World's most anally formatted warning message... */
       char mss_val_1_sng[NCO_MAX_LEN_FMT_SNG];
       char mss_val_2_sng[NCO_MAX_LEN_FMT_SNG];
       const char *fmt_sng;
@@ -126,7 +125,8 @@ nco_mss_val_cnf /* [fnc] Change missing_value of var2 to missing_value of var1 *
       case NC_STRING: (void)sprintf(mss_val_2_sng,fmt_sng,var2->mss_val.sngp[0]); break;
       default: nco_dfl_case_nc_type_err(); break;
       } /* end switch */
-      (void)fprintf(stderr,"%s: WARNING Input variables have different NCO_MSS_VAL_SNG's:\nFile 1 variable %s has NCO_MSS_VAL_SNG type = %s, value = %s\nFile 2 variable %s has NCO_MSS_VAL_SNG type = %s, value = %s\nFile 3 variable %s will have NCO_MSS_VAL_SNG type = %s, value = %s\nWill translate values of var2 equaling mss_val2 to mss_val1 before arithmetic operation\n",nco_prg_nm_get(),var1->nm,nco_typ_sng(var1->type),mss_val_1_sng,var2->nm,nco_typ_sng(var2->type),mss_val_2_sng,var1->nm,nco_typ_sng(var1->type),mss_val_1_sng);
+      /* World's most anally formatted warning message... */
+      (void)fprintf(stderr,"%s: WARNING Input variables have different NCO_MSS_VAL_SNG's:\nVariable #1 = %s has NCO_MSS_VAL_SNG type = %s, value = %s\nVariable #2 = %s has NCO_MSS_VAL_SNG type = %s, value = %s\nVariable #3 = output = %s will have NCO_MSS_VAL_SNG type = %s, value = %s\nWill translate values of var2 equaling mss_val2 to mss_val1 before evaluating arithmetic operation to compute var3\n",nco_prg_nm_get(),var1->nm,nco_typ_sng(var1->type),mss_val_1_sng,var2->nm,nco_typ_sng(var2->type),mss_val_2_sng,var1->nm,nco_typ_sng(var1->type),mss_val_1_sng);
     } /* MSS_VAL_EQL */
     (void)cast_nctype_void(var_typ,&var1->mss_val);
     (void)cast_nctype_void(var_typ,&var2->mss_val);
@@ -256,7 +256,7 @@ nco_mss_val_cp /* [fnc] Copy missing value from var1 to var2 */
 } /* end nco_mss_val_cp() */
   
 int /* O [flg] Variable has missing value on output */
-nco_mss_val_get /* [fnc] Update number of attributes, missing_value of variable */
+nco_mss_val_get /* [fnc] Update number of attributes, missing value of variable */
 (const int nc_id, /* I [id] netCDF input-file ID */
  var_sct * const var) /* I/O [sct] Variable with missing_value to update */
 {
@@ -348,7 +348,7 @@ nco_mss_val_get /* [fnc] Update number of attributes, missing_value of variable 
 } /* end nco_mss_val_get() */
 
 nco_bool /* O [flg] Variable has missing value */
-nco_mss_val_get_dbl /* [fnc] Return missing_value of variable, if any, as double precision number */
+nco_mss_val_get_dbl /* [fnc] Return missing value of variable, if any, as double precision number */
 (const int nc_id, /* I [id] netCDF input-file ID */
  const int var_id, /* I [id] netCDF variable ID */
  double *mss_val_dbl) /* O [frc] Missing value in double precision */
@@ -389,10 +389,14 @@ nco_mss_val_get_dbl /* [fnc] Return missing_value of variable, if any, as double
     } /* end if */
     /* If we got this far then retrieve attribute */
     has_mss_val=True;
-    /* Oddly, ARM uses NC_CHAR for type of missing_value, so make allowances for this */
-    (void)nco_get_att(nc_id,var_id,att_nm,mss_val_dbl,NC_DOUBLE);
-    //(void)fprintf(stderr,"%s: INFO NC_DOUBLE version of \"%s\" attribute for %s is %g\n",nco_prg_nm_get(),att_nm,var_nm,*mss_val_dbl);
-    if(!isfinite(*mss_val_dbl)) (void)fprintf(stderr,"%s: WARNING NC_DOUBLE version of \"%s\" attribute for %s fails isfinite(), value is %s\n",nco_prg_nm_get(),att_nm,var_nm,(isnan(*mss_val_dbl)) ? "NaN" : ((isinf(*mss_val_dbl)) ? "Infinity" : ""));
+    /* Only retrieve value when pointer is non-NULL
+       This prevents excessive retrievals and (potentially) printing of lengthy WARNINGS below */
+    if(mss_val_dbl){
+      /* Oddly, ARM uses NC_CHAR for type of missing_value, so make allowances for this */
+      (void)nco_get_att(nc_id,var_id,att_nm,mss_val_dbl,NC_DOUBLE);
+      //(void)fprintf(stderr,"%s: INFO NC_DOUBLE version of \"%s\" attribute for %s is %g\n",nco_prg_nm_get(),att_nm,var_nm,*mss_val_dbl);
+      if(!isfinite(*mss_val_dbl)) (void)fprintf(stderr,"%s: WARNING NC_DOUBLE version of \"%s\" attribute for %s fails isfinite(), value is %s, which can cause unpredictable results.\nHINT: If arithmetic results (e.g., from regridding) fails or values seem weird, retry after first converting %s to normal number with, e.g., \"ncatted -a %s,%s,m,f,1.0e36 in.nc out.nc\"\n",nco_prg_nm_get(),att_nm,var_nm,(isnan(*mss_val_dbl)) ? "NaN" : ((isinf(*mss_val_dbl)) ? "Infinity" : ""),nco_mss_val_sng_get(),nco_mss_val_sng_get(),var_id != NC_GLOBAL ? var_nm : "");
+    } /* !mss_val_dbl */
     break;
   } /* end loop over att */
 

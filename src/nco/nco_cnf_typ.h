@@ -2,7 +2,7 @@
 
 /* Purpose: Conform variable types */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -111,8 +111,16 @@ nco_bool /* O [flg] Input is netCDF3 atomic type */
 nco_typ_nc3 /* [fnc] Identify netCDF3 atomic types */
 (const nc_type typ_in); /* I [enm] Type to check netCDF3 compliance */
 
+nco_bool /* O [flg] Input is CDF5 atomic type */
+nco_typ_nc5 /* [fnc] Identify CDF5 atomic types */
+(nc_type typ_in); /* I [enm] Type to check for CDF5 compliance */
+
 nc_type /* O [enm] netCDF3 type */
 nco_typ_nc4_nc3 /* [fnc] Convert netCDF4 to netCDF3 atomic type */
+(const nc_type typ_nc4); /* I [enm] netCDF4 type */
+
+nc_type /* O [enm] CDF5 atomic type */
+nco_typ_nc4_nc5 /* [fnc] Convert netCDF4 to CDF5 atomic type */
 (const nc_type typ_nc4); /* I [enm] netCDF4 type */
 
 #ifdef __cplusplus

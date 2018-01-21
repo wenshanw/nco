@@ -2,7 +2,7 @@
 
 /* Purpose: Attribute utilities */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -287,6 +287,7 @@ nco_aed_prc /* [fnc] Process single attribute edit for single variable */
     mss_val_crr.vp=(void *)nco_malloc(att_sz*nco_typ_lng(var->type));
     mss_val_new.vp=(void *)nco_malloc(aed.sz*nco_typ_lng(var->type));
 
+    /* 20170505: Does nco_val_cnf_typ() work as expected on NaNs? */
     (void)nco_val_cnf_typ(var->type,var->mss_val,var->type,mss_val_crr); 
     (void)nco_val_cnf_typ(aed.type,aed.val,var->type,mss_val_new);
 
@@ -358,9 +359,10 @@ nco_aed_prc /* [fnc] Process single attribute edit for single variable */
   /* According to netCDF4 C Reference Manual:
      "Fill values must be written while the file is still in initial define mode, that
      is, after the file is created, but before it leaves define mode for the first time.
-     NC EFILLVALUE is returned when the user attempts to set the fill value after
+     NC_EFILLVALUE is returned when the user attempts to set the fill value after
      it is too late." 
-     The netCDF4/_FillValue code (and rename trick) works around that limitation. */
+     (netcdf.h replaced NC_EFILLVALUE by NC_ELATEFILL after about netCDF ~4.2.1)
+     The NCO netCDF4/_FillValue code (and rename trick) works around that limitation */
 
   /* Bold hack which gets around problem of modifying netCDF4 "_FillValue" attributes
      netCDF4 does not allow this by default, though netCDF3 does
@@ -380,11 +382,13 @@ nco_aed_prc /* [fnc] Process single attribute edit for single variable */
      aed.att_nm && /* 20130419: Verify att_nm exists before using it in strcmp() below. att_nm does not exist when user leaves field blank. Fix provided by Etienne Tourigny. */
      !strcmp(aed.att_nm,nco_mss_val_sng_get()) && /* ... attribute is missing value and ... */
      aed.mode != aed_delete &&  /* ... we are not deleting attribute */
-     NC_LIB_VERSION <= 440){ /* netCDF library does not contain fix to NCF-187 */
+     // 20170523: Remove this condition as it did not seem to help anymore
+     //     NC_LIB_VERSION <= 440 && /* netCDF library does not contain fix to NCF-187 */
+     True){
     /* Rename existing attribute to netCDF4-safe name 
        After modifying missing value attribute with netCDF4-safe name below, 
        we will rename attribute to original missing value name. */
-    if(nco_dbg_lvl_get() >= nco_dbg_var && nco_dbg_lvl_get() != nco_dbg_dev) (void)fprintf(stdout,"%s: INFO %s reports creating, modifying, or overwriting %s attribute %s in netCDF4 file requires re-name trick\n",nco_prg_nm_get(),fnc_nm,var_nm,aed.att_nm);
+    if(nco_dbg_lvl_get() >= nco_dbg_std) (void)fprintf(stdout,"%s: INFO %s reports attempt to create, modify, or overwrite %s attribute %s in netCDF4 file violates netCDF4 capabilities (and would result in NC_ELATEFILL error) so will invoke NCO hocus-pocus rename trick...\n",nco_prg_nm_get(),fnc_nm,var_nm,aed.att_nm);
     if(rcd_inq_att == NC_NOERR) (void)nco_rename_att(nc_id,var_id,aed.att_nm,att_nm_tmp);
     flg_netCDF4_rename_trick=True; /* [flg] Re-name _FillValue in order to create/modify/overwrite it */
     strcpy(aed.att_nm,att_nm_tmp); 
@@ -735,15 +739,23 @@ nco_att_cpy  /* [fnc] Copy attributes from input netCDF file to output netCDF fi
     /* File format needed for autoconversion */
     (void)nco_inq_format(out_id,&fl_fmt);
 
-    /* Allow ncks to autoconvert netCDF4 atomic types to netCDF3 output type ... */
-    if(nco_prg_id_get() == ncks && fl_fmt != NC_FORMAT_NETCDF4 && !nco_typ_nc3(att_typ_in)){
-      att_typ_out=nco_typ_nc4_nc3(att_typ_in);
-      flg_autoconvert=True;
-      if(nco_dbg_lvl_get() >= nco_dbg_std) (void)fprintf(stdout,"%s: INFO Autoconverting %s%s attribute %s from netCDF4 type %s to netCDF3 type %s\n",nco_prg_nm_get(),(var_out_id == NC_GLOBAL) ? "global or group" : "variable ",(var_out_id == NC_GLOBAL) ? "" : var_nm,att_nm,nco_typ_sng(att_typ_in),nco_typ_sng(att_typ_out));
-    } /* !flg_autoconvert */
+    /* Allow ncks to autoconvert netCDF4 atomic types to netCDF3- or CDF5-supported output type ... */
+    if(nco_prg_id_get() == ncks){
+      if(((fl_fmt == NC_FORMAT_CLASSIC || fl_fmt == NC_FORMAT_64BIT_OFFSET || fl_fmt == NC_FORMAT_NETCDF4_CLASSIC) && !nco_typ_nc3(att_typ_in)) ||
+	 (fl_fmt == NC_FORMAT_64BIT_DATA && !nco_typ_nc5(att_typ_in))){
+	flg_autoconvert=True;
+	if(fl_fmt == NC_FORMAT_64BIT_DATA) att_typ_out=nco_typ_nc4_nc5(att_typ_in); else att_typ_out=nco_typ_nc4_nc3(att_typ_in);
+	if(nco_dbg_lvl_get() >= nco_dbg_std) (void)fprintf(stdout,"%s: INFO Autoconverting %s%s attribute %s from type %s to %s-supported type %s\n",nco_prg_nm_get(),(var_out_id == NC_GLOBAL) ? "global or group" : "variable ",(var_out_id == NC_GLOBAL) ? "" : var_nm,att_nm,nco_fmt_sng(fl_fmt),nco_typ_sng(att_typ_in),nco_typ_sng(att_typ_out));
+      } /* !flg_autoconvert */
+    } /* !ncks */
 
     if(strcmp(att_nm,nco_mss_val_sng_get())){
-      if(flg_autoconvert){
+      /* Normal (non-_FillValue) attributes */
+      if(!flg_autoconvert){
+	/* Copy all attributes except _FillValue with fast library routine
+	   20170516: library routine does not copy empty NC_CHAR attributes? */
+	(void)nco_copy_att(in_id,var_in_id,att_nm,out_id,var_out_id);
+      }else{ /* autoconvert */
 	var_sct att_var; /* [sct] Variable structure */
 	var_sct *att_var_ptr=NULL; /* [sct] Variable structure */
 
@@ -767,11 +779,8 @@ nco_att_cpy  /* [fnc] Copy attributes from input netCDF file to output netCDF fi
 	  rcd=nco_put_att(out_id,var_out_id,att_nm,att_typ_out,att_sz,att_var_ptr->val.vp);
 	  if(att_var_ptr->val.vp) att_var_ptr->val.vp=nco_free(att_var_ptr->val.vp);
 	} /* !NC_STRING */
-      }else{
-	/* Copy all attributes except _FillValue with fast library routine */
-	(void)nco_copy_att(in_id,var_in_id,att_nm,out_id,var_out_id);
-      } /* !Autoconvert */
-    }else{
+      } /* !autoconvert */
+    }else{ /* !_FillValue */
       /* Convert "_FillValue" attribute to unpacked type then copy 
 	 Impose NCO convention that _FillValue is same type as variable,
 	 whether variable is packed or not */
@@ -802,7 +811,7 @@ nco_att_cpy  /* [fnc] Copy attributes from input netCDF file to output netCDF fi
 
       if(!flg_autoconvert){
 	/* Do not convert global attributes or PCK_ATT_CPY */  
-	if(PCK_ATT_CPY || var_out_id==NC_GLOBAL) att_typ_out=att_typ_in; else (void)nco_inq_vartype(out_id,var_out_id,&att_typ_out);
+	if(PCK_ATT_CPY || var_out_id == NC_GLOBAL) att_typ_out=att_typ_in; else (void)nco_inq_vartype(out_id,var_out_id,&att_typ_out);
       } /* flg_autoconvert */
 
       if(att_typ_out == att_typ_in){
@@ -1190,8 +1199,14 @@ nco_prs_aed_lst /* [fnc] Parse user-specified attribute edits into structure lis
     }else if(arg_lst[3] == NULL && *(arg_lst[2]) != 'd' && *(arg_lst[2]) != 'm'){
       msg_sng=strdup("Type must be explicitly specified for all modes except delete and modify");
       NCO_SYNTAX_ERROR=True;
-    }else if(arg_lst[idx_att_val_arg] == NULL && *(arg_lst[2]) != 'd' && *(arg_lst[3]) == 'c'){
-      /* ... value is not specified except that att_val = "" is valid for character type */
+    }else if(arg_lst[idx_att_val_arg] == NULL && *(arg_lst[2]) != 'd' && *(arg_lst[3]) != 'c' && strcmp(arg_lst[3],"sng")){
+      /* 20170515: 
+	 ncks --cdl -v one ~/nco/data/in.nc
+	 ncatted -O -a long_name,one,o,c,'' ~/nco/data/in.nc ~/foo.nc
+	 ncatted -O -a long_name,one,o,sng,'' ~/nco/data/in_4.nc ~/foo.nc
+	 ncks --cdl -v one ~/foo.nc
+      */
+      /* ... value is not specified except that att_val = "" is valid for character and string types */
       msg_sng=strdup("Value must be explicitly specified for all modes except delete (although an empty string value is permissible for attributes of type NC_CHAR and NC_STRING)");
       NCO_SYNTAX_ERROR=True;
     } /* end else */
@@ -1238,7 +1253,7 @@ nco_prs_aed_lst /* [fnc] Parse user-specified attribute edits into structure lis
     case 'o': aed_lst[idx].mode=aed_overwrite; break;
     default: 
       (void)fprintf(stderr,"%s: ERROR `%s' is not a supported mode\n",nco_prg_nm_get(),arg_lst[2]);
-      (void)fprintf(stderr,"%s: HINT: Valid modes are `a' = append, `c' = create,`d' = delete, `m' = modify, and `o' = overwrite",nco_prg_nm_get());
+      (void)fprintf(stderr,"%s: HINT: Valid modes are `a' = append, `c' = create,`d' = delete, `m' = modify, `n' = nappend, and `o' = overwrite",nco_prg_nm_get());
       nco_exit(EXIT_FAILURE);
       break;
     } /* end switch */
@@ -1313,12 +1328,12 @@ nco_prs_aed_lst /* [fnc] Parse user-specified attribute edits into structure lis
         /* strdup() attaches a trailing NUL to the user-specified string 
 	   Retaining is obliquely discussed in netCDF Best Practices document:
 	   http://www.unidata.ucar.edu/software/netcdf/docs/BestPractices.html#Strings%20and%20Variables%20of%20type%20char */
-        aed_lst[idx].val.cp=(nco_char *)strdup(arg_lst[idx_att_val_arg]);
+	aed_lst[idx].val.cp= (aed_lst[idx].sz > 0L) ? (nco_char *)strdup(arg_lst[idx_att_val_arg]) : NULL; 
       }else if(aed_lst[idx].type == NC_STRING){
         aed_lst[idx].val.vp=(void *)nco_malloc(aed_lst[idx].sz*nco_typ_lng(aed_lst[idx].type));
         for(lmn=0L;lmn<aed_lst[idx].sz;lmn++){
-          aed_lst[idx].val.sngp[lmn]=(nco_string)strdup(arg_lst[idx_att_val_arg+lmn]);
-        } /* end loop over elements */
+	  if(arg_lst[idx_att_val_arg+lmn] != NULL) aed_lst[idx].val.sngp[lmn]=(nco_string)strdup(arg_lst[idx_att_val_arg+lmn]); else aed_lst[idx].val.sngp[lmn]=(nco_string)NULL;
+	} /* !lmn */
       }else{
         char *sng_cnv_rcd=NULL_CEWI; /* [sng] strtol()/strtoul() return code */
         double *val_arg_dbl=NULL_CEWI;
@@ -1333,6 +1348,24 @@ nco_prs_aed_lst /* [fnc] Parse user-specified attribute edits into structure lis
         case NC_DOUBLE: 
           val_arg_dbl=(double *)nco_malloc(aed_lst[idx].sz*sizeof(double));
           for(lmn=0L;lmn<aed_lst[idx].sz;lmn++){
+#ifdef WIN32
+	    /* 20161104: strtod() on MinGW fails to parse "nan" so implement a "NaN-trap". Test with:
+	       ncatted -O -a _FillValue,fll_val,m,f,nan ~/nco/data/in.nc ~/foo.nc
+	       ncks -C -v fll_val ~/foo.nc */
+	    size_t chr_nbr=3;
+	    char nan_trap[]="NaN-trap"; /* [sng] Test for NaN-like number */
+	    /* Copy first three characters */
+	    strncpy(nan_trap,arg_lst[idx_att_val_arg],chr_nbr);
+	    nan_trap[chr_nbr]='\0'; /* NUL-terminate */
+	    if(!strncasecmp(nan_trap,"NaN",chr_nbr)){
+	    /* http://stackoverflow.com/questions/16691207/c-c-nan-constant-literal: NAN literal is in C <math.h>, while C++ requires <limits> header 
+	       #ifdef __cplusplus
+	       val_arg_dbl[lmn]=std::numeric_limits<double>::quiet_NaN();
+	       #endif __cplusplus */
+	    val_arg_dbl[lmn]=NAN;
+	    continue;
+	  } /* !NaN */
+#endif /* !WIN32 */
             val_arg_dbl[lmn]=strtod(arg_lst[idx_att_val_arg+lmn],&sng_cnv_rcd);
             if(*sng_cnv_rcd) nco_sng_cnv_err(arg_lst[idx_att_val_arg+lmn],"strtod",sng_cnv_rcd);
           } /* end loop over elements */
@@ -1898,15 +1931,18 @@ nco_vrs_att_cat /* [fnc] Add NCO version global attribute */
   /* Purpose: Write NCO version information to global metadata */
   aed_sct vrs_sng_aed;
   char att_nm[]="NCO"; /* [sng] Name of attribute in which to store NCO version */
-  char vrs_git[]=TKN2SNG(NCO_VERSION); /* [sng] Version according to Git */
-  char *vrs_cvs; /* [sng] Version according to RCS/CVS-like release tag */
+  char vrs_cpp[]=TKN2SNG(NCO_VERSION); /* [sng] Version according to Git */
   char *vrs_sng; /* [sng] NCO version */
   ptr_unn att_val;
   
-  vrs_cvs=cvs_vrs_prs();
-  
-  vrs_sng=vrs_cvs;
-  vrs_sng=vrs_git;
+  /* 20170417: vrs_cpp is typically something like "4.6.6-alpha07" (quotes included) 
+     The quotation marks annyoy me yet are necessary to protect the string in nco.h 
+     Here we remove the quotation marks by pointing past the first and putting NUL in the last */
+  vrs_sng=vrs_cpp;
+  if(vrs_cpp[0L] == '"'){
+    vrs_cpp[strlen(vrs_cpp)-1L]='\0';
+    vrs_sng=vrs_cpp+1L;
+  } /* endif */
 
   /* Insert thread number into value */
   att_val.cp=vrs_sng;
@@ -1921,7 +1957,6 @@ nco_vrs_att_cat /* [fnc] Add NCO version global attribute */
   vrs_sng_aed.mode=aed_overwrite;
   /* Write NCO version attribute to disk */
   (void)nco_aed_prc(out_id,NC_GLOBAL,vrs_sng_aed);
-  // vrs_sng=(char *)nco_free(vrs_sng);
 
 } /* end nco_vrs_att_cat() */
 
@@ -1933,26 +1968,18 @@ nco_glb_att_add /* [fnc] Add global attributes */
 {
   /* Purpose: Decode arguments into attributes and add as global metadata to output file */
   aed_sct gaa_aed;
-  int gaa_idx;
-  int gaa_arg_idx;
+  int gaa_idx=0;
   int gaa_nbr=0;
   kvm_sct *gaa_lst=NULL; /* [sct] List of all GAA specifications */
-  kvm_sct kvm;
   ptr_unn att_val;
-  const char * const dlm_sng="#";
-  char *sng_fnl=NULL;
-
   /* Join arguments together */
-  sng_fnl=nco_join_sng((const char**)gaa_arg,dlm_sng,gaa_arg_nbr);
+  char *sng_fnl=nco_join_sng(gaa_arg,gaa_arg_nbr);
   gaa_lst=nco_arg_mlt_prs(sng_fnl);
 
-  /* Set GAA number to list size and NUL-terminate values */
-  for(int kvm_idx=0;(gaa_lst+kvm_idx)->key;kvm_idx++){
-      gaa_lst[kvm_idx].key=strcat(gaa_lst[kvm_idx].key,"\0");
-      gaa_lst[kvm_idx].val=strcat(gaa_lst[kvm_idx].val,"\0");
-      gaa_nbr=kvm_idx;
-  } /* end loop over kvm_idx */
-  gaa_nbr++;
+  if(sng_fnl) sng_fnl=(char *)nco_free(sng_fnl);
+
+  /* jm fxm use more descriptive name than i---what does i count? */
+  for(int index=0;gaa_lst[index].key;index++,gaa_nbr++); /* end loop over i */
 
   for(gaa_idx=0;gaa_idx<gaa_nbr;gaa_idx++){
     /* Insert attribute value */
@@ -1964,12 +1991,16 @@ nco_glb_att_add /* [fnc] Add global attributes */
     gaa_aed.type=NC_CHAR;
     /* Insert value into attribute structure */
     gaa_aed.val=att_val;
-    gaa_aed.sz=strlen(gaa_aed.val.cp);
+    /* 20170428 jm: Update for flag parsing*/
+    if(gaa_aed.val.cp)
+      gaa_aed.sz=strlen(gaa_aed.val.cp);
+    else
+      gaa_aed.sz=0;
     /* 20160324: which is better mode for gaa---overwrite or append? 
        20160330: answer is overwrite. otherwise, climo_nco.sh produces ANN file with, e.g.,
        :climo_script = "climo_nco.shclimo_nco.shclimo_nco.sh" ;
        :climo_hostname = "aerosolaerosolaerosol" ;
-       :climo_version = "4.5.6-alpha054.5.6-alpha054.5.6-alpha05" ; */
+       :climo_version = "4.5.6-alpha374.5.6-alpha374.5.6-alpha37" ; */
     gaa_aed.mode=aed_overwrite;
     /* Write attribute to disk */
     (void)nco_aed_prc(out_id,NC_GLOBAL,gaa_aed);

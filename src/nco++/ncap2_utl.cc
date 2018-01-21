@@ -2,20 +2,51 @@
 
 /* Purpose: netCDF arithmetic processor */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
 
+#include <nco.h>
 #include "ncap2_utl.hh"
 
-// check if var is really an attribute
-nco_bool 
-ncap_var_is_att( var_sct *var) {
-  if( strchr(var->nm,'@') !=NULL_CEWI ) 
-    return True;
-  return False;
+
+std::vector<std::string> /* [O] [vector] array of files paths to be used to locate include files */
+ncap_make_include_paths(const char *spaths)       /* list of file path(s) delimited by ':' */
+{
+  int vdx;
+  size_t srt; 
+  size_t idx; 
+  std::vector<std::string> str_vtr;  
+ 
+  // ncopath= getenv("NCOPATH");
+
+  if(strlen(spaths)==0)
+    return str_vtr;                 
+
+  std::string sin(spaths);
+  // strings must always terminate with ':'  
+  sin+=":";
+
+  srt=0;
+  idx=sin.find(':',srt);
+  
+  do
+  { 
+    if(idx-srt > 0)                
+       str_vtr.push_back(sin.substr(srt, idx-srt));   
+    srt=idx+1; 
+    idx=sin.find(':',srt);   
+  } while(idx!=std::string::npos); 
+  
+  /* append to path '/' if not present */
+  for(vdx=0;vdx<str_vtr.size();vdx++)
+     if(*str_vtr[vdx].end() !='/') 
+        str_vtr[vdx]+="/";  
+     
+  return str_vtr;
 }
+
 
 // initialize var to defaults & undefined to true;
 var_sct *
@@ -56,559 +87,8 @@ ncap_var_is_op_doable( var_sct *var1, var_sct *var2)
 
 
 
-var_sct*
-ncap_att_get
-(int var_id,
- const char *var_nm,
- const char *att_nm,
- int location, /* I [flg] 1 - att from INPUT file  2 - att from OUTPUT file */
- prs_cls *prs_arg)
-{
-  int rcd;
-  int fl_id=int_CEWI;
-  long sz;
-  
-  char *ln_nm;
-  
-  nc_type type;
-  var_sct *var_ret;
-  
-  if(location == 1) fl_id=prs_arg->in_id;  
-  if(location == 2) fl_id=prs_arg->out_id;  
-  
-  rcd=nco_inq_att_flg(fl_id,var_id,att_nm,&type,&sz);
-  if(rcd == NC_ENOTATT) return NULL_CEWI;
-  
-  var_ret=(var_sct*)nco_malloc(sizeof(var_sct));
-  (void)var_dfl_set(var_ret);
-  
-  // Make name of the form var_nm@att_nm
-  ln_nm=(char *)nco_malloc((strlen(var_nm)+strlen(att_nm)+2)*sizeof(char));
-  strcpy(ln_nm,var_nm);strcat(ln_nm,"@");strcat(ln_nm,att_nm);
-  
-  var_ret->nm=ln_nm;
-  var_ret->id=var_id;
-  var_ret->nc_id=prs_arg->in_id;
-  var_ret->type=type;
-  var_ret->sz=sz;
-  // maybe needed ?
-  var_ret->nbr_dim=0;
-  
-  // Fill with data if NOT an initial scan
-  if(!prs_arg->ntl_scn){
-    var_ret->val.vp=(void *)nco_malloc(sz*nco_typ_lng(type));
-    rcd=nco_get_att(fl_id,var_id,att_nm,var_ret->val.vp,type);
-    if (rcd != NC_NOERR) {
-      var_ret=nco_var_free(var_ret);
-      return NULL_CEWI;
-    }
-  }
-  return var_ret; 
-}
 
 
-
-std::string ncap_att2var
-( prs_cls *prs_arg,   
-  std::string att_nm)
-{
-
-  std::string fnc_nm("ncap_att2var");
-  std::string sn; 
-  var_sct *var_att=NULL_CEWI; 
-  NcapVar *Nvar=NULL;
-
-  if(prs_arg->ntl_scn)
-    Nvar=prs_arg->int_vtr.find(att_nm);
-
-  if(Nvar==NULL) 
-    Nvar=prs_arg->var_vtr.find(att_nm);
-
-  if(Nvar !=NULL)
-    var_att=nco_var_dpl(Nvar->var);
-  else    
-    var_att=ncap_att_init(att_nm,prs_arg);
-
-  if(prs_arg->ntl_scn==False  && var_att==NULL_CEWI )
-    err_prn(fnc_nm,"Unable to locate attribute " +att_nm+ " in input or output files.");
-
-            
-  /* empty so return empty string */ 
-  if(var_att==NULL_CEWI )
-    return sn;
-
-  /* cant resolve pointer here */
-  if(var_att->val.vp==NULL_CEWI)
-  {
-    nco_var_free(var_att);      
-    return sn;
-  }
-
-  if(var_att->type !=NC_STRING && var_att->type !=NC_CHAR )
-    err_prn("To use that attribute "+ att_nm +" as a variable pointer it must be a text type  NC_CHAR or NC_STRING"); 
-    
-  cast_void_nctype(var_att->type, &var_att->val );
-  if(var_att->type == NC_STRING)
-  {
-      sn=var_att->val.sngp[0];
-  }
-  else if( var_att->type==NC_CHAR)
-  {        
-      char buffer[100]={'\0'};
-      strncpy(buffer, var_att->val.cp, var_att->sz);
-      sn=buffer;  
-  } 
- 
-  cast_nctype_void(var_att->type, &var_att->val);
-  nco_var_free(var_att);  
-
-  return sn;
-
-}
-
-
-
-var_sct * /* O [sct] variable containing attribute */
-ncap_att_init /* [fnc] Grab an attribute from input file */
-(const std::string s_va_nm, /* I [sng] att name of form var_nm&att_nm */ 
- prs_cls *prs_arg) /* I/O vectors of atts & vars & file names */
-{
-  int rcd;
-  int var_id;
-  
-  std::string var_nm;
-  std::string att_nm;
-  size_t  att_char_posn;
-  
-  var_sct *var_ret;
-  
-  //check if we have an attribute
-  if( (att_char_posn =s_va_nm.find("@")) ==std::string::npos )
-    return NULL_CEWI; 
-  
-  var_nm=s_va_nm.substr(0,att_char_posn);
-  att_nm=s_va_nm.substr(att_char_posn+1);
-  
-  if(var_nm == "global"){
-    var_id=NC_GLOBAL;
-  }else{
-    rcd=nco_inq_varid_flg(prs_arg->in_id,var_nm.c_str(),&var_id);
-    if(rcd != NC_NOERR) return NULL_CEWI;
-  }
-  
-  var_ret=ncap_att_get(var_id,var_nm.c_str(),att_nm.c_str(),1,prs_arg);
-  return var_ret;
-}
-
-nco_bool /* O [flg] true if var has been stretched */
-ncap_att_stretch /* stretch a single valued attribute from 1 to sz */
-(var_sct* var, /* I/O [sct] variable */       
- long nw_sz) /* I [nbr] new var size */
-{
-  long  idx;
-  long  var_typ_sz;  
-  void* vp;
-  char *cp;
-
-  
-  if(var->sz > 1L || nw_sz <1) return false; 
-  if(nw_sz==1) return true;
-  var_typ_sz=nco_typ_lng(var->type);
-
-  // shouldnt really use this function with NC_STRING
-  // All it does is free exising single string
-  // and and calloc space for new ones
-  if(var->type == (nc_type)NC_STRING)
-  {
-    
-    (void)cast_void_nctype((nc_type)NC_STRING,&var->val);    
-    
-    nco_free(var->val.sngp[0]);  
-    nco_free(var->val.sngp);     
-    
-    var->val.sngp=(char**)nco_calloc(nw_sz,var_typ_sz);         
-    (void)cast_nctype_void((nc_type)NC_STRING,&var->val);
-
-    
-  }
-  else
-  {
-    vp=(void*)nco_malloc(nw_sz*var_typ_sz);    
-    for(idx=0;idx<nw_sz;idx++){
-      cp=(char*)vp+(ptrdiff_t)(idx*var_typ_sz);
-      memcpy(cp,var->val.vp,var_typ_sz);
-    }
-
-    var->val.vp=(void*)nco_free(var->val.vp);
-    var->sz=nw_sz;
-    var->val.vp=vp;
-
-  }
-  
-  return true;
-} /* end ncap_att_stretch */
-
-int
-ncap_att_gnrl
-(const std::string s_dst,
- const std::string s_src,
- int location, /* I [flg] 1: attributes from INPUT file, 2: attributes from OUTPUT file */
- prs_cls  *prs_arg){
-  int idx;
-  int srt_idx;
-  int sz;
-  int rcd;
-  int var_id; 
-  int nbr_att;
-  int fl_id=int_CEWI;
-  char att_nm[NC_MAX_NAME]; 
-  const char *tmp_att_nm;
-  const char scl_fct_sng[]="scale_factor"; /* [sng] Unidata standard string for scale factor */
-  const char add_fst_sng[]="add_offset"; /* [sng] Unidata standard string for add offset */
-  
-  var_sct *var_att;
-  
-  std::string s_fll;
-  
-  NcapVar *Nvar;
-  
-  // De-reference 
-  NcapVarVector &var_vtr=prs_arg->var_vtr;
-  NcapVarVector att_vtr; // hold new attributes.
-  
-  if(location == 1) fl_id=prs_arg->in_id;  
-  if(location == 2) fl_id=prs_arg->out_id;  
-  
-  // get var_id
-  rcd=nco_inq_varid_flg(fl_id,s_src.c_str(),&var_id);
-  
-  if(rcd == NC_NOERR){
-    (void)nco_inq_varnatts(fl_id,var_id,&nbr_att);
-    // loop though attributes
-    for(idx=0; idx <nbr_att ; idx++){
-      (void)nco_inq_attname(fl_id,var_id,idx,att_nm);
-      //skip missing value, scale_factor , add_offset
-      if(!strcmp(att_nm,nco_mss_val_sng_get()) || !strcmp(att_nm,scl_fct_sng) || !strcmp(att_nm,add_fst_sng))
-        continue;
-      var_att=ncap_att_get(var_id,s_src.c_str(),att_nm,location,prs_arg);
-      // Add to list (change the name!)
-      if(var_att){ 
-	s_fll=s_dst+"@"+std::string(att_nm);
-        Nvar=new NcapVar(var_att,s_fll);
-	att_vtr.push_back(Nvar);
-      } 
-    } // end for
-  }// end rcd
-  
-  sz=var_vtr.size();
-  if(s_dst != s_src && (srt_idx=var_vtr.find_lwr(s_src+"@")) != -1){  
-    
-    for(idx=srt_idx;idx<sz;idx++){ 
-      if(s_src != var_vtr[idx]->getVar()) break;
-      if((var_vtr)[idx]->xpr_typ != ncap_att) continue;
-      tmp_att_nm=var_vtr[idx]->getAtt().c_str();
-      // skip missing value, scale_factor, add_offset
-      if(!strcmp(tmp_att_nm,nco_mss_val_sng_get()) || !strcmp(tmp_att_nm,scl_fct_sng) || !strcmp(tmp_att_nm,add_fst_sng))
-        continue;
-
-      // Create string for new attribute
-      s_fll=s_dst+"@"+(var_vtr[idx]->getAtt());
-      var_att=nco_var_dpl(var_vtr[idx]->var);
-      Nvar=new NcapVar(var_att,s_fll);
-      att_vtr.push_back(Nvar);
-    }
-  }
-  
-  sz=att_vtr.size();
-  // add new att to list;
-  for(idx=0;idx< sz;idx++){
-    
-#ifdef _OPENMP
-    if(omp_in_parallel())
-      prs_arg->thr_vtr.push_back(att_vtr[idx]);
-    else
-      var_vtr.push_ow(att_vtr[idx]);         
-#else
-    var_vtr.push_ow(att_vtr[idx]);         
-#endif
-  }
-  return sz;
-  
-} /* end ncap_att_gnrl() */
-
-int 
-ncap_att_cpy_sct
-(var_sct *var1,
- var_sct *var2,
- prs_cls  *prs_arg){
-  
-  NcapVar *Nvar=prs_arg->var_vtr.find(var1->nm);
-  // Do attribute propagation only if
-  // var doesn't already exist 
-  
-  if(!Nvar ||  Nvar->flg_stt==1)
-    (void)ncap_att_cpy(var1->nm,var2->nm,prs_arg);
-  
-  return 0;
-  
-} 	
-
-int
-ncap_att_cpy
-(const std::string s_dst,
- const std::string s_src,
- prs_cls  *prs_arg)
-{
-  
-  int nbr_att=0;
-  //Don't propagate if s_src is a tree-parser generated var
-  if(prs_arg->ATT_PROPAGATE && s_dst != s_src && s_src[0]!='~' )
-    nbr_att=ncap_att_gnrl(s_dst,s_src,1,prs_arg);
-  
-  if(prs_arg->ATT_INHERIT)
-    nbr_att=ncap_att_gnrl(s_dst,s_dst,1,prs_arg);
-  
-  return nbr_att;
-}
-
-void 
-ncap_att_prn     /* [fnc] Print a single attribute*/
-(var_sct *var,   /* I Variable containing att */
- char *const att_in_sng) /* user defined format string */
-{
-  char dlm_sng[3];
-  char att_sng[NCO_MAX_LEN_FMT_SNG];
-  
-  long att_lmn;
-  long att_sz;
-  
-  /* Copy value to avoid indirection in loop over att_sz */
-  att_sz=var->sz;
-  
-  if(att_in_sng ==(char*)NULL) {        
-    if(var->type != NC_CHAR && var->type != NC_STRING)
-       (void)fprintf(stdout,"%s, size = %li %s, value = ",var->nm,att_sz,nco_typ_sng(var->type));
-    /* Typecast pointer to values before access */
-    (void)cast_void_nctype(var->type,&var->val);
-    (void)strcpy(dlm_sng,", ");
-    (void)sprintf(att_sng,"%s%%s",nco_typ_fmt_sng(var->type));
-    /* user defined format string */ 
-  } else {
-    (void)strcpy(att_sng,att_in_sng);
-    (void)strcpy(dlm_sng,"");
-  }
-  
-  switch(var->type){
-  case NC_FLOAT:
-    for(att_lmn=0;att_lmn<att_sz;att_lmn++) (void)fprintf(stdout,att_sng,var->val.fp[att_lmn],(att_lmn != att_sz-1) ? dlm_sng : "");
-    break;
-  case NC_DOUBLE:
-    for(att_lmn=0;att_lmn<att_sz;att_lmn++) (void)fprintf(stdout,att_sng,var->val.dp[att_lmn],(att_lmn != att_sz-1) ? dlm_sng : "");
-    break;
-  case NC_SHORT:
-    for(att_lmn=0;att_lmn<att_sz;att_lmn++) (void)fprintf(stdout,att_sng,var->val.sp[att_lmn],(att_lmn != att_sz-1) ? dlm_sng : "");
-    break;
-  case NC_INT:
-    for(att_lmn=0;att_lmn<att_sz;att_lmn++) (void)fprintf(stdout,att_sng,(long)var->val.ip[att_lmn],(att_lmn != att_sz-1) ? dlm_sng : "");
-    break;
-  case NC_CHAR:
-    for(att_lmn=0;att_lmn<att_sz;att_lmn++){
-      char char_foo;
-      /* Assume \0 is string terminator and do not print it */
-      if((char_foo=var->val.cp[att_lmn]) != '\0') (void)fprintf(stdout,"%c",char_foo);
-    } /* end loop over element */
-    break;
-  case NC_BYTE:
-    for(att_lmn=0;att_lmn<att_sz;att_lmn++) (void)fprintf(stdout,att_sng,var->val.bp[att_lmn]);
-    break;
-  case NC_UBYTE:
-    for(att_lmn=0;att_lmn<att_sz;att_lmn++) (void)fprintf(stdout,att_sng,var->val.ubp[att_lmn]);
-    break;
-  case NC_USHORT:
-    for(att_lmn=0;att_lmn<att_sz;att_lmn++) (void)fprintf(stdout,att_sng,var->val.usp[att_lmn],(att_lmn != att_sz-1) ? dlm_sng : "");
-    break;
-  case NC_UINT:
-    for(att_lmn=0;att_lmn<att_sz;att_lmn++) (void)fprintf(stdout,att_sng,var->val.uip[att_lmn],(att_lmn != att_sz-1) ? dlm_sng : "");
-    break;
-  case NC_INT64:
-    for(att_lmn=0;att_lmn<att_sz;att_lmn++) (void)fprintf(stdout,att_sng,var->val.i64p[att_lmn],(att_lmn != att_sz-1) ? dlm_sng : "");
-    break;
-  case NC_UINT64:
-    for(att_lmn=0;att_lmn<att_sz;att_lmn++) (void)fprintf(stdout,att_sng,var->val.ui64p[att_lmn],(att_lmn != att_sz-1) ? dlm_sng : "");
-    break;
-  case NC_STRING:
-    for(att_lmn=0;att_lmn<att_sz;att_lmn++) (void)fprintf(stdout,att_sng,var->val.sngp[att_lmn],(att_lmn != att_sz-1) ? dlm_sng : "");
-    break;
-  default: nco_dfl_case_nc_type_err();
-    break;
-  } /* end switch */
-
-  /* only print if format string NOT user defined  */
-  if(att_in_sng ==(char*)NULL && var->type != NC_CHAR && var->type != NC_STRING )
-      (void)fprintf(stdout,"\n");
-  
-  (void)cast_nctype_void(var->type,&var->val);
-  
-  (void)fflush(stdout);
-  
-} /* end ncap_att_prn() */
-
-
-char * 
-ncap_att_sprn     /* [fnc] Print a single attribute*/
-(var_sct *var,   /* I Variable containing att */
- char *const att_in_sng) /* user defined format string */
-{
-
-  char char_foo;
-  char dlm_sng[3];
-  char att_sng[NCO_MAX_LEN_FMT_SNG];
-   
-  char *tp;
-  char *cp;    
-  char *cp_max;  
-
-  long att_lmn;
-  long att_sz; 
-  long max_sz;
-  
-  /* Copy value to avoid indirection in loop over att_sz */
-  att_sz=var->sz;
-  
-  cp=(char*)nco_calloc(sizeof(char),(NC_MAX_ATTRS+100)); 
-  tp=cp;  
-  cp_max=cp+ (size_t)(NC_MAX_ATTRS+100); 
-
-
-
-  if(att_in_sng ==(char*)NULL) {        
-    /* default dont bother if att info if type is text */
-    if(var->type != NC_CHAR && var->type != NC_STRING)
-    {     
-      (void)sprintf(tp,"%s, size = %li %s, value = ",var->nm,att_sz,nco_typ_sng(var->type));
-      tp+=strlen(tp); 
-    }
-    /* Typecast pointer to values before access */
-    (void)strcpy(dlm_sng,", ");
-    (void)sprintf(att_sng,"%s%%s",nco_typ_fmt_sng(var->type));
-    /* user defined format string */ 
-  } else {
-    (void)strcpy(att_sng,att_in_sng);
-    (void)strcpy(dlm_sng,"");
-  }
-      
-  (void)cast_void_nctype(var->type,&var->val);
-
-  
-  switch(var->type){
-  case NC_FLOAT:
-    for(att_lmn=0;att_lmn<att_sz && tp<cp_max ;att_lmn++) { (void)sprintf(tp,att_sng,var->val.fp[att_lmn],(att_lmn != att_sz-1) ? dlm_sng : ""); tp+=strlen(tp); }
-    break;
-  case NC_DOUBLE:
-    for(att_lmn=0;att_lmn<att_sz && tp<cp_max ;att_lmn++) { (void)sprintf(tp,att_sng,var->val.dp[att_lmn],(att_lmn != att_sz-1) ? dlm_sng : "");  tp+=strlen(tp); }
-    break;
-  case NC_SHORT:
-    for(att_lmn=0;att_lmn<att_sz && tp<cp_max;att_lmn++) { (void)sprintf(tp,att_sng,var->val.sp[att_lmn],(att_lmn != att_sz-1) ? dlm_sng : ""); tp+=strlen(tp); }
-    break;
-  case NC_INT:
-    for(att_lmn=0;att_lmn<att_sz && tp<cp_max;att_lmn++) { (void)sprintf(tp,att_sng,(long)var->val.ip[att_lmn],(att_lmn != att_sz-1) ? dlm_sng : ""); tp+=strlen(tp); }
-    break;
-  case NC_CHAR:
-    if(att_in_sng ==(char*)NULL)    
-      /* remember string initialized to nulls */
-      strncpy(tp,var->val.cp,att_sz);
-    else          
-    {
-      for(att_lmn=0;att_lmn<att_sz && tp<cp_max ;att_lmn++)
-        /* Assume \0 is string terminator and do not print it */
-        if((char_foo=var->val.cp[att_lmn]) != '\0') 
-	{ 
-           (void)sprintf(tp,att_sng,char_foo);   
-           tp+=strlen(tp); 
-        } 
-    } /* end loop over element */
-
-    break;
-  case NC_BYTE:
-    for(att_lmn=0;att_lmn<att_sz && tp<cp_max;att_lmn++) { (void)sprintf(tp,att_sng,var->val.bp[att_lmn], (att_lmn != att_sz-1) ? dlm_sng : ""); tp+=strlen(tp); }
-    break;
-  case NC_UBYTE:
-    for(att_lmn=0;att_lmn<att_sz && tp<cp_max;att_lmn++) { (void)sprintf(tp,att_sng,var->val.ubp[att_lmn], (att_lmn != att_sz-1) ? dlm_sng : ""); tp+=strlen(tp); }
-    break;
-  case NC_USHORT:
-    for(att_lmn=0;att_lmn<att_sz && tp<cp_max;att_lmn++) { (void)sprintf(tp,att_sng,var->val.usp[att_lmn],(att_lmn != att_sz-1) ? dlm_sng : ""); tp+=strlen(tp); }
-    break;
-  case NC_UINT:
-    for(att_lmn=0;att_lmn<att_sz && tp<cp_max;att_lmn++) { (void)sprintf(tp,att_sng,var->val.uip[att_lmn],(att_lmn != att_sz-1) ? dlm_sng : ""); tp+=strlen(tp); }
-    break;
-  case NC_INT64:
-    for(att_lmn=0;att_lmn<att_sz && tp<cp_max;att_lmn++) { (void)sprintf(tp,att_sng,var->val.i64p[att_lmn],(att_lmn != att_sz-1) ? dlm_sng : ""); tp+=strlen(tp); }
-    break;
-  case NC_UINT64:
-    for(att_lmn=0;att_lmn<att_sz && tp<cp_max;att_lmn++) { (void)sprintf(tp,att_sng,var->val.ui64p[att_lmn],(att_lmn != att_sz-1) ? dlm_sng : ""); tp+=strlen(tp); }
-    break;
-  case NC_STRING:
-    for(att_lmn=0;att_lmn<att_sz && tp<cp_max ; att_lmn++) { (void)sprintf(tp,att_sng,var->val.sngp[att_lmn],(att_lmn != att_sz-1) ? dlm_sng : "");tp+=strlen(tp); }
-    break;
-  default: nco_dfl_case_nc_type_err();
-    break;
-  } /* end switch */
-  
-  (void)cast_nctype_void(var->type,&var->val);
-  
-  if( tp >= cp_max )
-  {
-    cp=(char*)nco_realloc(cp, NC_MAX_ATTRS*sizeof(char));     
-    cp[NC_MAX_ATTRS-1]='\0';
-  }
-  else
-  {
-    cp=(char*)nco_realloc(cp, sizeof(char) * (strlen(cp)+1));     
-  }       
-  
-  return cp;
-
-} /* end ncap_att_prn() */
-
-
-
-
-int          /* number appended */ 
-ncap_att_str /* extract string(s) from a NC_CHAR or NC_STRING type attribute */
-(var_sct *var_att, 
- std::vector<std::string> &str_vtr)
-{
-  int idx;
-  int srt_size=str_vtr.size();  
-  char *cstr;
-  
-  (void)cast_void_nctype((nc_type)var_att->type,&var_att->val);
-
-  if(var_att->type==NC_STRING)
-  {
-
-    for(idx=0;idx<var_att->sz;idx++)
-    {  
-      cstr=var_att->val.sngp[idx];
-      str_vtr.push_back(cstr);
-    }     
-
-  }
-
-  if(var_att->type==NC_CHAR)
-  { 
-    char buffer[NC_MAX_NAME+1];
-    strncpy(buffer, var_att->val.cp, var_att->sz);        
-    buffer[var_att->sz+1]='\0'; 
-    str_vtr.push_back(buffer);
-  } 
-  (void)cast_nctype_void((nc_type)var_att->type,&var_att->val);
-  
-  return (str_vtr.size() - srt_size);  
-
-
-
-}
 
 var_sct * /* O [sct] Remainder of modulo operation of input variables (var1%var2) */
 ncap_var_var_mod /* [fnc] Remainder (modulo) operation of two variables */
@@ -714,57 +194,6 @@ ncap_var_abs /* Purpose: Find absolute value of each element of var */
   return var;
 } /* end ncap_var_abs */
 
-var_sct * /* O [sct] Empowerment of input variables (var1^var_2) */
-ncap_var_var_pwr_old /* [fnc] Empowerment of two variables */ 
-(var_sct *var1, /* I [sct] Variable structure containing base */
- var_sct *var2) /* I [sct] Variable structure containing exponent */
-{
-  char *swp_nm;
-  
-  /* Purpose: Empower two variables (var1^var2) */
-  
-  /* Temporary fix */ 
-  /* Swap names about so attribute propagation works */
-  /* most operations unlike this one put results in left operand */
-  if(!ncap_var_is_att(var1) && isalpha(var1->nm[0])){
-    swp_nm=var1->nm;
-    var1->nm=var2->nm;
-    var2->nm=swp_nm;
-  }  
-  
-  if(var1->undefined){ 
-    var2->undefined=True;
-    var1=nco_var_free(var1);
-    return var2;
-  }
-  
-  /* Make sure variables are at least float */
-  if(nco_rth_prc_rnk(var1->type) < nco_rth_prc_rnk_float && nco_rth_prc_rnk(var2->type) < nco_rth_prc_rnk_float)
-    var1=nco_var_cnf_typ((nc_type)NC_FLOAT,var1);
-  
-  (void)ncap_var_retype(var1,var2);   
-  
-  /* Handle initial scan */
-  if(var1->val.vp==(void*)NULL){
-    if(var1->nbr_dim > var2->nbr_dim){
-      var2=nco_var_free(var2);
-      return var1;
-    }else{
-      var1=nco_var_free(var1);
-      return var2;
-    }
-  } 
-  
-  (void)ncap_var_cnf_dmn(&var1,&var2);
-  if(var1->has_mss_val){
-    (void)nco_var_pwr(var1->type,var1->sz,var1->has_mss_val,var1->mss_val,var1->val,var2->val);
-  }else{
-    (void)nco_var_pwr(var1->type,var1->sz,var2->has_mss_val,var2->mss_val,var1->val,var2->val);
-  } /* end else */
-  
-  var1=nco_var_free(var1);
-  return var2;
-} /* end ncap_var_var_pwr() */
 
 var_sct * /* O [sct] Empowerment of input variables (var1^var_2) */
 ncap_var_var_pwr  /* [fnc] Empowerment of two variables */ 
@@ -1322,14 +751,14 @@ ncap_var_stretch /* [fnc] Stretch variables */
     char *var_lsr_cp;
     char *var_lsr_out_cp;
     
-    int idx_var_lsr_var_gtr[NC_MAX_DIMS];
+    int idx_var_lsr_var_gtr[NC_MAX_VAR_DIMS];
     int var_lsr_nbr_dim;
     int var_gtr_nbr_dmn_m1;
     
     long *var_gtr_cnt;
-    long dmn_ss[NC_MAX_DIMS];
-    long dmn_var_gtr_map[NC_MAX_DIMS];
-    long dmn_var_lsr_map[NC_MAX_DIMS];
+    long dmn_ss[NC_MAX_VAR_DIMS];
+    long dmn_var_gtr_map[NC_MAX_VAR_DIMS];
+    long dmn_var_lsr_map[NC_MAX_VAR_DIMS];
     long var_gtr_lmn;
     long var_lsr_lmn;
     long var_gtr_sz;
@@ -1560,6 +989,63 @@ nco_shp_chk
   if(idx==nbr_cmp) return True; else return False;
 }
 
+nco_bool       /* returns true if order and size of dims match exactly */
+ncap_top_shp_chk(
+var_sct* var1, 
+var_sct* var2)
+{ 
+  int idx;
+  int sz;
+    
+  if(var1->sz !=var2->sz)
+    return False;
+
+  sz=var1->nbr_dim;
+
+  if(sz==0) 
+    return True;
+
+  for(idx=0; idx<sz;idx++)  
+    if( var1->cnt[idx] != var2->cnt[idx]) 
+      return False;
+
+  return True;
+}
+
+nco_bool       /* true if order & size of dims match (after removing (degenerate) size 1 dims */
+ncap_norm_shp_chk(
+var_sct* var1, 
+var_sct* var2)
+{ 
+  int idx;
+  int sz1=0;
+  int sz2=0;
+
+  long cnt1[NC_MAX_VAR_DIMS];
+  long cnt2[NC_MAX_VAR_DIMS];
+  
+  for(idx=0; idx<var1->nbr_dim; idx++)
+    if( var1->cnt[idx]>1 )
+      cnt1[sz1++]=var1->cnt[idx];    
+
+  for(idx=0; idx<var2->nbr_dim; idx++)
+    if( var2->cnt[idx]>1 )
+      cnt2[sz2++]=var2->cnt[idx];    
+
+  if(sz1 != sz2 )
+     return False;  
+
+  if(sz1==0)
+     return True;   
+   
+
+  for(idx=0; idx<sz1; idx++) 
+    if( cnt1[idx] != cnt2[idx] )
+      return False; 
+
+  return True;
+}
+
 /* This file is generated in makefile from ncoParserTokenTypes.hpp */ 
 #include "ncoEnumTokenTypes.hpp"
 
@@ -1567,7 +1053,7 @@ nco_shp_chk
    a function template overload in VarOPNew.hh */
 var_sct* tmp_var_op_nco_string(var_sct* var1, int op) 
 {
-    long idx;
+
     long sz;
     nco_string *tp1;
 
@@ -1919,7 +1405,8 @@ ncap_var_var_op   /* [fnc] Add two variables */
   }
   
   // Deal with pwr_in fuction
-  if( (op == CARET ) && nco_rth_prc_rnk(var1->type) < nco_rth_prc_rnk_float &&  nco_rth_prc_rnk(var2->type) < nco_rth_prc_rnk_float) var1=nco_var_cnf_typ((nc_type)NC_FLOAT,var1);
+  if( (op == CARET ) && nco_rth_prc_rnk(var1->type) < nco_rth_prc_rnk_float &&  nco_rth_prc_rnk(var2->type) < nco_rth_prc_rnk_float) 
+    var1=nco_var_cnf_typ((nc_type)NC_FLOAT,var1);
   
   //Deal with atan2 function
   if(op==ATAN2 ){
@@ -1936,10 +1423,10 @@ ncap_var_var_op   /* [fnc] Add two variables */
     (void)ncap_var_retype(var1,var2);
     
     // can we do the op without any stretching or conformance ?
-    if( ncap_var_is_op_doable(var1,var2) ) 
+    if( var1->sz==1 || var2->sz==1 ) 
       ; 
     // if hyperslabs then check they conform
-    else if( (var1->has_dpl_dmn ==-1 || var2->has_dpl_dmn==-1) && var1->sz >1 && var2->sz>1)
+    else if( var1->has_dpl_dmn ==-1 || var2->has_dpl_dmn ==-1 )
     {  
 	  if(var1->sz != var2->sz) 
 	  {
@@ -1948,7 +1435,7 @@ ncap_var_var_op   /* [fnc] Add two variables */
 	    err_prn(fnc_nm,os.str());
 	  }
 
-	  if( nco_shp_chk(var1,var2)==False)
+	  if( ncap_top_shp_chk(var1,var2)==False &&  ncap_norm_shp_chk(var1,var2)==False  )
 	  { 
 	    std::ostringstream os;
 	    os<<"Hyperslabbed variable:"<<var1->nm <<" and variable:"<<var2->nm <<" have same  number of elements, but different shapes.";
@@ -1956,9 +1443,9 @@ ncap_var_var_op   /* [fnc] Add two variables */
 	  }
     }
     else
-    {   
+      { // try and mamke vars conform  
       (void)ncap_var_cnf_dmn(&var1,&var2);
-    }
+      }
     // Bare numbers have name prefixed with"_"
     // for attribute propagation to work we need
     // to swap names about if first operand is a bare number
@@ -1989,9 +1476,7 @@ ncap_var_var_op   /* [fnc] Add two variables */
   // att & var
   else if( vb1 && !vb2)
   {
-    var_sct *var_swp;
-    ptr_unn val_swp;  // Used to swap values around
-    
+
     var1=nco_var_cnf_typ(var2->type,var1);
     //if(var2->sz > 1 && var1->sz==1) (void)ncap_var_cnf_dmn(&var1,&var2);
     
@@ -2016,6 +1501,9 @@ ncap_var_var_op   /* [fnc] Add two variables */
   }
   
   // Deal with pwr fuction ( nb pwr function can't be templated )
+  // if var1 and var2 are the same size then results of operation ar put in var1
+  // if var1->sz >1 and var2->sz==1 then data is data in var1
+  // if var1->sz==1  and var2->sz>1 then data is data in var2
   if(op==CARET)
      ncap_var_var_pwr(var1,var2);
   else if (op==MOD)
@@ -2026,7 +1514,8 @@ ncap_var_var_op   /* [fnc] Add two variables */
      ncap_var_var_stc(var1,var2,op);
 
   // swap var data about -results of an asymetrical operation
-  if( var1->sz ==1 && var2->sz >1)
+  // nb the output data in this case is in var2 
+  if( var1->sz ==1 && var2->sz >1  )
   {
     char *cswp; 
     var_sct *var_swp;      
@@ -2041,6 +1530,28 @@ ncap_var_var_op   /* [fnc] Add two variables */
     var2->nm=cswp;           
 
 
+  }
+  // Deal with case where var1 and var2 same size but 
+  // but var2 has more dims - eg multiple dims of size 1 (degenerate)
+  // so we wnat the data from var1 but the "shape" from var2
+  else if( var1->sz==var2->sz && var1->nbr_dim< var2->nbr_dim)    
+  {
+    char *cswp; 
+    var_sct *var_swp;      
+    ptr_unn val_swp;
+
+    var_swp=var1;     
+    var1=var2;
+    var2=var_swp;
+
+    // swap names about to preserve att propagation
+    cswp=var1->nm;
+    var1->nm=var2->nm;
+    var2->nm=cswp;           
+   
+    val_swp=var1->val;
+    var1->val=var2->val;
+    var2->val=val_swp;       
   }
 
   // swap about names so attribute propagation works 
@@ -2136,38 +1647,45 @@ ncap_var_var_inc   /* [fnc] Add two variables */
  int op,            /* Deal with incremental operators i.e +=,-=,*=,/= */
  bool bram,         /* I [bool] If true make a RAM variable */ 
  bool bret, 
- prs_cls *prs_arg)
-{
-  const char fnc_nm[]="ncap_var_var_inc"; 
+ prs_cls *prs_arg) {
+  const char fnc_nm[] = "ncap_var_var_inc";
   const char *cvar1;
   const char *cvar2;
   nco_bool vb1;
   nco_bool vb2;
-  
-  var_sct *var_ret=NULL_CEWI;
-  
-  vb1 = ncap_var_is_att(var1);
-  
-  // If initial Scan
-  if(prs_arg->ntl_scn)
-  {
-    
-    // deal with variable
-    if(!vb1)
-    {
-      var_ret=nco_var_dpl(var1); 
-      (void)prs_arg->ncap_var_write(var1,bram);  
-    }
-    // deal with attribute 
-    else
-      var_ret=var1;
 
-    if(var2) 
-      var2=(var_sct*)nco_var_free(var2);
-    
+  var_sct *var_ret = NULL_CEWI;
+  NcapVar *Nvar;
+
+  vb1 = ncap_var_is_att(var1);
+
+  // If initial Scan
+  if (prs_arg->ntl_scn) {
+
+    // deal with variable
+    if (!vb1) {
+      var_ret = nco_var_dpl(var1);
+      (void) prs_arg->ncap_var_write(var1, bram);
+    }
+      // deal with attribute
+    else
+      var_ret = var1;
+
+    if (var2)
+      var2 = (var_sct *) nco_var_free(var2);
+
     return var_ret;
-  }   
-  
+  }
+
+
+  // do attribute inheritance
+  if (!vb1) {
+    Nvar = prs_arg->var_vtr.find(var1->nm);
+    if (!Nvar || (Nvar && Nvar->flg_stt == 1))
+      (void)ncap_att_cpy(SCS(var1->nm), SCS(var1->nm), prs_arg);
+
+  }
+
   //Deal with unary functions first
   if(var2==NULL_CEWI)
   {
@@ -2188,7 +1706,7 @@ ncap_var_var_inc   /* [fnc] Add two variables */
     else
     {
       std::string sa(var1->nm);
-      NcapVar *Nvar=new NcapVar(var1,sa);
+      Nvar=new NcapVar(var1,sa);
       prs_arg->var_vtr.push_ow(Nvar);       
     }
     return var_ret;    
@@ -2247,7 +1765,7 @@ ncap_var_var_inc   /* [fnc] Add two variables */
   {
     // deal with attribute
     std::string sa(var1->nm);
-    NcapVar *Nvar=new NcapVar(var1,sa);
+    Nvar=new NcapVar(var1,sa);
     prs_arg->var_vtr.push_ow(Nvar);       
     
   }
@@ -2255,40 +1773,6 @@ ncap_var_var_inc   /* [fnc] Add two variables */
   return var_ret;
 }
 
-bool            /* O [flg] true if all var elemenst are true */
-ncap_var_lgcl1   /* [fnc] calculate a aggregate bool value from a variable */
-(var_sct* var)  /* I [sct] input variable */
-{
-  int idx;
-  int sz;
-  nc_type type;
-  bool bret=true;
-  ptr_unn op1;
-  
-  // Convert to type SHORT
-  var=nco_var_cnf_typ((nc_type)NC_SHORT,var);  
-  
-  type=NC_SHORT;
-  sz = var->sz;
-  op1=var->val;
-  /* Typecast pointer to values before access */
-  (void)cast_void_nctype(type,&op1);
-  if(var->has_mss_val) (void)cast_void_nctype(type,&var->mss_val);
-  
-  if(!var->has_mss_val){
-    for(idx=0;idx<sz;idx++) 
-      if(!op1.sp[idx]) break;
-  }else{
-    const short mss_val_short=*(var->mss_val.sp);
-    for(idx=0;idx<sz;idx++) 
-      if(!op1.sp[idx] && op1.sp[idx] != mss_val_short) break; 
-  }
-  if(idx < sz) bret=false;
-  
-  if(var->has_mss_val) (void)cast_nctype_void(type,&var->mss_val);
-  
-  return bret;
-}
 
 bool            /* O [flg] true if all var elemenst are true */
 ncap_var_lgcl   /* [fnc] calculate a aggregate bool value from a variable */
@@ -2666,187 +2150,6 @@ ncap_dmn_mtd
   return dmn_vtr;  
 }
 
-var_sct *
-ncap_sclr_var_mk
-(const std::string var_nm,
- nc_type type,
- bool bfll)
-{
-  /* Purpose: Create a scalar variable of type, if bfll then malloc ptr_unn */
-  var_sct *var;
-  var=(var_sct *)nco_malloc(sizeof(var_sct));
-  /* Set defaults */
-  (void)var_dfl_set(var); 
-  /* Overwrite with variable expression information */
-  var->nm=strdup(var_nm.c_str());
-  var->nbr_dim=0;
-  var->sz=1;
-  var->type=type;
-  var->typ_dsk=type;
-  
-  if(bfll) var->val=nco_mss_val_mk(type);  
-  
-  return var;
-} // end ncap_sclr_var_mk<string,int,bool>()
-
-var_sct *
-ncap_sclr_var_mk
-(const std::string var_nm,
- float val_float)
-{
-  var_sct *var;
-  var=ncap_sclr_var_mk(var_nm,(nc_type)NC_FLOAT,true);
-  (void)cast_void_nctype((nc_type)NC_FLOAT,&var->val);
-  *var->val.fp=val_float;
-  (void)cast_nctype_void((nc_type)NC_FLOAT,&var->val);
-  return var;
-} // end ncap_sclr_var_mk<float>()
-
-var_sct *
-ncap_sclr_var_mk
-(const std::string var_nm,
- double val_double)
-{
-  var_sct *var;
-  var=ncap_sclr_var_mk(var_nm,(nc_type)NC_DOUBLE,true);
-  (void)cast_void_nctype((nc_type)NC_DOUBLE,&var->val);
-  *var->val.dp=val_double;
-  (void)cast_nctype_void((nc_type)NC_DOUBLE,&var->val);
-  return var;
-}
-
-var_sct *
-ncap_sclr_var_mk
-(const std::string var_nm,
- nco_int val_int)
-{
-  var_sct *var;
-  var=ncap_sclr_var_mk(var_nm,(nc_type)NC_INT,true);
-  (void)cast_void_nctype((nc_type)NC_INT,&var->val);
-  *var->val.ip=val_int;
-
-  (void)cast_nctype_void((nc_type)NC_INT,&var->val);
-  return var;
-}
- 
-var_sct *
-ncap_sclr_var_mk
-(const std::string var_nm,
- nco_short val_short)
-{
-  var_sct *var;
-  var=ncap_sclr_var_mk(var_nm,(nc_type)NC_SHORT,true);
-  (void)cast_void_nctype((nc_type)NC_SHORT,&var->val);
-  *var->val.sp=val_short;
-  (void)cast_nctype_void((nc_type)NC_SHORT,&var->val);
-  return var;
-}
-
-var_sct *
-ncap_sclr_var_mk
-(const std::string var_nm,
- nco_char val_char)
-{
-  var_sct *var;
-  var=ncap_sclr_var_mk(var_nm,(nc_type)NC_CHAR,true);
-  (void)cast_void_nctype((nc_type)NC_CHAR,&var->val);
-  *var->val.cp=val_char;
-  (void)cast_nctype_void((nc_type)NC_CHAR,&var->val);
-  return var;
-}
-
-var_sct *
-ncap_sclr_var_mk
-(const std::string var_nm,
- nco_byte val_byte)
-{
-  var_sct *var;
-  var=ncap_sclr_var_mk(var_nm,(nc_type)NC_BYTE,true);
-  (void)cast_void_nctype((nc_type)NC_BYTE,&var->val);
-  *var->val.bp=val_byte;
-  (void)cast_nctype_void((nc_type)NC_BYTE,&var->val);
-  return var;
-}
-
-var_sct *
-ncap_sclr_var_mk
-(const std::string var_nm,
- nco_ubyte val_ubyte)
-{
-  var_sct *var;
-  var=ncap_sclr_var_mk(var_nm,(nc_type)NC_UBYTE,true);
-  (void)cast_void_nctype((nc_type)NC_UBYTE,&var->val);
-  *var->val.ubp=val_ubyte;
-  (void)cast_nctype_void((nc_type)NC_UBYTE,&var->val);
-  return var;
-}
-
-var_sct *
-ncap_sclr_var_mk
-(const std::string var_nm,
- nco_ushort val_ushort)
-{
-  var_sct *var;
-  var=ncap_sclr_var_mk(var_nm,(nc_type)NC_USHORT,true);
-  (void)cast_void_nctype((nc_type)NC_USHORT,&var->val);
-  *var->val.usp=val_ushort;
-  (void)cast_nctype_void((nc_type)NC_USHORT,&var->val);
-  return var;
-}
-
-var_sct *
-ncap_sclr_var_mk
-(const std::string var_nm,
- nco_uint val_uint)
-{
-  var_sct *var;
-  var=ncap_sclr_var_mk(var_nm,(nc_type)NC_UINT,true);
-  (void)cast_void_nctype((nc_type)NC_UINT,&var->val);
-  *var->val.uip=val_uint;
-  (void)cast_nctype_void((nc_type)NC_UINT,&var->val);
-  return var;
-}
-
-var_sct *
-ncap_sclr_var_mk
-(const std::string var_nm,
- nco_int64 val_int64)
-{
-  var_sct *var;
-  var=ncap_sclr_var_mk(var_nm,(nc_type)NC_INT64,true);
-  (void)cast_void_nctype((nc_type)NC_INT64,&var->val);
-  *var->val.i64p=val_int64;
-  (void)cast_nctype_void((nc_type)NC_INT64,&var->val);
-  return var;
-}
-
-var_sct *
-ncap_sclr_var_mk
-(const std::string var_nm,
- nco_uint64 val_uint64)
-{
-  var_sct *var;
-  var=ncap_sclr_var_mk(var_nm,(nc_type)NC_UINT64,true);
-  (void)cast_void_nctype((nc_type)NC_UINT64,&var->val);
-  *var->val.ui64p=val_uint64;
-  (void)cast_nctype_void((nc_type)NC_UINT64,&var->val);
-  return var;
-}
-
-/* fxm: Allow ncap2 to instantiate NC_STRINGs */
-   var_sct *
-   ncap_sclr_var_mk(
-   const std::string var_nm,
-   nco_string val_string)
-   {
-   var_sct *var;
-   var=ncap_sclr_var_mk(var_nm,(nc_type)NC_STRING,true);
-   (void)cast_void_nctype((nc_type)NC_STRING,&var->val);
-   *var->val.sngp=val_string;
-   (void)cast_nctype_void((nc_type)NC_STRING,&var->val);
-   return var;
-   } 
-
 // Do an in-memory hyperslab !!
 void 
 ncap_get_var_mem
@@ -2883,6 +2186,7 @@ ncap_get_var_mem
     if(srd==1) {
       for(jdx=0 ; jdx <nbr_lpp ; jdx++){  
         (void)memcpy(cp_out, cp_srt, ptrdiff_t(cnt*slb_sz));
+        if(var_in->type==NC_STRING) ncap_sngcpy(cp_out,cnt);
         cp_out+=ptrdiff_t(cnt*slb_sz);
         cp_srt+=ptrdiff_t(dpt_cnt*slb_sz); 
       }
@@ -2894,6 +2198,7 @@ ncap_get_var_mem
         for(idx=0 ; idx<cnt ; idx++ ){
           
           (void)memcpy(cp_out,cp_lcl,slb_sz);
+          if(var_in->type==NC_STRING) ncap_sngcpy(cp_out,1);
           cp_out+=slb_sz;
           cp_lcl+=(ptrdiff_t)(srd*slb_sz);
         }
@@ -3029,12 +2334,14 @@ char *cp_out)                   // Slab to be "put"
     
       if(srd==1) {
         (void)memcpy(cp_end,cp_in,cnt*slb_sz);
+        if(var_out->type==NC_STRING) ncap_sngcpy(cp_end, cnt*slb_sz);
         cp_in+=(ptrdiff_t)cnt*slb_sz;
       }
       if(srd >1) {
         char *cp_lcl=cp_end;
         for(jdx=0 ; jdx<cnt ; jdx++ ){
           (void)memcpy(cp_lcl,cp_in,slb_sz);
+          if(var_out->type==NC_STRING) ncap_sngcpy(cp_lcl,slb_sz);
           cp_in+=(ptrdiff_t)slb_sz;
           cp_lcl+=(ptrdiff_t)(srd*slb_sz);
         } //loop jdx
@@ -3121,13 +2428,15 @@ NcapVector<lmt_sct*> &dmn_vtr)
    
   // user has specified  the whole hyperslab
   if(var_in->sz==var_out->sz){
-    (void)memcpy(cp_out,cp_in, var_in->sz*nco_typ_lng(var_in->type)); 
+    (void)memcpy(cp_out,cp_in, var_in->sz*nco_typ_lng(var_in->type));
+    if(var_out->type==NC_STRING) ncap_sngcpy(cp_out, var_in->sz* nco_typ_lng(var_in->type) );
   }
   else
   // Call in-memory nco_put_var_mem (n.b is recursive of course!!)
     (void)ncap_put_var_mem(0,dpt_max-1,shp_vtr,dmn_vtr,var_out,1L,cp_in,cp_out);
   
 } /* end nco_put_var_mem() */
+
 
 // See if node contains any utility fuctions
 // if so return true
@@ -3154,6 +2463,27 @@ RefAST tr
  
  return false;
 }
+
+/* take a list of nco_string's and refresh them with strdup */
+void
+ncap_sngcpy(
+char *cp, /* nb pointer to first nco_string in list  (technically this of type char ** ) */
+int bsz)  /* total size (in bytes) of array of nco_string */
+{
+  int idx;
+  ptr_unn val;
+
+  val.cp=cp;
+
+  bsz/=sizeof(nco_string);
+
+  for(idx=0;idx<bsz;idx++ )
+    if(val.sngp[idx])
+       val.sngp[idx]=(nco_string)strdup(val.sngp[idx]);
+
+}
+
+
 
 /*********************************************************************************/
 /* Following - all MPI optimization routines                                     */

@@ -2,7 +2,7 @@
 
 /* Purpose: Variable utilities */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -118,12 +118,19 @@ extern "C" {
   nco_var_lst_free /* [fnc] Free memory associated with variable structure list */
   (var_sct **var_lst, /* I/O [sct] Variable structure list to free */
    const int var_nbr); /* I [nbr] Number of variable structures in list */
-  
+
   nco_bool /* [flg] Variable is listed in this CF attribute, thereby associated */
   nco_is_spc_in_cf_att /* [fnc] Variable is listed in this CF attribute, thereby associated */
-  (const int nc_id, /* I [id] netCDF file ID */
-   const char * const cf_nm, /* I [sng] CF convention ("ancillary_variables", "bounds", "climatology", "coordinates", and "grid_mapping") */
-   const int var_trg_id); /* I [id] Variable ID */
+  (const int nc_id,    /* I [id] netCDF file ID */
+   const char *const cf_nm,  /* I [sng] cf att name */
+   const int var_trg_id, /* I [id] Variable ID */
+   int *cf_var_id); /* I [id] Variable ID */
+
+  char ***  /* [0] [ptr]  list of lists - each ragged array terminated with empty string    */
+  nco_lst_cf_att /* [fnc] look in all vars for att cf_nm  */
+  (const int nc_id,    /* I [id] netCDF file ID */
+  const char *const cf_nm,  /* I [sng] cf att name */
+  int *nbr_lst); /* 0 [nbr] number of ragged arrays returned */
 
   nco_bool /* [flg] Variable is listed in a "bounds" attribute */
   nco_is_spc_in_bnd_att /* [fnc] Variable is listed in a "bounds" attribute */

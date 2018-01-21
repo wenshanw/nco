@@ -2,7 +2,7 @@
 
 /* Purpose: NCO wrappers for netCDF C library */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -122,7 +122,10 @@
 # define NC_NOSHUFFLE 0
 #endif
 
-  /* Seven compatibility tokens introduced 20131222 in netCDF 4.3.1-rc7 netcdf.h */
+  /* 20131222: Seven compatibility tokens introduced in netCDF 4.3.1-rc7 netcdf.h
+     20151222: Tokens are superseded in netCDF 4.4.0-RC4 netcdf.h by same tokens with "FORMATX" instead of "FORMAT"
+     This disambiguates extended format (FORMATX) flags returned by nc_inq_format_extended() from format flags (e.g., NC_FORMAT_CLASSIC) returned by nco_inq_format()
+     Also added NC_FORMAT_NC4 as alias to NC_FORMAT_NC_HDF5 */
 #ifndef NC_FORMAT_UNDEFINED
 # define NC_FORMAT_UNDEFINED (0)
 #else
@@ -132,10 +135,13 @@
 # define NC_FORMAT_NC3     (1)
 #endif
 #ifndef NC_FORMAT_NC_HDF5
-# define NC_FORMAT_NC_HDF5 (2) /*cdf 4 subset of HDF5 */
+# define NC_FORMAT_NC_HDF5 (2) /* netCDF-4 subset of HDF5 */
+#endif
+#ifndef NC_FORMAT_NC4
+# define NC_FORMAT_NC4 NC_FORMAT_NC_HDF5 /* alias */
 #endif
 #ifndef NC_FORMAT_NC_HDF4
-# define NC_FORMAT_NC_HDF4 (3) /* netcdf 4 subset of HDF4 */
+# define NC_FORMAT_NC_HDF4 (3) /* netCDF-4 subset of HDF4 */
 #endif
 #ifndef NC_FORMAT_PNETCDF
 # define NC_FORMAT_PNETCDF (4)
@@ -145,6 +151,33 @@
 #endif
 #ifndef NC_FORMAT_DAP4
 # define NC_FORMAT_DAP4    (6)
+#endif
+
+#ifndef NC_FORMATX_UNDEFINED
+# define NC_FORMATX_UNDEFINED (0)
+#else
+# define NC_HAVE_INQ_FORMATX_EXTENDED
+#endif
+#ifndef NC_FORMATX_NC3
+# define NC_FORMATX_NC3     (1)
+#endif
+#ifndef NC_FORMATX_NC_HDF5
+# define NC_FORMATX_NC_HDF5 (2) /* netCDF4 subset of HDF5 */
+#endif
+#ifndef NC_FORMATX_NC4
+# define NC_FORMATX_NC4 NC_FORMATX_NC_HDF5 /* alias */
+#endif
+#ifndef NC_FORMATX_NC_HDF4
+# define NC_FORMATX_NC_HDF4 (3) /* netcdf4 subset of HDF4 */
+#endif
+#ifndef NC_FORMATX_PNETCDF
+# define NC_FORMATX_PNETCDF (4)
+#endif
+#ifndef NC_FORMATX_DAP2
+# define NC_FORMATX_DAP2    (5)
+#endif
+#ifndef NC_FORMATX_DAP4
+# define NC_FORMATX_DAP4    (6)
 #endif
 
 /* Three compatibility tokens from pnetcdf.h introduced to NCO 20140604 
@@ -163,6 +196,9 @@
    Started annotating these error codes in nco_err_exit() in NCO 4.4.6 in 201409 */
 #ifndef NC_EIO
 # define NC_EIO          (-68)      /**< Generic IO error */
+#endif
+#ifndef NC_EACCESS
+# define NC_EACCESS      (-77)      /**< Access Failure */
 #endif
 
 /* Some netCDF3 stubs for netCDF4 routines need netCDF4-only return codes
@@ -213,6 +249,10 @@ cdl_typ_sfx /* [fnc] Return suffix string for CDL type */
 
 const char * /* O [sng] Native XML type */
 xml_typ_nm /* [fnc] Return string describing native XML type */
+(const nc_type type); /* I [enm] netCDF type */
+
+const char * /* O [sng] Native JSON type */
+jsn_typ_nm /* [fnc] Return string describing native JSON type */
 (const nc_type type); /* I [enm] netCDF type */
 
 const char * /* O [sng] String describing extended file format */
@@ -283,7 +323,7 @@ int nco_open_par  (const char * const fl_nm,const int  mode,MPI_Comm mpi_cmm,MPI
 int nco_var_par_access(const int nc_id,const int var_id,const int par_access);
 # endif /* !HAVE_NETCDF4_H */
 # ifdef PNETCDF_EXPOSED_API
-/* pnetCDF routines defined by ANL Parallel netCDF Library libpnetcdf.a */
+/* PnetCDF routines defined by ANL Parallel netCDF Library libpnetcdf.a */
 int ncompi_create(MPI_Comm mpi_cmm,const char * const fl_nm,const int cmode,MPI_Info mpi_nfo,int * const nc_id);
 int ncompi_open  (MPI_Comm mpi_cmm,const char * const fl_nm,const int omode,MPI_Info mpi_nfo,int * const nc_id);
 # endif /* !PNETCDF_EXPOSED_API */
@@ -304,14 +344,21 @@ int nco_sync(const int nc_id);
 int nco_abort(const int nc_id);
 int nco_close(const int nc_id);
 int nco_inq(const int nc_id,int * const dmn_nbr_fl,int * const var_nbr_fl,int * const att_glb_nbr,int * const rec_dmn_id);
-#if NEED_NC_INQ_FORMAT
-/* Stub for nc_inq_format(), which appeared in netCDF 3.6.1 or 3.6.2 */
-int nc_inq_format(int nc_id,int * const fl_fmt);
-#endif /* !NEED_NC_INQ_FORMAT */
+  /* NB: nc_inq_path() introduced in netCDF 4.3.2, but   NC_LIB_VERSION does not work until netCDF 4.4.0 */
+#ifndef HAVE_NC_INQ_PATH
+  int nc_inq_path(const int nc_id,size_t * const pathlen,char * const path);
+#endif /* !HAVE_NC_INQ_PATH */
+int nco_inq_path(const int nc_id,size_t * const pathlen,char * const path);
+  /* NB: nc_inq_format() introduced in netCDF 3.6.1, but NC_LIB_VERSION does not work until netCDF 4.4.0 */
+#ifndef HAVE_NC_INQ_FORMAT
+  /* Stub for nc_inq_format(), introduced in netCDF 3.6.1 or 3.6.2 */
+  int nc_inq_format(int nc_id,int * const fl_fmt);
+#endif /* !HAVE_NC_INQ_FORMAT */
 int nco_inq_format(const int nc_id,int * const fl_fmt);
+  /* NB: nc_inq_format_extended() introduced in netCDF 4.3.1, but NC_LIB_VERSION does not work until netCDF 4.4.0 */
 #ifndef NC_HAVE_INQ_FORMAT_EXTENDED
-/* 20131222: Stub for nc_inq_format_extended(), which appeared in netCDF 4.3.1-rc7 */
-int nc_inq_format_extended(int nc_id,int * const fl_fmt,int * const mode);
+  /* 20131222: Stub for nc_inq_format_extended(), introduced in netCDF 4.3.1-rc7 */
+  int nc_inq_format_extended(int nc_id,int * const fl_fmt,int * const mode);
 #endif /* !NC_HAVE_INQ_FORMAT_EXTENDED */
 int nco_inq_format_extended(const int nc_id,int * const fl_fmt,int * const mode);
 int nco_inq_ncid(const int nc_id,const char * const grp_nm,int * const grp_id);
@@ -410,7 +457,23 @@ int nco_get_att(const int nc_id,const int var_id,const char * const att_nm,void 
 #ifndef NC_HAVE_RENAME_GRP
   int nc_rename_grp(int grp_id,const char * const grp_nm);
 #endif /* NC_HAVE_RENAME_GRP */
-#if NC_LIB_VERSION < 440
+  /* nc_open_mem() is defined in netCDF >= 4.4.0, however ...
+     Ubuntu (Xenial at least) used broken netCDF CMake (not autoconf) to package 4.4.0 (it does not install netcdf_mem.h):
+     https://github.com/nco/nco/issues/44
+     Symptom of "missing netcdf_mem.h" and/or "unresolved nc_open_mem()" occurs with NCO 4.6.2+
+     Until 20171112 we used (Option 1): 
+     #if NC_LIB_VERSION >= 440 
+     which forces Ubuntu netCDF 4.4.0 users to build netCDF with autoconf and install, e.g., into /usr/local, or
+     to manually copy netcdf_mem.h into /usr/include (has anyone tested whether that really solves the problem?)
+     Option 2 is to add test/symbol in build-engine, e.g., 
+     #if defined(HAVE_NETCDF_MEM_H)
+     which requires additional build tests in Autoconf/CMake/Makefile 
+     20180106 For CMake this is correctly done by detecting both the existence of
+     netcdf_mem.h and symbol nc_open_mem in the netCDF library and defining HAVE_NETCDF_MEM_H 
+     only when both exist */
+#ifdef HAVE_NETCDF_MEM_H
+# include <netcdf_mem.h> /* nc_open_mem() defined in netCDF >= 4.4.0 */
+#else /* 4.4.0 */
   int nc_open_mem(const char * const fl_nm,const int mode,const size_t sz,void * const void_ptr,int * const nc_id);
 #endif /* 4.4.0 */
 

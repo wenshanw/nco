@@ -3,7 +3,7 @@
 # Purpose: Makefile for libnco_c++ module nco_c++
 # Requires GNU Make---AT&T Make chokes on GNU syntax
 
-# Copyright (C) 1994--2016 Charlie Zender
+# Copyright (C) 1994--2018 Charlie Zender
 # License: GNU General Public License (GPL) Version 3
 # See http://www.gnu.org/copyleft/gpl.html for full license text
 
@@ -184,7 +184,10 @@ ifndef USR_TKN
  USR_TKN := -DABORT_ON_ERROR
 endif # endif USR_TKN
 ifndef VRS_SNG
- VRS_SNG := $(shell date +%Y%m%d)
+# VRS_SNG := $(shell date +%Y%m%d)
+# 20150622
+# VRS_SNG := $(shell git describe --abbrev=7 --dirty --always --tags)
+ VRS_SNG := $(shell cat ${MY_DOC_DIR}/VERSION)
 endif # endif VRS_SNG
 
 # Derived-tokens based on primary tokens

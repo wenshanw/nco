@@ -2,7 +2,7 @@
 
 /* Purpose: CCM/CCSM/CF conventions */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -51,7 +51,7 @@ nco_cnv_ccm_ccsm_cf_inq /* O [fnc] Check if file obeys CCM/CCSM/CF conventions *
     if(strstr(att_val,"CF-1.")) CNV_CCM_CCSM_CF=True; /* NB: Not fully implemented TODO nco145 */
     /* As of 20060514, CLM 3.0 uses CF1.0 not CF-1.0 (CAM gets it right) */
     if(strstr(att_val,"CF1.")) CNV_CCM_CCSM_CF=True; /* NB: Not fully implemented TODO nco145 */
-    if(CNV_CCM_CCSM_CF && nco_dbg_lvl_get() >= nco_dbg_std){
+    if(CNV_CCM_CCSM_CF && nco_dbg_lvl_get() >= nco_dbg_fl){
       (void)fprintf(stderr,"%s: CONVENTION File \"%s\" attribute is \"%s\"\n",nco_prg_nm_get(),cnv_sng,att_val);
       if(cnv_sng == cnv_sng_LC) (void)fprintf(stderr,"%s: WARNING: This file uses a non-standard attribute (\"%s\") to indicate the netCDF convention. The correct attribute is \"%s\".\n",nco_prg_nm_get(),cnv_sng_LC,cnv_sng_UC);
       /* Only warn in arithmetic operators where conventions change behavior */
@@ -389,6 +389,7 @@ nco_cnv_cf_cll_mth_add               /* [fnc] Add cell_methods attributes */
     case nco_op_mabs: strcpy(att_op_sng,"maximum_absolute_value"); break; /* Maximum absolute value */
     case nco_op_mebs: strcpy(att_op_sng,"mean_absolute_value"); break; /* Mean absolute value */
     case nco_op_mibs: strcpy(att_op_sng,"minimum_absolute_value"); break; /* Minimum absolute value */
+    case nco_op_tabs: strcpy(att_op_sng,"sum absolute_value"); break; /* sum  absolute value */
     case nco_op_sqravg: strcpy(att_op_sng,"square_of_mean"); break; /* Square of mean */
     case nco_op_sqrt: strcpy(att_op_sng,"square_root_of_mean"); break; /* Square root of mean */ 
     case nco_op_rms: strcpy(att_op_sng,"root_mean_square"); break; /* Root-mean-square (normalized by N) */
@@ -414,13 +415,13 @@ nco_cnv_cf_cll_mth_add               /* [fnc] Add cell_methods attributes */
     (void)strcat(aed.val.cp,": ");
     (void)strcat(aed.val.cp,att_op_sng);
 
-    /* 20150625: Older versions of CAM, e.g., CAM3, used "cell_method" instead of "cell_methods" 
+    /* 20150625: Older versions of CAM, e.g., CAM3 and CLM3, used "cell_method" instead of "cell_methods" 
        If old attribute is not deleted then the output file will contain both attributes
        Does variable already have "cell_method" attribute? */
     strcpy(aed.att_nm,"cell_method");
     rcd=nco_inq_att_flg(grp_out_id,var_out_id,aed.att_nm,&att_typ,&att_lng);
     if(rcd == NC_NOERR){
-      if(FIRST_WARNING) (void)fprintf(stderr,"%s: WARNING: Variable \"%s\" uses the non-standard attribute name \"cell_method\" instead of \"cell_methods\", the correct attribute name. The CAM3 model (and others?) have this problem. Expect \"double attributes\" in output. This message is printed only once per invocation, although the problem likely occurs in more variables.\n",nco_prg_nm_get(),aed.var_nm);
+      if(FIRST_WARNING) (void)fprintf(stderr,"%s: WARNING: Variable \"%s\" uses the non-standard attribute name \"cell_method\" instead of \"cell_methods\", the correct attribute name. The CAM3 and CLM3 models (and others?) have this problem. Expect \"double attributes\" in output. This message is printed only once per invocation, although the problem likely occurs in multiple variables.\n",nco_prg_nm_get(),aed.var_nm);
       FIRST_WARNING=False;
     } /* endif attribute exists */
 
@@ -559,6 +560,7 @@ nco_rdc_sng_to_op_typ /* [fnc] Convert operation string to integer */
   if(!strcmp(att_op_sng,"mabs")) return nco_op_mabs;
   if(!strcmp(att_op_sng,"mebs")) return nco_op_mebs;
   if(!strcmp(att_op_sng,"mibs")) return nco_op_mibs;
+  if(!strcmp(att_op_sng,"tabs")) return nco_op_tabs;
   if(!strcmp(att_op_sng,"mean")) return nco_op_avg;
   if(!strcmp(att_op_sng,"minimum")) return nco_op_min;
   if(!strcmp(att_op_sng,"maximum")) return nco_op_max;
@@ -581,6 +583,7 @@ nco_op_typ_to_rdc_sng /* [fnc] Convert operation type to string */
   case nco_op_mabs: return "mabs";
   case nco_op_mebs: return "mebs";
   case nco_op_mibs: return "mibs";
+  case nco_op_tabs: return "tabs";
   case nco_op_min: return "minimum";
   case nco_op_max: return "maximum";
   case nco_op_ttl: return "sum";

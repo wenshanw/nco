@@ -10,7 +10,8 @@ ncks [\-3] [\-4] [\-5] [\-6] [\-7] [\-A] [\-a] [\-b
 .IR bnr_fl] 
 [\-\-bfr
 .IR sz_byt ] [\-C] [\-c] 
-[\-\-cdl] [\-\-cnk_byt
+[\-\-cal] [\-\-cdl] [\-\-cnk_byt
+.IR sz_byt ] [\-\-cnk_csh
 .IR sz_byt ] [\-\-cnk_dmn 
 .IR nm,sz_lmn ]
 [\-\-cnk_map 
@@ -28,7 +29,7 @@ dbg_lvl]
 .IR min ][,[
 .IR max ]][,[
 .IR stride ]]]
-[\-F] [\-\-fix_rec_dmn
+[-F] [--fl_fmt=fmt] [\-\-fix_rec_dmn
 .IR dim ]
 [\-G
 .IR gpe_dsc ]
@@ -41,15 +42,15 @@ dbg_lvl]
 [\-H] [\-h] [\-\-hdn] 
 [\-\-hdr_pad
 .IR sz_byt ]
-[\-L 
-.IR dfl_lvl ] 
+[\-\-json] [\-\-jsn_fmt
+.IR lvl ] 
 [\-l 
 .IR path ]
 [\-M] [\-m] [\-\-map
 .IR map-file ]
 [\-\-md5] [\-\-mk_rec_dmn
 .IR dim ]
-[\-\-msa] [\-\-no_blank] [\-\-no_tmp_fl] [\-O] [\-o 
+[\-\-msa] [\-\-no_blank] [\-\-no_cll_msr] [\-\-no_frm_trm] [\-\-no_tmp_fl] [\-O] [\-o 
 .IR output-file ] 
 [\-P] [\-p 
 .IR path ]
@@ -623,7 +624,7 @@ manual pages written by Charlie Zender and originally formatted by Brian Mays.
 Report bugs to <http://sf.net/bugs/?group_id=3331>.
 
 .SH COPYRIGHT
-Copyright \(co 1995-2016 Charlie Zender
+Copyright \(co 1995-2018 Charlie Zender
 .br
 This is free software; see the source for copying conditions.  There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
@@ -632,13 +633,13 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 The full documentation for
 .B NCO
 is maintained as a Texinfo manual called the 
-.B NCO User's Guide.
+.B NCO Users Guide.
 Because 
 .B NCO
 is mathematical in nature, the documentation includes TeX-intensive
 portions not viewable on character-based displays. 
 Hence the only complete and authoritative versions of the 
-.B NCO User's Guide 
+.B NCO Users Guide 
 are the PDF (recommended), DVI, and Postscript versions at
 <http://nco.sf.net/nco.pdf>, <http://nco.sf.net/nco.dvi>,
 and <http://nco.sf.net/nco.ps>, respectively.

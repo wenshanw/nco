@@ -2,13 +2,12 @@
 
 /* Purpose: netCDF arithmetic processor class methods: families of functions/methods */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
 
 #include "fmc_all_cls.hh"
-
 //Conversion Functions /***********************************/
  
   cnv_cls::cnv_cls(bool flg_dbg){
@@ -76,6 +75,9 @@
       fmc_vtr.push_back( fmc_cls("total",this,(int)PTTL));
       fmc_vtr.push_back( fmc_cls("ttl",this,(int)PTTL));
       fmc_vtr.push_back( fmc_cls("sum",this,(int)PTTL));
+      fmc_vtr.push_back( fmc_cls("tabs",this,(int)PTABS));
+      fmc_vtr.push_back( fmc_cls("ttlabs",this,(int)PTABS));
+
     }
   }		      
 		      
@@ -90,9 +92,10 @@
             dmn_sct **dim_nw=NULL_CEWI;  
             var_sct *var=NULL_CEWI;
             var_sct *var1=NULL_CEWI;
+            var_sct *var_att_cll_mtd=NULL_CEWI;
            
-	    std::string susg;
-	    std::string sfnm=fmc_obj.fnm();
+	        std::string susg;
+	        std::string sfnm=fmc_obj.fnm();
 
             RefAST aRef;
             RefAST tr;
@@ -117,7 +120,7 @@
               while(tr=tr->getNextSibling());    
             } 
       
-            nbr_args=vtr_args.size();  
+            nbr_args=vtr_args.size();
 
             susg="usage: var_out="+sfnm+"(var_in,$dim1,$dim2...$dimn)";
 
@@ -129,7 +132,7 @@
             nbr_dim=var1->nbr_dim;  
 
             // Process function arguments if any exist !! 
-            for(idx=1; idx<nbr_args; idx++){  
+            for(idx=1; idx<nbr_args; idx++){
                 aRef=vtr_args[idx];
            
                 switch(aRef->getType()){
@@ -158,6 +161,7 @@
                 } // end switch
 
              } // end for 
+
 
 	    // Important to note that dmn_vtr contains dim pointers
             // picked up from var1->dim so there is no need to free them 
@@ -217,14 +221,14 @@
       
               dim_nw=(dmn_sct**)nco_malloc(nbr_dim*sizeof(dmn_sct*));
 
-	      for(idx=0 ; idx<nbr_dim; idx++){ 
+	          for(idx=0 ; idx<nbr_dim; idx++){
                 dim_nw[idx]=nco_dmn_dpl(var1->dim[idx]);   
                 dim_nw[idx]->srt=var1->srt[idx];
                 dim_nw[idx]->end=var1->end[idx];
                 dim_nw[idx]->cnt=var1->cnt[idx];
                 dim_nw[idx]->srd=var1->srd[idx];
                    
-	        var1->dim[idx]=dim_nw[idx]; 
+	            var1->dim[idx]=dim_nw[idx];
               }
 
             }  
@@ -232,12 +236,25 @@
             if(dmn_vtr.size() >0 && dmn_vtr.size()<nbr_dim ){
                 dim=&dmn_vtr[0];
                 avg_nbr_dim=dmn_vtr.size();
-	    // average over all dims                           
+	        // average over all dims
             }else{
                 dim=var1->dim;
                 avg_nbr_dim=nbr_dim; 
-            }    
-            
+            }
+
+
+          if(prs_arg->FLG_CLL_MTH) {
+            NcapVar *Nvar;
+            var_att_cll_mtd = ncap_att_cll_mtd(var1->nm,dim, avg_nbr_dim, (nco_op_typ)fdx);
+            Nvar=new NcapVar(var_att_cll_mtd);
+            // mark attribute as transient
+            // this mean it is propagated to the LHS only once then deleted
+            Nvar->flg_mem=true;
+            prs_arg->var_vtr.push_ow(Nvar);
+          }
+
+
+
             // do the heavy lifting
             switch(fdx){
                     
@@ -255,17 +272,26 @@
                     break;
                     
                 case PMIBS:
+                    (void)nco_var_abs(var1->type,var1->sz,var1->has_mss_val,var1->mss_val,var1->val);
                     var=nco_var_avg(var1,dim,avg_nbr_dim,nco_op_mibs,False,&ddra_info);
                     break;
                     
                 case PMABS:
+                    (void)nco_var_abs(var1->type,var1->sz,var1->has_mss_val,var1->mss_val,var1->val);
                     var=nco_var_avg(var1,dim,avg_nbr_dim,nco_op_mabs,False,&ddra_info);
                     break;
                     
                 case PMEBS:
-                    var=nco_var_avg(var1,dim,avg_nbr_dim,nco_op_mebs,False,&ddra_info);
+                    (void)nco_var_abs(var1->type,var1->sz,var1->has_mss_val,var1->mss_val,var1->val);
+                    var=nco_var_avg(var1,dim,avg_nbr_dim,nco_op_avg,False,&ddra_info);
+                    (void)nco_var_nrm(var->type,var->sz,var->has_mss_val,var->mss_val,var->tally,var->val);
                     break;
-                    
+
+                case PTABS:
+                    (void)nco_var_abs(var1->type,var1->sz,var1->has_mss_val,var1->mss_val,var1->val);
+                    var=nco_var_avg(var1,dim,avg_nbr_dim,nco_op_avg,False,&ddra_info);
+                    break;
+
                 case PMAX:
                     var=nco_var_avg(var1,dim,avg_nbr_dim,nco_op_max,False,&ddra_info);
                     break;
@@ -308,11 +334,12 @@
              // var1 is freed/destroyed in nco_var_avg()
 
 
+
             // free local dim list if necessary
             if(dim_nw){
-	      for(idx=0; idx<nbr_dim;idx++)
-		dim_nw[idx]=nco_dmn_free(dim_nw[idx]);
-              nco_free(dim_nw);
+	          for(idx=0; idx<nbr_dim;idx++)
+		        dim_nw[idx]=nco_dmn_free(dim_nw[idx]);
+                nco_free(dim_nw);
             }  		 
             return var;                
 
@@ -333,6 +360,12 @@
       fmc_vtr.push_back( fmc_cls("has_miss",this,(int)HAS_MISS));
       fmc_vtr.push_back( fmc_cls("ram_write",this,(int)RAM_WRITE));
       fmc_vtr.push_back( fmc_cls("ram_delete",this,(int)RAM_DELETE));
+      fmc_vtr.push_back( fmc_cls("mask_miss",this,(int)MASK_MISS));
+      /* synomn */
+      fmc_vtr.push_back( fmc_cls("missing",this,(int)MASK_MISS));
+      fmc_vtr.push_back( fmc_cls("linear_fill_miss",this,(int)LINEAR_FILL_MISS));
+      fmc_vtr.push_back( fmc_cls("simple_fill_miss",this,(int)SIMPLE_FILL_MISS));
+      fmc_vtr.push_back( fmc_cls("weighted_fill_miss",this,(int)WEIGHT_FILL_MISS));
      
     }
   }
@@ -374,13 +407,50 @@
       
      if(nbr_args ==0) 
        err_prn(fnc_nm,styp+" \""+sfnm+"\" has been called with no arguments"); 
-     
-     // deal with is_miss in a seperate function     
+
+
+
+     // deal with is_miss in a seperate function
+    /*
      if(fdx==NUM_MISS||fdx==HAS_MISS)
        return is_fnd(is_mtd, vtr_args,fmc_obj,walker);           
      if(fdx==GET_MISS)       
-       return get_fnd(is_mtd, vtr_args,fmc_obj,walker);             
-  
+       return get_fnd(is_mtd, vtr_args,fmc_obj,walker);
+    if(fdx==FILL_LINEAR_MISS)
+      return fill_fnd(is_mtd, vtr_args,fmc_obj,walker);
+
+    */
+
+    switch(fdx)
+    {
+      case NUM_MISS:
+      case HAS_MISS:
+        return is_fnd(is_mtd, vtr_args,fmc_obj,walker);
+        break;
+
+      case GET_MISS:
+        return get_fnd(is_mtd, vtr_args,fmc_obj,walker);
+        break;
+
+      case LINEAR_FILL_MISS:
+        return linear_fill_fnd(is_mtd, vtr_args,fmc_obj,walker);
+        break;
+
+      case MASK_MISS:
+        return mask_fnd(is_mtd, vtr_args,fmc_obj,walker);
+        break;
+
+      case SIMPLE_FILL_MISS:
+      case WEIGHT_FILL_MISS:
+        return fill_fnd(is_mtd, vtr_args,fmc_obj,walker);
+        break;
+
+        // do nothing just continue
+      default:
+        break;
+    }
+
+
 
     if( fdx==SET_MISS || fdx==CH_MISS) {
 
@@ -537,7 +607,7 @@
 
   
 var_sct * utl_cls::is_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker){
-  const std::string fnc_nm("srt_cls::imap_fnd");
+  const std::string fnc_nm("utl_cls::is_fnd");
     int nbr_args;
     int fdx=fmc_obj.fdx();
     long icnt;
@@ -601,7 +671,7 @@ var_sct * utl_cls::is_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &
  
 // custom function for GET_MISS
 var_sct * utl_cls::get_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker){
-  const std::string fnc_nm("srt_cls::imap_fnd");
+  const std::string fnc_nm("utl_cls::get_fnd");
     int nbr_args;
     int fdx=fmc_obj.fdx();
     var_sct *var=NULL_CEWI;
@@ -677,7 +747,570 @@ var_sct * utl_cls::get_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls 
 
     return var_ret; 	
 
-} 
+}
+
+var_sct * utl_cls::linear_fill_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker){
+  const std::string fnc_nm("utl_cls::fill_linear_fnd");
+  nco_bool do_permute=False;
+  int idx;
+  int jdx;
+  int nbr_dim;
+  int nbr_args;
+  int re_dim_nbr;
+  int swp_nbr;
+  int fdx=fmc_obj.fdx();
+  long icnt;
+  var_sct *var=NULL_CEWI;
+  var_sct *var_int=NULL_CEWI;
+  nc_type styp=NC_INT; // used to hold the mapping type either NC_INT or NC_UINT64
+  std::string sfnm =fmc_obj.fnm(); //method name
+  std::string var_nm;
+  std::string dim_nm;
+  std::string susg;
+  prs_cls *prs_arg=walker.prs_arg;
+
+
+  sfnm =fmc_obj.fnm(); //method name
+
+  susg="usage: var_out="+sfnm+"(var_in,$dim?)";
+
+
+  nbr_args=args_vtr.size();
+  var=walker.out(args_vtr[0] );
+  nbr_dim=var->nbr_dim;
+
+  if(nbr_args==0)
+    err_prn(sfnm,"Function has been called with no arguments\n"+susg);
+
+  if(prs_arg->ntl_scn){
+    return var;
+
+  }
+
+  if(nbr_args >1)
+  {
+    RefAST aRef=args_vtr[1];
+    if(aRef->getType() != DIM_ID)
+      err_prn(sfnm, "Second argument must be a single dimension\n"+susg);
+
+    dim_nm=aRef->getText();
+
+    for(idx=0;idx<nbr_dim;idx++)
+      if(!strcmp(var->dim[idx]->nm, dim_nm.c_str())) break;
+
+    if(idx==nbr_dim)
+      err_prn(sfnm, "Unable to find dim " + dim_nm +" in var "+ SCS(var->nm)+".");
+
+    re_dim_nbr=idx;
+
+  }
+  // dim not specified so choose last dim in var
+  else
+  {
+    re_dim_nbr = var->nbr_dim - 1;
+    dim_nm=SCS(var->dim[re_dim_nbr]->nm );
+  }
+
+  std::vector<nco_bool>  bool_vtr(nbr_dim,False);
+  std::vector<int> dmn_idx_in_out(nbr_dim,0);
+  std::vector<int> dmn_idx_out_in(nbr_dim,0);
+
+  for(idx=0;idx<nbr_dim;idx++)
+    dmn_idx_in_out[idx]=idx;
+
+  // do we need to permute dims ?
+  if(nbr_dim ==1 || re_dim_nbr == nbr_dim-1)
+  {
+   do_permute=False;
+
+  }
+  else
+  {
+    dmn_sct *swp_dim;
+    do_permute=True;
+    // swap about last value;
+    dmn_idx_in_out[re_dim_nbr]=nbr_dim-1;
+    dmn_idx_in_out[nbr_dim-1]=re_dim_nbr;
+
+    var_int=nco_var_dpl(var);
+    swp_dim=var->dim[re_dim_nbr];
+
+    var_int->dim[re_dim_nbr]=var_int->dim[nbr_dim-1];
+    var_int->dim[nbr_dim-1]=swp_dim;
+
+    // create "out_in" mapping from "in_out" mapping
+    for(idx=0 ; idx <nbr_dim ; idx++)
+      for(jdx=0 ; jdx<nbr_dim; jdx++)
+        if( idx==dmn_idx_in_out[jdx]){
+          dmn_idx_out_in[idx]=jdx;
+          break;
+        }
+
+
+
+  }
+
+  //do opera
+  if(do_permute)
+  {
+    (void) nco_var_dmn_rdr_val(var, var_int, &dmn_idx_out_in[0], &bool_vtr[0]);
+  }
+
+  // do fill
+  if(1)
+  {
+
+    int slb_sz=var_int->dim[nbr_dim-1]->cnt;
+    int sz=var->sz/slb_sz;
+    double *dp;
+
+    cast_void_nctype(NC_DOUBLE,&var_int->val);
+    dp=var_int->val.dp;
+
+    for(idx=0;idx<sz;idx++)
+      for(jdx=0;jdx<slb_sz;jdx++)
+        dp[idx*slb_sz+jdx]=jdx;
+
+
+    cast_nctype_void(NC_DOUBLE,&var_int->val);
+  }
+
+  // permute back to original state
+  if(do_permute)
+  {
+
+    (void) nco_var_dmn_rdr_val(var_int, var, &dmn_idx_in_out[0], &bool_vtr[0]);
+    var_int = (var_sct *) nco_var_free(var_int);
+
+  }
+
+  return var;
+
+
+
+}
+
+
+/* fill_miss() method  assumes that the final two dims of the var are lat,lon */
+/* if type not double then converts to double for fill, then converts back to orginal type */
+var_sct * utl_cls::fill_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker){
+  const std::string fnc_nm("utl_cls::fill_fnd");
+  int idx;
+  int jdx;
+  int nbr_dim;
+  int nbr_args;
+  int fdx=fmc_obj.fdx();
+  long icnt;
+  double *lat_dp=NULL_CEWI;
+  double *lon_dp=NULL_CEWI;
+  nc_type lcl_typ;
+  var_sct *var=NULL_CEWI;
+  var_sct *var_lat=NULL_CEWI;
+  var_sct *var_lon=NULL_CEWI;
+
+  std::string sfnm =fmc_obj.fnm(); //method name
+  std::string susg;
+  prs_cls *prs_arg=walker.prs_arg;
+
+
+  sfnm =fmc_obj.fnm(); //method name
+
+  susg="usage: var_out="+sfnm+"(var_in)";
+
+
+
+  nbr_args=args_vtr.size();
+  var=walker.out(args_vtr[0] );
+  nbr_dim=var->nbr_dim;
+
+  if(nbr_args==0)
+    err_prn(sfnm,"Function has been called with no arguments\n"+susg);
+
+  if(prs_arg->ntl_scn){
+    return var;
+
+  }
+
+  // number of dims
+  if(var->nbr_dim<2)
+    err_prn(sfnm,"variable must have a least 2 dims.\"" + SCS(var->nm) + "\" has "+nbr2sng(var->nbr_dim)+ " dims." );
+
+  lcl_typ=var->type;
+  // if not double then convert to double
+  if(var->type != NC_DOUBLE )
+    nco_var_cnf_typ(NC_DOUBLE, var);
+
+  nbr_dim = var->nbr_dim;
+
+  if(fdx==WEIGHT_FILL_MISS) {
+    // grab lat & lon -- assume 1D and there names are the same as their dim names and the dim order is lat,lon
+    var_lat = prs_arg->ncap_var_init(std::string(var->dim[nbr_dim - 2]->nm), true); // lat second to last
+    var_lon = prs_arg->ncap_var_init(std::string(var->dim[nbr_dim - 1]->nm), true); // lon last dim
+
+    if (var_lat && var_lon) {
+
+      if (var_lat->type != NC_DOUBLE)
+        nco_var_cnf_typ(NC_DOUBLE, var_lat);
+
+      if (var_lon->type != NC_DOUBLE)
+        nco_var_cnf_typ(NC_DOUBLE, var_lon);
+
+      cast_void_nctype(var_lat->type, &var_lat->val);
+      cast_void_nctype(var_lon->type, &var_lon->val);
+
+      lat_dp = var_lat->val.dp;
+      lon_dp = var_lon->val.dp;
+    }
+    else
+      err_prn(sfnm,"to get the lat/lon coord-variables this function assumes that they are named after the final two dims in your variable argument.");
+
+
+  }
+
+  {
+    // move through data in blocks if number of dims >2
+    int blk_nbr;
+    size_t blk_sz;
+    size_t slb_sz;
+    void *vp;
+    void *msk_vp = NULL_CEWI;
+
+
+    blk_sz = var->dim[nbr_dim - 2]->cnt * var->dim[nbr_dim - 1]->cnt;
+    blk_nbr = var->sz / blk_sz;
+
+    slb_sz = nco_typ_lng(var->type);
+
+    // save pointer to restore later
+    vp = var->val.vp;
+    // create space here for use in beta_fill
+    msk_vp = nco_malloc(blk_sz * slb_sz);
+
+    for (idx = 0; idx < blk_nbr; idx++) {
+      var->val.vp = (char *) vp + (ptrdiff_t) (blk_sz * idx * slb_sz);
+      if(fdx==SIMPLE_FILL_MISS)
+         simple_fill(var, msk_vp);
+      else if(fdx==WEIGHT_FILL_MISS)
+         weight_fill(var,msk_vp,lat_dp,lon_dp);
+    }
+
+    var->val.vp = vp;
+
+
+    msk_vp = nco_free(msk_vp);
+
+  }
+
+  // convert back to original type
+  if(lcl_typ != var->type)
+     nco_var_cnf_typ(lcl_typ, var);
+
+
+  // free lat/lon
+  if(fdx==WEIGHT_FILL_MISS)
+  {
+    cast_nctype_void(var_lat->type,&var_lat->val);
+    cast_nctype_void(var_lon->type,&var_lon->val);
+    var_lat=nco_var_free(var_lat);
+    var_lon=nco_var_free(var_lon);
+  }
+
+
+
+  return var;
+
+}
+
+
+
+/* simple fill function for replacing _FillValue with average of nearest neighbour(s) */
+int utl_cls::simple_fill(var_sct* var, void* msk_vp){
+
+  // we now have a 2 D var assume [lat, lon]
+  int idx;
+  int jdx;
+  int nbr_dim=var->nbr_dim;
+  int imax_loop=1000;
+  int num_miss;
+  int cnt=0;
+  int lat_sz;
+  int lon_sz;
+  size_t slb_sz;
+  double dbl_mss_val;
+  double **msk_dp=NULL_CEWI;
+  double **dp=NULL_CEWI;
+
+  slb_sz=nco_typ_lng(var->type);
+  lat_sz=var->dim[nbr_dim-2]->cnt;
+  lon_sz=var->dim[nbr_dim-1]->cnt;
+
+
+  // make indexing easier
+  msk_dp=(double**)nco_malloc( sizeof(double*) * lat_sz);
+  dp=(double**)nco_malloc( sizeof(double*) * lat_sz);
+
+  cast_void_nctype(var->type, &var->val);
+  if(var->has_mss_val)
+    dbl_mss_val=*var->mss_val.dp;
+  else
+    dbl_mss_val=NC_FILL_DOUBLE;
+
+
+  // make indexing easier
+  for(idx=0;idx<lat_sz;idx++) {
+    dp[idx] = &(var->val.dp[lon_sz * idx]);
+    msk_dp[idx]= (double*)msk_vp+ptrdiff_t(lon_sz*idx);
+
+  }
+
+  // set num miss to get loop going
+  num_miss=999;
+
+
+  while( imax_loop-->0 && num_miss>0) {
+    double sum=0.0;
+    num_miss=0;
+    // set msk to latest values
+    memcpy((char*)msk_vp, (char*)var->val.dp, lat_sz * lon_sz * slb_sz);
+
+    // move from bottom to top (lat)  and left to right (lon)
+    for (idx = 0 ; idx < lat_sz; idx++)
+      for (jdx = 0; jdx < lon_sz; jdx++)
+        if (msk_dp[idx][jdx] == dbl_mss_val) {
+          sum = 0.0;
+          cnt = 0;
+          if (idx > 0 && msk_dp[idx - 1][jdx] != dbl_mss_val) {
+            sum += msk_dp[idx - 1][jdx];
+            cnt++;
+          }
+
+          if (idx < lat_sz - 1 && msk_dp[idx + 1][jdx] != dbl_mss_val) {
+            sum += msk_dp[idx + 1][jdx];
+            cnt++;
+          }
+
+          if (jdx > 0 && msk_dp[idx][jdx - 1] != dbl_mss_val) {
+            sum += msk_dp[idx][jdx - 1];
+            cnt++;
+          }
+
+          if (jdx < lon_sz - 1 && msk_dp[idx][jdx + 1] != dbl_mss_val) {
+            sum += msk_dp[idx][jdx + 1];
+            cnt++;
+          }
+
+          if (cnt > 0)
+            dp[idx][jdx] = sum / cnt;
+          else
+            num_miss++;
+        }
+
+    // get number of missing elements
+    // printf("beta_fill: inum=%d  num_miss=%ld\n", imax_loop, num_miss);
+
+
+  }
+
+  cast_nctype_void(var->type,&var->val);
+
+  dp=(double**)nco_free(dp);
+  msk_dp=(double**)nco_free(dp);
+
+  return NCO_NOERR;
+
+}
+
+
+/* fill function uses weighted value of eight nearest neighbours */
+int utl_cls::weight_fill(var_sct* var, void* msk_vp, double *lat, double *lon){
+
+  // we now have a 2 D var assume [lat, lon]
+  int idx;
+  int jdx;
+  int nbr_dim=var->nbr_dim;
+  int imax_loop=1000;
+  int num_miss;
+  int cnt=0;
+  int lat_sz;
+  int lon_sz;
+  size_t slb_sz;
+  double dbl_mss_val;
+  double **msk_dp=NULL_CEWI;
+  double **dp=NULL_CEWI;
+
+  slb_sz=nco_typ_lng(var->type);
+  lat_sz=var->dim[nbr_dim-2]->cnt;
+  lon_sz=var->dim[nbr_dim-1]->cnt;
+
+
+  // make indexing easier
+  msk_dp=(double**)nco_malloc( sizeof(double*) * lat_sz);
+  dp=(double**)nco_malloc( sizeof(double*) * lat_sz);
+
+  cast_void_nctype(var->type, &var->val);
+  if(var->has_mss_val)
+    dbl_mss_val=*var->mss_val.dp;
+  else
+    dbl_mss_val=NC_FILL_DOUBLE;
+
+
+  // make indexing easier
+  for(idx=0;idx<lat_sz;idx++) {
+    dp[idx] = &(var->val.dp[lon_sz * idx]);
+    msk_dp[idx]= (double*)msk_vp+ptrdiff_t(lon_sz*idx);
+
+  }
+
+  // set num miss to get loop going
+  num_miss=999;
+
+
+  while( imax_loop-->0 && num_miss>0) {
+
+    num_miss = 0;
+    // set msk to latest values
+    memcpy((char *) msk_vp, (char *) var->val.dp, lat_sz * lon_sz * slb_sz);
+
+    // move from bottom to top (lat)  and left to right (lon)
+    for (idx = 0; idx < lat_sz; idx++)
+      for (jdx = 0; jdx < lon_sz; jdx++)
+        if (msk_dp[idx][jdx] == dbl_mss_val) {
+          // sum numerator
+          double sum_nd = 0.0;
+          //  sum denominator
+          double sum_dd = 0.0;
+          // distance from target point - to neighbour
+          double dist = 0.0;
+          int cnt = 0;
+
+          for (int xdx = idx - 1; xdx <= idx + 1; xdx++) {
+            if (xdx < 0 || xdx >= lat_sz) continue;
+
+            for (int ydx = jdx - 1; ydx <= jdx + 1; ydx++) {
+              if (ydx < 0 || ydx >= lon_sz || xdx == idx && ydx == jdx) continue;
+
+              if (msk_dp[xdx][ydx] != dbl_mss_val) {
+                dist = point2point(lat[idx], lon[jdx], lat[xdx], lon[ydx]);
+                sum_nd += msk_dp[xdx][ydx] / dist /dist;
+                sum_dd += 1.0 / dist / dist ;
+                cnt++;
+              }
+
+              if (cnt > 0)
+                dp[idx][jdx] = sum_nd / sum_dd;
+              else
+                num_miss++;
+            }
+          }
+        }
+  }
+
+    // get number of missing elements
+    // printf("beta_fill: inum=%d  num_miss=%ld\n", imax_loop, num_miss);
+
+
+
+
+  cast_nctype_void(var->type,&var->val);
+
+  dp=(double**)nco_free(dp);
+  msk_dp=(double**)nco_free(dp);
+
+  return NCO_NOERR;
+
+}
+
+
+// distance between two points on a great circle
+double utl_cls::point2point(double lat1,double lon1,double lat2, double lon2) {
+
+double dist;
+double alpha;
+
+
+  if(lon1==lon2)
+    return fabs(lat2-lat1);
+  else if(lat1==lat2)
+    alpha=  pow(sin(lat1),2.0) +  pow( cos(lat1),2.0) * cos(lon2-lon1);
+  else
+    alpha=sin(lat1)*sin(lat2)+cos(lat1)*cos(lat2)*cos(lon2-lon1);
+
+  dist=fabs(acos(alpha));
+
+  return dist;
+
+}
+
+
+var_sct * utl_cls::mask_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker) {
+  const std::string fnc_nm("utl_cls::mask_fnd");
+  nco_bool do_permute = False;
+  int idx;
+  int jdx;
+  int nbr_dim;
+  int nbr_args;
+  int re_dim_nbr;
+  int swp_nbr;
+  int fdx = fmc_obj.fdx();
+  long icnt;
+  var_sct *var = NULL_CEWI;
+  var_sct * var_miss= NULL_CEWI;
+  nc_type styp = NC_INT; // used to hold the mapping type either NC_INT or NC_UINT64
+  std::string sfnm = fmc_obj.fnm(); //method name
+  std::string var_nm;
+  std::string dim_nm;
+  std::string susg;
+  prs_cls *prs_arg = walker.prs_arg;
+
+
+  sfnm = fmc_obj.fnm(); //method name
+
+  susg = "usage: var_out=" + sfnm + "(var_in)";
+
+
+  nbr_args = args_vtr.size();
+  var = walker.out(args_vtr[0]);
+  nbr_dim = var->nbr_dim;
+
+  if (nbr_args == 0)
+    err_prn(sfnm, "Function has been called with no arguments\n" + susg);
+
+  if (prs_arg->ntl_scn)
+  {
+    if(var->has_mss_val)
+      if(var->mss_val.vp) {
+        var->mss_val.vp = nco_free(var->mss_val.vp);
+        var->has_mss_val = False;
+      }
+
+
+    return var;
+
+  }
+
+  /* remember the default fill for var->type is used for val.vp in this function call */
+  var_miss=ncap_sclr_var_mk("~var_miss",var->type,true);
+
+  if(var->has_mss_val){
+
+    (void)memcpy(var_miss->val.vp, var->mss_val.vp, nco_typ_lng(var->type));
+    var->has_mss_val=False;
+    var->mss_val.vp=(void*)NULL;
+
+  }else{
+   wrn_prn(sfnm,"Warning method is using default fill value as \""+ SCS(var->nm)+ "\" has no missing value.");
+
+  }
+
+  /* remember this function calls frees up second operand miss_var */
+  (void)ncap_var_var_op(var,var_miss, EQ );
+
+  return var;
+
+
+}
+
+
 
 
 
@@ -914,7 +1547,6 @@ var_sct * bsc_cls::getdims_fnd(bool &is_mtd, std::vector<RefAST> &vtr_args, fmc_
       for(idx=0;idx<ndims;idx++)     
 	var_att->val.sngp[idx]=strdup(var->dim[idx]->nm);
 
-
       (void)cast_nctype_void((nc_type)NC_STRING,&var_att->val); 
     }
 
@@ -922,15 +1554,11 @@ var_sct * bsc_cls::getdims_fnd(bool &is_mtd, std::vector<RefAST> &vtr_args, fmc_
 
     return var_att;
 }
-
-
-
   
 //Math Functions /******************************************/
   mth_cls::mth_cls(bool flg_dbg){
     //Populate only on first constructor call
     if(fmc_vtr.empty()){
-
 
       /* Basic math: acos, asin, atan, cos, exp, log, log10, rnd_nbr, sin, sqrt, tan */
       //sym_vtr.push_back(sym_cls("rnd_nbr",rnd_nbr,rnd_nbrf));
@@ -959,7 +1587,7 @@ var_sct * bsc_cls::getdims_fnd(bool &is_mtd, std::vector<RefAST> &vtr_args, fmc_
 	 20050610: C99 mandates support for erf(), erfc(), tgamma()
 	 Eventually users without C99 will forego ncap */
       
-#if defined(LINUX) || defined(LINUXAMD64)  || defined(MACOSX)
+#if defined(LINUX) || defined(LINUXAMD64) || defined(MACOSX) || defined(_MSC_VER)
       sym_vtr.push_back(sym_cls("erf",erf,erff));
       sym_vtr.push_back(sym_cls("erfc",erfc,erfcf));
       sym_vtr.push_back(sym_cls("gamma",tgamma,tgammaf));
@@ -981,7 +1609,7 @@ var_sct * bsc_cls::getdims_fnd(bool &is_mtd, std::vector<RefAST> &vtr_args, fmc_
       
       /* Advanced Rounding: nearbyint, rint, round, trunc */
       /* Advanced Rounding: nearbyint, round, trunc */
-      /* 20020703: AIX, MACOSX, SGI*, WIN32 do not define rintf
+      /* 20020703: AIX, MACOSX, SGI*, WIN32 do not define rintf()
 	 Only LINUX* supplies all of these and I do not care about them enough
 	 to activate them on LINUX* but not on MACOSX* and SUN* */
       /* 20130326: Re-activate these functions on all architectures */
@@ -1055,6 +1683,8 @@ var_sct * bsc_cls::getdims_fnd(bool &is_mtd, std::vector<RefAST> &vtr_args, fmc_
       fmc_vtr.push_back( fmc_cls("pow",this,(int)PPOW));
       fmc_vtr.push_back( fmc_cls("atan2",this,(int)PATAN2));
       fmc_vtr.push_back( fmc_cls("convert",this,(int)PCONVERT));
+      fmc_vtr.push_back( fmc_cls("xratio",this,(int)PXRATIO));
+      fmc_vtr.push_back( fmc_cls("solar_zenith_angle",this,(int)PSOLARZENITHANGLE));
     }
   }
 
@@ -1126,29 +1756,355 @@ var_sct * bsc_cls::getdims_fnd(bool &is_mtd, std::vector<RefAST> &vtr_args, fmc_
       var=ncap_var_var_op(var1,var2,ATAN2);
         break;                
 
-    case PCONVERT:          
-      if(prs_arg->ntl_scn){
-        var=ncap_var_udf("~mth2_cls");  
-       }else{
+      case PCONVERT:          
+        if(prs_arg->ntl_scn){
+          var=ncap_var_udf("~mth2_cls");  
+        }else{
 
-        /* Change type to int */
-        int c_typ;
-        var2=nco_var_cnf_typ(NC_INT,var2);
-        (void)cast_void_nctype(NC_INT,&var2->val);
-        c_typ=var2->val.ip[0];      
-        (void)cast_nctype_void(NC_INT,&var2->val);
-        var2=nco_var_free(var2);
+          /* Change type to int */
+          int c_typ;
+          var2=nco_var_cnf_typ(NC_INT,var2);
+          (void)cast_void_nctype(NC_INT,&var2->val);
+          c_typ=var2->val.ip[0];      
+          (void)cast_nctype_void(NC_INT,&var2->val);
+          var2=nco_var_free(var2);
 
-        var=nco_var_cnf_typ( (nc_type)c_typ, var1);
-      } 
+          var=nco_var_cnf_typ( (nc_type)c_typ, var1);
+        } 
         break;
-         
+      
+      case  PXRATIO: 
+	if( var1->type == NC_DOUBLE || var2->type == NC_DOUBLE )
+	{       
+            var1=nco_var_cnf_typ( NC_DOUBLE, var1);
+            var2=nco_var_cnf_typ( NC_DOUBLE, var2);
+        }
+        else if ( var1->type == NC_FLOAT || var2->type == NC_FLOAT )
+	{        
+            var1=nco_var_cnf_typ( NC_FLOAT, var1);
+            var2=nco_var_cnf_typ( NC_FLOAT, var2);
+        }
+        else 
+	{    
+            var1=nco_var_cnf_typ( NC_DOUBLE, var1);
+            var2=nco_var_cnf_typ( NC_DOUBLE, var2);
+        }  
+
+
+        var=nco_var_dpl(var1);      
+
+        if(prs_arg->ntl_scn)
+	{                    
+          var1=nco_var_free(var1);  
+	  var2=nco_var_free(var2);
+
+        }
+        else 
+	{ // start heavy lifting      
+
+	  if(var1->sz != var2->sz)
+          {
+            std::string serr;
+	    serr="For  this function to succeed Operands must have same number of elements \n"+susg;               
+            err_prn(sfnm,serr);
+          }  
+
+          (void)cast_void_nctype(var->type,&var->val);      
+          (void)cast_void_nctype(var1->type,&var1->val);      
+          (void)cast_void_nctype(var2->type,&var2->val);
+
+          // FLOAT      
+          if(var1->type == NC_FLOAT)   
+	  {
+	    nco_bool has_mss;
+            long idx;
+            long sz;         
+            float mss_flt;  
+            float *fp;     
+            float *fp1;
+            float *fp2;
+                          
+            fp=var->val.fp;
+            fp1=var1->val.fp;
+            fp2=var2->val.fp;
+                             
+
+            has_mss=False;         
+            if( var1->has_mss_val)
+	    {       
+	      has_mss=True; 
+              mss_flt=var1->mss_val.fp[0];  
+
+            }   
+            else if(var2->has_mss_val)
+	    { 
+              has_mss=True;       
+              mss_flt=var2->mss_val.fp[0];        
+              nco_mss_val_cp(var2,var);
+
+            }   
+
+            sz=var1->sz;   
+              
+            if( has_mss)      
+	    {   
+              for(idx=0 ; idx<sz ; idx++)   
+                if( fp1[idx] == mss_flt || fp2[idx]== mss_flt ) 
+                  fp[idx]=mss_flt;
+                else       
+		  fp[idx] = ( fp1[idx] - fp2[idx] ) /  ( fp1[idx] + fp2[idx] ) ;     
+
+	    }    
+            else
+	    {  
+              for(idx=0 ; idx<sz ; idx++)   
+		fp[idx]= ( fp1[idx] - fp2[idx] ) /  ( fp1[idx] + fp2[idx] ) ;     
+
+
+
+
+            }
+       
+
+	  }       
+
+
+          // DOUBLE
+          if(var1->type == NC_DOUBLE)   
+	  {
+	    nco_bool has_mss;
+            long idx;
+            long sz;         
+            double mss_dbl;  
+            double *dp;     
+            double *dp1;
+            double *dp2;
+                          
+            
+            dp=var->val.dp;
+            dp1=var1->val.dp;
+            dp2=var2->val.dp;
+                             
+
+            has_mss=False;         
+            if( var1->has_mss_val)
+	    {       
+	      has_mss=True; 
+              mss_dbl=var1->mss_val.dp[0];  
+
+            }   
+            else if(var2->has_mss_val)
+	    { 
+              has_mss=True;       
+              mss_dbl=var2->mss_val.dp[0];        
+              nco_mss_val_cp(var2,var);
+              // var->has_mss_val=True;   
+               
+            }   
+
+            sz=var1->sz;   
+              
+            if( has_mss)      
+	    {   
+              for(idx=0 ; idx<sz ; idx++)   
+                if( dp1[idx] == mss_dbl || dp2[idx]== mss_dbl ) 
+                  dp[idx]=mss_dbl;
+                else       
+		  dp[idx] = ( dp1[idx] - dp2[idx] ) /  ( dp1[idx] + dp2[idx] ) ;     
+
+	    }    
+            else
+	    {  
+              for(idx=0 ; idx<sz ; idx++)   
+		dp[idx]= ( dp1[idx] - dp2[idx] ) /  ( dp1[idx] + dp2[idx] ) ;     
+
+
+
+
+            }
+       
+
+	  }       
+
+            (void)cast_nctype_void(var->type,&var->val);      
+            (void)cast_nctype_void(var1->type,&var1->val);      
+            (void)cast_nctype_void(var2->type,&var2->val);    
+            var1=nco_var_free(var1);  
+	    var2=nco_var_free(var2);
+
+
+
+
+	}  
+        break;
+
+
+       case PSOLARZENITHANGLE:
+	 { 
+           // convert all args to type double              
+           var1=nco_var_cnf_typ( NC_FLOAT, var1);
+           var2=nco_var_cnf_typ( NC_FLOAT, var2);
+
+           var=nco_var_dpl(var1);
+
+           if(!prs_arg->ntl_scn)       
+	   {    
+             long idx;
+             long sz; 
+             float *z_fp; 
+	     float *tm_fp;   // array of times 
+             float  lat_flt; // latitude in degrees
+             float cosSZA;      
+             char units_sng[200]={0};             
+             char units_new_sng[200]={0};
+
+             //grab units atts for var1->nm
+             // fixme:(2017-11-20)   for now not reading calendar type of var1->nm: assume it is cln_std            
+             {  
+
+               var_sct *var_att=NULL_CEWI;
+               NcapVar *Nvar=NULL;
+	       std::string att_nm; 
+               tm_cln_sct lcl_tm_sct;      
+
+	       att_nm=std::string(var1->nm)+ "@units";       
+	       Nvar=prs_arg->var_vtr.find(att_nm);
+
+	       if(Nvar !=NULL)
+		 var_att=nco_var_dpl(Nvar->var);
+	       else    
+		 var_att=ncap_att_init(att_nm,prs_arg);
+
+	       if(var_att == NULL_CEWI )
+		 err_prn(fnc_nm,"Unable to locate attribute " +att_nm+ " in input or output files.");
+	       if(var_att->type != NC_CHAR && var_att->type != NC_STRING)
+		 err_prn(fnc_nm,"The NC type for "+ att_nm+ " must be NC_CHAR or NC_STRING");
+
+	       (void)cast_void_nctype(var_att->type,&var_att->val); 
+  
+	       // copy string - no need for NULL as units_sng is all nulls     
+               if( var_att->type == NC_CHAR) 
+	          strncpy(units_sng,var_att->val.cp,var_att->sz); 
+               else if(var_att->type==NC_STRING)
+		  strcpy(units_sng, var_att->val.sngp[0]);   
+        
+	       (void)cast_nctype_void(var_att->type,&var_att->val);    
+	       var_att=nco_var_free(var_att); 
+
+               // we want the time coord to be "days since start of year" 
+               // need to parse the date string to extract the year
+               if( nco_cln_prs_tm(units_sng, &lcl_tm_sct) != NCO_NOERR)              
+                 err_prn(fnc_nm, "Error trying to parse the units string " + std::string(units_sng) + " \n"); 
+
+               // assemble new units string
+               sprintf(units_new_sng,"days since %d-01-01 00:00:00", lcl_tm_sct.year);           
+ 
+             }   
+                 
+             // convert var1 from units_sng  units_new_sng that is calendar_day_of_year; 
+             // nb calendar is cln_std for now       
+             (void)nco_cln_clc_dbl_var_dff(units_sng,units_new_sng, cln_std, (double*)NULL, var1); 
+
+             (void)cast_void_nctype(var->type,&var->val);      
+             (void)cast_void_nctype(var1->type,&var1->val);      
+             (void)cast_void_nctype(var2->type,&var2->val);
+
+	  
+             z_fp=var->val.fp;    
+             tm_fp=var1->val.fp;    
+
+             lat_flt=var2->val.fp[0];
+        
+             // convert lat_dbl to radians    
+             lat_flt *=  M_PI /180.0f;      
+
+             sz=var1->sz;
+    
+             for(idx=0;idx<sz;idx++)
+	     {                          
+               cosSZA=-1;;
+	       (void)solar_geometry( lat_flt, tm_fp[idx], 1, (float *)NULL, &cosSZA, (float *)NULL);
+               // convert back to degree's 
+               z_fp[idx]=180.0f/ M_PI *  acos( cosSZA);                      
+
+             } 
+
+
+            (void)cast_nctype_void(var->type,&var->val);      
+            (void)cast_nctype_void(var1->type,&var1->val);      
+            (void)cast_nctype_void(var2->type,&var2->val);      
+
+
+
+           }  
+           var1=nco_var_free(var1);   
+           var2=nco_var_free(var2);   
+    
+         } 
+         break; 
+
 
     }
       
     return var; 
 
   }
+
+
+
+void mth2_cls::solar_geometry(float latitude_rad, float calendar_day_of_year, int num_long, float *local_time, float *cosSZA, float *eccentricity_factor)
+{
+
+  float cos_lat;
+  float cos_delta;
+  float cphase;
+  float delta;
+  float phi;
+  float sin_lat;
+  float sin_delta;
+  float theta;
+  float eccentricity;
+
+  int ilong;
+
+  int days_per_year=365;
+
+  /* compute eccentricity factor (sun-earth distance factor) */
+  theta=2.0*M_PI*calendar_day_of_year/days_per_year;
+  eccentricity=1.000110+.034221*cos(theta)+0.001280*sin(theta)+ 0.000719*cos(2.*theta)+0.000077*sin(2.*theta);
+
+  /* solar declination in radians: */
+  delta=0.006918-0.399912*cos(theta)+0.070257*sin(theta)- 0.006758*cos(2.*theta)+0.000907*sin(2.*theta)- 0.002697*cos(3.*theta)+0.001480*sin(3.*theta);
+
+  /* compute local cosine solar zenith angle: */
+  sin_lat=sin(latitude_rad);
+  sin_delta=sin(delta);
+  cos_lat=cos(latitude_rad);
+  cos_delta=cos(delta);
+
+  /* calendar_day_of_year is the calender day for greenwich, including fraction
+     of day; the fraction of the day represents a local time at
+     greenwich; to adjust this to produce a true instantaneous time
+     for other longitudes, we must correct for the local time change: */
+
+  for(ilong=1;ilong<=num_long;ilong++)
+  {
+    phi=calendar_day_of_year+((float)(ilong-1)/(float)(num_long));
+    cphase=cos(2.0*M_PI*phi);
+
+    if( cosSZA != NULL)
+      cosSZA[ilong-1]=sin_lat*sin_delta-cos_lat*cos_delta*cphase;
+
+    if( local_time != NULL)   
+      local_time[ilong-1]=12.0*acos(cphase)/M_PI;
+
+    if(eccentricity_factor != NULL)
+      eccentricity_factor[ilong-1]=eccentricity;
+  }
+
+  return;
+}
+
 
 
 //PDQ Functions /******************************************/
@@ -1621,63 +2577,59 @@ var_sct * bsc_cls::getdims_fnd(bool &is_mtd, std::vector<RefAST> &vtr_args, fmc_
 
 }
 
-
-
 //Sort Functions /***********************************/
  
-  srt_cls::srt_cls(bool flg_dbg){
-    //Populate only on  constructor call
-    if(fmc_vtr.empty()){
-          fmc_vtr.push_back( fmc_cls("sort" , this,PASORT)); 
-          fmc_vtr.push_back( fmc_cls("asort" , this,PASORT)); 
-          fmc_vtr.push_back( fmc_cls("dsort" , this,PDSORT)); 
-          fmc_vtr.push_back( fmc_cls("remap" , this,PREMAP)); 
-          fmc_vtr.push_back( fmc_cls("unmap" , this,PUNMAP)); 
-          fmc_vtr.push_back( fmc_cls("invert_map" , this,PIMAP)); 
+srt_cls::srt_cls(bool flg_dbg){
+  //Populate only on  constructor call
+  if(fmc_vtr.empty()){
+    fmc_vtr.push_back( fmc_cls("sort" , this,PASORT)); 
+    fmc_vtr.push_back( fmc_cls("asort" , this,PASORT)); 
+    fmc_vtr.push_back( fmc_cls("dsort" , this,PDSORT)); 
+    fmc_vtr.push_back( fmc_cls("remap" , this,PREMAP)); 
+    fmc_vtr.push_back( fmc_cls("unmap" , this,PUNMAP)); 
+    fmc_vtr.push_back( fmc_cls("invert_map" , this,PIMAP)); 
+    
+    
+  }
+}
 
-			     		      
-    }
+
+var_sct *srt_cls::fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker){
+  const std::string fnc_nm("gsl_fit_cls::fnd");
+  bool is_mtd;
+  int fdx=fmc_obj.fdx();   //index
+  RefAST tr;    
+  std::vector<RefAST> vtr_args; 
+  
+  if(expr)
+    vtr_args.push_back(expr);
+  
+  if(tr=fargs->getFirstChild()) {
+    do  
+      vtr_args.push_back(tr);
+    while(tr=tr->getNextSibling());    
+  }
+  
+  is_mtd=(expr ? true: false);
+  
+  switch(fdx){
+  case PASORT:
+  case PDSORT: 
+    return srt_fnd(is_mtd,vtr_args,fmc_obj,walker);  
+    break;
+  case PREMAP:
+  case PUNMAP:
+    return mst_fnd(is_mtd,vtr_args,fmc_obj,walker);  
+  case PIMAP:
+    return imap_fnd(is_mtd,vtr_args,fmc_obj,walker);   
+    break;
+    // 20161205: Always return value to non-void functions: good practice and required by rpmlint
+  default:
+    return NULL;
+    break;
   }
 
-
-  var_sct *srt_cls::fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker){
-  const std::string fnc_nm("gsl_fit_cls::fnd");
-    bool is_mtd;
-    int fdx=fmc_obj.fdx();   //index
-    RefAST tr;    
-    std::vector<RefAST> vtr_args; 
-       
-
-    if(expr)
-      vtr_args.push_back(expr);
-
-    if(tr=fargs->getFirstChild()) {
-      do  
-	vtr_args.push_back(tr);
-      while(tr=tr->getNextSibling());    
-    }
-    
-
-    is_mtd=(expr ? true: false);
-
-    switch(fdx){
-      case PASORT:
-      case PDSORT: 
-        return srt_fnd(is_mtd,vtr_args,fmc_obj,walker);  
-        break;
-      case PREMAP:
-      case PUNMAP:
-        return mst_fnd(is_mtd,vtr_args,fmc_obj,walker);  
-      case PIMAP:
-        return imap_fnd(is_mtd,vtr_args,fmc_obj,walker);   
-        break;
-    }
-
-
-
 } // end gsl_fit_cls::fnd 
-
-
   
 var_sct * srt_cls::imap_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker){
   const std::string fnc_nm("srt_cls::imap_fnd");
@@ -2556,7 +3508,7 @@ var_sct * srt_cls::mst_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls 
       
   nbr_args=args_vtr.size();  
 
-  susg="usage: var_out="+sfnm+"(coordinate_var,$dim, string_nm ?"; 
+  susg="usage: var_out="+sfnm+"(coordinate_var,$dim, string_nm?)"; 
 
   
   if(nbr_args<2)
@@ -2719,16 +3671,17 @@ var_sct * srt_cls::mst_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls 
 
 
 //Bilinear  Interpolation Functions /****************************************/
-  bil_cls::bil_cls(bool flg_dbg){
-    //Populate only on  constructor call
-    if(fmc_vtr.empty()){
-          fmc_vtr.push_back( fmc_cls("bilinear_interp",this,PBIL_ALL)); 
-          fmc_vtr.push_back( fmc_cls("bilinear_interp_wrap",this,PBIL_ALL_WRP)); 
+bil_cls::bil_cls(bool flg_dbg){
+  //Populate only on  constructor call
+  if(fmc_vtr.empty()){
+    fmc_vtr.push_back( fmc_cls("bilinear_interp",this,PBIL_ALL)); 
+    fmc_vtr.push_back( fmc_cls("bilinear_interp_wrap",this,PBIL_ALL_WRP)); 
+    
+  }		      
+} 
 
-    }		      
-  } 
-  var_sct * bil_cls::fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker){
-   const std::string fnc_nm("bil_cls::fnd");
+var_sct * bil_cls::fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker){
+  const std::string fnc_nm("bil_cls::fnd");
   bool bwrp;  //if tue then wrap X and Y coo-ordinates in grid
   bool b_rev_y;
   bool b_rev_x;
@@ -2738,94 +3691,82 @@ var_sct * srt_cls::mst_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls 
   int idx;
   int nbr_dim;
   var_sct *var_arr[6];
-
+  
   nc_type in_typ;           
-
+  
   std::string susg;
   std::string sfnm=fmc_obj.fnm();
   std::string serr;
-
+  
   RefAST tr;
   std::vector<RefAST> vtr_args; 
   // de-reference 
   prs_cls *prs_arg=walker.prs_arg;            
   vtl_typ lcl_typ;
-
+  
   fdx=fmc_obj.fdx();
- 
-
+  
   if(expr)
-      vtr_args.push_back(expr);
-
-    if(tr=fargs->getFirstChild()) {
-      do  
-	vtr_args.push_back(tr);
-      while(tr=tr->getNextSibling());    
-    } 
-      
+    vtr_args.push_back(expr);
+  
+  if(tr=fargs->getFirstChild()) {
+    do  
+      vtr_args.push_back(tr);
+    while(tr=tr->getNextSibling());    
+  } 
+  
   nbr_args=vtr_args.size();  
-
+  
   switch(fdx){
-
-    case PBIL_ALL:
-           in_nbr_args=nbr_args;  
-           susg="usage: var_out="+sfnm+"(Data_in, Data_out, X_out?, Y_out?, X_in?, Y_in?)"; 
-           bwrp=false;
-           break;
-
-    case PBIL_ALL_WRP: 
-           in_nbr_args=nbr_args;  
-           susg="usage: var_out="+sfnm+"(Data_in, Data_out, X_out?, Y_out?, X_in?, Y_in?)"; 
-           bwrp=true;
-           break;
-
-
+    
+  case PBIL_ALL:
+    in_nbr_args=nbr_args;  
+    susg="usage: var_out="+sfnm+"(Data_in, Data_out, X_out?, Y_out?, X_in?, Y_in?)"; 
+    bwrp=false;
+    break;
+    
+  case PBIL_ALL_WRP: 
+    in_nbr_args=nbr_args;  
+    susg="usage: var_out="+sfnm+"(Data_in, Data_out, X_out?, Y_out?, X_in?, Y_in?)"; 
+    bwrp=true;
+    break;
   } // end switch
-
-
-
-    if(in_nbr_args <2 ){   
-      serr="function requires at least two arguments. You have only supplied "+nbr2sng(in_nbr_args)+ " arguments\n"; 
-      err_prn(sfnm,serr+susg);
-    }
-
-
-    if(in_nbr_args >6 &&!prs_arg->ntl_scn) 
-      wrn_prn(sfnm,"Function been called with more than "+ nbr2sng(in_nbr_args)+ "arguments"); 
-
-    // process input args 
-    for(idx=0 ; idx<in_nbr_args; idx++)
-      var_arr[idx]=walker.out(vtr_args[idx]);
- 
-    in_typ=var_arr[0]->type;    
-
-
-
-    // initial scan
-    if(prs_arg->ntl_scn){
-        var_arr[1]=nco_var_cnf_typ(in_typ,var_arr[1]);
-        for(idx=0 ; idx<in_nbr_args ; idx++)
-	  if(idx !=1) nco_var_free(var_arr[idx]);
-
-        return var_arr[1];
-    }
-
-
-
-    if(fdx==PBIL_ALL || fdx==PBIL_ALL_WRP){
-      // recall input arguments in order
-      // 0 - input data
-      // 1 - output data
-      // 2 - output X  co-ordinate var
-      // 3 - output Y  co-ordinate var
-      // 4 - input X   co-ordinate var
-      // 5 - input Y   co-ordinate var
-     
-
-        
-      if(in_nbr_args<4){
-        if(var_arr[1]->nbr_dim <2 )
-          err_prn(sfnm,"Output data variable "+std::string(var_arr[1]->nm) + " must have at least two dimensions ");
+  
+  if(in_nbr_args <2 ){   
+    serr="function requires at least two arguments. You have only supplied "+nbr2sng(in_nbr_args)+ " arguments\n"; 
+    err_prn(sfnm,serr+susg);
+  }
+  
+  if(in_nbr_args >6 &&!prs_arg->ntl_scn) 
+    wrn_prn(sfnm,"Function been called with more than "+ nbr2sng(in_nbr_args)+ "arguments"); 
+  
+  // process input args 
+  for(idx=0 ; idx<in_nbr_args; idx++)
+    var_arr[idx]=walker.out(vtr_args[idx]);
+  
+  in_typ=var_arr[0]->type;    
+  
+  // initial scan
+  if(prs_arg->ntl_scn){
+    var_arr[1]=nco_var_cnf_typ(in_typ,var_arr[1]);
+    for(idx=0 ; idx<in_nbr_args ; idx++)
+      if(idx !=1) nco_var_free(var_arr[idx]);
+    
+    return var_arr[1];
+  }
+  
+  if(fdx==PBIL_ALL || fdx==PBIL_ALL_WRP){
+    // recall input arguments in order
+    // 0 - input data
+    // 1 - output data
+    // 2 - output X  co-ordinate var
+    // 3 - output Y  co-ordinate var
+    // 4 - input X   co-ordinate var
+    // 5 - input Y   co-ordinate var
+    
+    if(in_nbr_args<4){
+      if(var_arr[1]->nbr_dim <2 )
+	err_prn(sfnm,"Output data variable "+std::string(var_arr[1]->nm) + " must have at least two dimensions ");
 
         // get output co-ordinate vars   
         if(in_nbr_args <3) 
@@ -2845,8 +3786,6 @@ var_sct * srt_cls::mst_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls 
            
         var_arr[5]=prs_arg->ncap_var_init(std::string(var_arr[0]->dim[1]->nm),true); 
       }
-
-
 
       // convert all args to type double and then cast
       for(idx=0 ; idx<6; idx++){
@@ -2871,6 +3810,8 @@ var_sct * srt_cls::mst_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls 
 
     }
 
+    // 20161205: Always return value to non-void functions: good practice and required by rpmlint
+    return NULL;
 
   } // end fnc
 
@@ -2884,7 +3825,6 @@ void bil_cls::clc_bil_fnc(var_sct *v_xin,var_sct *v_yin, var_sct *v_din, var_sct
    long y_sz;    // size of Y dim in OUTPUT  
    long jdx;
    long kdx;
-
 
   // Sanity check for input/ooooutput data
   if( v_xin->sz *v_yin->sz != v_din->sz)
@@ -3262,19 +4202,27 @@ double bil_cls::clc_lin_ipl(double x1,double x2, double x, double Q0,double Q1){
   var2=walker.out(args_vtr[1]);  
 
   
-  if(prs_arg->ntl_scn  ){
+  var_ret=nco_var_dpl(var2);     
+  
+  if(!var_ret->undefined)
+      var_ret=nco_var_cnf_typ(NC_INT,var_ret);
+  
+  if(prs_arg->ntl_scn  )
+  {
     nco_var_free(var1);
     nco_var_free(var2);
-    return ncap_sclr_var_mk(SCS("~coord_function"),(nc_type)NC_INT,false);  ;
+    return var_ret;
   }
 
-
+  // do heavy lifting 
   {
     bool bInc;
     long idx;
-    long sz;
+    long jdx;
+    long c_sz;
+    long r_sz;  
+    nco_int *ip;
     double dval;
-    double dmin; 
     double *dp_crd; 
     
     var1=nco_var_cnf_typ(NC_DOUBLE,var1);
@@ -3283,37 +4231,53 @@ double bil_cls::clc_lin_ipl(double x1,double x2, double x, double Q0,double Q1){
     // convert everything to type double         
     (void)cast_void_nctype(NC_DOUBLE,&(var1->val));
     (void)cast_void_nctype(NC_DOUBLE,&(var2->val));
+    (void)cast_void_nctype(NC_INT,&(var_ret->val));
 
+    r_sz=var_ret->sz;
+    ip=var_ret->val.ip;  
+
+    c_sz=var1->sz;  
     dp_crd=var1->val.dp;  
-    dval=var2->val.dp[0];   
-    sz=var1->sz;  
+       
+    // dval=var2->val.dp[0];   
+
     
     // determine if co-ord is montonic increasing or decreasing 
     // true if increasing 
     bInc= ( dp_crd[1] > dp_crd[0]); 
         
-    lret=-1; // set to not in range
     // check limits co-ord increasing 
     if(bInc){
-      if(dval>=dp_crd[0] && dval<=dp_crd[sz-1] )
-         for(idx=0 ; idx<sz-1 ; idx++)
-           if( dval >= dp_crd[idx] && dval <= dp_crd[idx+1] ){  
-	      lret=(dval-dp_crd[idx]<= dp_crd[idx+1]-dval ? idx: idx+1 );    
-              break;
-	   }  
-    }  
+      for(idx=0;idx<r_sz;idx++){ 
+	    dval=var2->val.dp[idx];
+         /* default set to out of range */   
+        ip[idx]=-1;
+        if(dval>=dp_crd[0] && dval<=dp_crd[c_sz-1] )
+           for(jdx=0 ; jdx<c_sz-1 ; jdx++)
+             if( dval >= dp_crd[jdx] && dval <= dp_crd[jdx+1] ) {
+               ip[idx] = (dval - dp_crd[jdx] <= dp_crd[jdx + 1] - dval ? jdx : jdx + 1);
+               break;
+             }
+      }
+    }
     // check limits co-ord decreasing
     if(!bInc){
-      if(dval<=dp_crd[0] && dval>=dp_crd[sz-1] )
-         for(idx=0 ; idx<sz-1 ; idx++)
-           if( dval <= dp_crd[idx] && dval >= dp_crd[idx+1] ){  
-	      lret=(dp_crd[idx]-dval <= dval-dp_crd[idx+1] ? idx: idx+1 );    
+      for(idx=0;idx<r_sz;idx++){  
+	    dval=var2->val.dp[idx];
+        /* default set to out of range */
+        ip[idx]=-1;
+        if(dval<=dp_crd[0] && dval>=dp_crd[c_sz-1] )
+          for(jdx=0 ; jdx<c_sz-1 ; jdx++)
+            if( dval <= dp_crd[jdx] && dval >= dp_crd[jdx+1] )
+            {
+	          ip[idx]=(dp_crd[jdx]-dval <= dval-dp_crd[jdx+1] ? jdx: jdx+1 );
               break;
-	   }  
-    }  
-                  
-     (void)cast_nctype_void(NC_DOUBLE,&var1->val);
+	        }
+      }  
+    }              
+    (void)cast_nctype_void(NC_DOUBLE,&var1->val);
     (void)cast_nctype_void(NC_DOUBLE,&var2->val);
+    (void)cast_nctype_void(NC_INT,&var_ret->val);
   
    
   }
@@ -3321,7 +4285,7 @@ double bil_cls::clc_lin_ipl(double x1,double x2, double x, double Q0,double Q1){
   nco_var_free(var1);   
   nco_var_free(var2);
 
-  return ncap_sclr_var_mk(SCS("~coord_function"),(nco_int)lret);        
+  return var_ret;        
   }
 
 
@@ -3764,9 +4728,15 @@ double bil_cls::clc_lin_ipl(double x1,double x2, double x, double Q0,double Q1){
        return get_fnd(is_mtd, vtr_args,fmc_obj, walker);    
        break;
   
-     case PATOI: 
+     case PATOI:
+     case PATOL:
        return atoi_fnd(is_mtd, vtr_args,fmc_obj, walker);     
        break;
+
+       // 20170317 Patch to build on OpenSUSE provided by Manfred Schwarb https://sourceforge.net/p/nco/bugs/94/
+  default:        // PJOIN, PATOL
+    return NULL;  // silence rpmlint error: is this correct?
+    break;        // E: nco no-return-in-nonvoid-function fmc_all_cls.cc:3780
   }
 
   }
@@ -4159,45 +5129,51 @@ var_sct *vlist_cls::push_fnd(bool &is_mtd, std::vector<RefAST> &vtr_args, fmc_cl
   {
      case PATOI: 
        {          
-         char *pend='\0';
+         char *pend=NULL;
          nco_int iout;
          iout=0; 
 
 	 // allows whites space prefix & suffix                                                                                                                                
-         iout=std::strtol(buffer,&pend,10);
+         iout=(nco_int)std::strtol(buffer,&pend,10);
 
-         if( pend !=buffer  && (*pend=='\0'|| *pend==' ') )
+         if(pend != buffer && (*pend == '\0'|| *pend == ' '))
             ierr=0;
          else
             ierr=errno;
 
-         var=ncap_sclr_var_mk( SCS("~zz@value_list"), vtype,iout);  
+         //wrn_prn(fnc_nm,"buffer="+ SCS(buffer)+ " value=" + nbr2sng(iout)+"\n" );
+         //var=ncap_sclr_var_mk( SCS("~zz@value_list"), vtype,iout);
+         var=ncap_sclr_var_mk(SCS("~zz@value_list"),iout);
 
        }   
        break; 
 
      case PATOL: 
        {          
-         char *pend='\0';
+         char *pend=NULL;
          nco_int64 lout;
          lout=0; 
 
-	 // allows whites space prefix & suffix                                                                                                                                
-         lout=std::strtoll(buffer,&pend,10);
+	      // allows whites space prefix & suffix
+         lout=(nco_int64)std::strtoll(buffer,&pend,10);
 
-         if( pend !=buffer  && (*pend=='\0'|| *pend==' ') )
+         if( pend !=buffer && (*pend == '\0' || *pend == ' '))
             ierr=0;
          else
-	   ierr=errno;
+	        ierr=errno;
 
-         var=ncap_sclr_var_mk( SCS("~zz@value_list"), vtype,lout);  
+
+         wrn_prn(fnc_nm,"buffer="+ SCS(buffer)+ " value=" + nbr2sng(lout)+"\n" );
+         var=ncap_sclr_var_mk( SCS("~zz@value_list"),lout);
 
        }   
        break; 
   }
-  
-  var_err=ncap_sclr_var_mk(std::string("~zz@atoi_methods_err"), ierr);
-  prs_arg->ncap_var_write(var_err,true);
+
+  if(ierr) {
+    var_err = ncap_sclr_var_mk(std::string("~zz@atoi_methods_err"), ierr);
+    prs_arg->ncap_var_write(var_err, true);
+  }
                  
 
 
@@ -4479,7 +5455,7 @@ var_sct *vlist_cls::push_fnd(bool &is_mtd, std::vector<RefAST> &vtr_args, fmc_cl
     if(fmc_vtr.empty()){
       fmc_vtr.push_back( fmc_cls("print",this,(int)PPRINT));
       fmc_vtr.push_back( fmc_cls("sprint",this,(int)PSPRINT));
-      fmc_vtr.push_back( fmc_cls("snprint",this,(int)PSNPRINT));
+      fmc_vtr.push_back( fmc_cls("sprint4",this,(int)PSNPRINT));
 
     }
   }		      
@@ -4674,6 +5650,442 @@ var_sct *vlist_cls::push_fnd(bool &is_mtd, std::vector<RefAST> &vtr_args, fmc_cl
  return var;
 
 }
+
+
+
+//udunits Functions /***********************************/ 
+  udunits_cls::udunits_cls(bool flg_dbg){
+    //Populate only on  constructor call
+    if(fmc_vtr.empty()){
+          fmc_vtr.push_back( fmc_cls("udunits",this,PUNITS1)); 
+          fmc_vtr.push_back( fmc_cls("strftime",this,PSTRFTIME));
+          fmc_vtr.push_back( fmc_cls("regular",this,PREGULAR));
+
+    }		      
+  } 
+
+  var_sct * udunits_cls::fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker){
+  const std::string fnc_nm("udunits_cls::fnd");
+  int fdx;
+  int nbr_args;
+  int nbr_dim;
+  int rcd;
+  bool is_mtd;
+  long lret;
+
+
+  dmn_sct **dim;
+  var_sct *var=NULL_CEWI;
+  var_sct *var_ud_out=NULL_CEWI;
+
+
+  std::string susg;
+  std::string sfnm=fmc_obj.fnm();
+
+  std::string att_sng;
+  std::string units_in_sng;
+  std::string calendar_in_sng;
+  //std::string udunits_out_sng
+
+
+  RefAST tr;
+  std::vector<RefAST> args_vtr; 
+  std::vector<std::string> cst_vtr;              
+
+  // de-reference 
+  prs_cls *prs_arg=walker.prs_arg;            
+  nc_type lcl_typ;
+
+  NcapVar *Nvar;
+
+
+  fdx=fmc_obj.fdx();
+ 
+
+  if(expr)
+      args_vtr.push_back(expr);
+
+    if(tr=fargs->getFirstChild()) {
+      do  
+	args_vtr.push_back(tr);
+      while(tr=tr->getNextSibling());    
+    } 
+      
+  nbr_args=args_vtr.size();  
+  is_mtd=(expr ? true: false);
+
+  /* deal with printing a time stamp here */
+  if(fdx==PSTRFTIME)
+    return strftime_fnd( is_mtd,args_vtr, fmc_obj, walker); 
+  else if(fdx==PREGULAR)
+    return regular_fnd( is_mtd,args_vtr, fmc_obj, walker);
+
+  susg="usage: var_out="+sfnm+"(var_in ,unitsOutString)"; 
+
+  
+  if(nbr_args<2)
+      err_prn(sfnm,"Function has been called with less than two arguments\n"+susg); 
+
+
+
+  if(nbr_args >2 &&!prs_arg->ntl_scn) 
+      wrn_prn(sfnm,"Function been called with more than two arguments"); 
+
+  
+  /* data to convert */ 
+  var=walker.out(args_vtr[0]);  
+
+  /* text string output units */
+  var_ud_out=walker.out(args_vtr[1]);  
+
+  lcl_typ=var->type;
+  if( !var->undefined && var->type !=NC_FLOAT && var->type !=NC_DOUBLE )
+    nco_var_cnf_typ(NC_DOUBLE,var); 
+
+  
+  if(prs_arg->ntl_scn  ){
+    nco_var_free(var_ud_out);
+    return var;
+  }
+
+  if(var_ud_out->type !=NC_CHAR && var_ud_out->type !=NC_STRING)
+     err_prn(sfnm,"The second argument must be a netCDF text type\n"+susg);
+
+
+  // grab units attribute of var
+  units_in_sng=ncap_att2var(prs_arg, std::string(var->nm)+"@units");
+
+
+
+  // grab calendar attribute of var
+  att_sng=std::string(var->nm)+"@calendar";
+
+  if( ncap_att2var_chk(prs_arg, att_sng) )
+  {
+     calendar_in_sng=ncap_att2var(prs_arg, att_sng);
+
+  }
+
+
+
+
+
+  // do heavy lifting 
+  {
+   
+
+   char *units_out_sng;
+
+   nco_cln_typ cln_typ=cln_nil;
+
+   units_out_sng=ncap_att_char(var_ud_out);   
+
+   if( calendar_in_sng.size())
+     cln_typ=nco_cln_get_cln_typ(calendar_in_sng.c_str());
+
+   
+
+
+   #ifdef ENABLE_UDUNITS
+   # ifdef HAVE_UDUNITS2_H
+       rcd=nco_cln_clc_dbl_var_dff(units_in_sng.c_str(),units_out_sng,cln_typ,(double*)NULL, var);
+   #endif
+   #endif
+   
+   if(rcd!=NCO_NOERR)
+      err_prn(sfnm, "Udunits was unable to convert data in the var '"+std::string(var->nm)+"' from '" +std::string(units_in_sng) +"' to '"+std::string(units_out_sng)+"'\n");
+
+    // nco_free(units_in_sng);
+    nco_free(units_out_sng);
+
+  }
+  
+
+  /* revert var back to original type */
+  if( var->type != lcl_typ)
+    nco_var_cnf_typ(lcl_typ,var);
+
+
+
+  return var;
+
+}
+
+
+var_sct *udunits_cls::strftime_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker)
+ {
+    int nbr_args;
+    int fdx=fmc_obj.fdx();
+    int rcd;
+    char *cformat=(char*)NULL;
+
+    var_sct *var=NULL_CEWI;
+    var_sct *var_cformat=NULL_CEWI;
+    var_sct *var_ret=NULL_CEWI;
+
+    std::string sfnm =fmc_obj.fnm(); //method name
+    std::string susg;
+    std::string att_sng;
+    std::string units_in_sng;
+    std::string units_out_sng;
+    std::string calendar_in_sng;
+
+
+    prs_cls *prs_arg=walker.prs_arg;            
+    nc_type lcl_typ;
+    nco_cln_typ cln_typ;
+
+    nbr_args=args_vtr.size();
+
+    // convert time to UTC for now -hwta about other calendars ?
+    units_out_sng="seconds since 1970-01-01";
+
+    susg="usage: var_out="+sfnm+"(var_in ,\"format-timestring ? \")";
+
+  
+    if(nbr_args<1)
+       err_prn(sfnm,"Function has been called with less than two arguments\n"+susg); 
+    
+    /* data to convert */ 
+    var=walker.out(args_vtr[0]);  
+
+
+    lcl_typ=var->type;
+    if( !var->undefined && var->type !=NC_FLOAT && var->type !=NC_DOUBLE )
+      nco_var_cnf_typ(NC_DOUBLE,var); 
+
+     
+    var_ret=nco_var_dpl(var);
+    if(var_ret->val.vp)
+      var_ret->val.vp=nco_free(var_ret->val.vp);
+    
+    var_ret=nco_var_cnf_typ(NC_STRING, var_ret);
+
+    /* text string output units */
+    if(nbr_args >=2)
+       var_cformat=walker.out(args_vtr[1]);
+
+
+    if(prs_arg->ntl_scn  )
+    {
+      if(var_cformat)  
+         nco_var_free(var_cformat);
+      
+      if(var)        
+	     nco_var_free(var);
+
+      return var_ret;
+    }
+
+
+    if(var_cformat)
+    {
+       if (var_cformat->type != NC_CHAR && var_cformat->type != NC_STRING)
+          err_prn(sfnm, "The second argument must be a netCDF text type\n" + susg);
+
+       cformat = ncap_att_char(var_cformat);
+       var_cformat=(var_sct*)nco_var_free(var_cformat);
+
+    }
+    // use default strtime string - this is like the ncdump -t output string
+    else
+    {
+      cformat=strdup("%Y-%m-%d %H:%M:%S");
+    }
+
+
+     // grab units attribute of var
+     units_in_sng=ncap_att2var(prs_arg, std::string(var->nm)+"@units");
+
+    // grab calendar attribute of var
+    att_sng=std::string(var->nm)+"@calendar";
+
+    if( ncap_att2var_chk(prs_arg, att_sng) )
+    {
+      calendar_in_sng = ncap_att2var(prs_arg, att_sng);
+      cln_typ=nco_cln_get_cln_typ(calendar_in_sng.c_str());
+    }
+    else
+      cln_typ=cln_nil;
+
+
+    #ifdef ENABLE_UDUNITS
+    # ifdef HAVE_UDUNITS2_H
+       rcd=nco_cln_clc_dbl_var_dff(units_in_sng.c_str(),units_out_sng.c_str(),cln_typ,(double*)NULL, var);
+     #endif
+    #endif
+
+    if(rcd!=NCO_NOERR)
+         err_prn(sfnm, "Udunits was unable to convert data in the var '"+std::string(var->nm)+"' from '" +units_in_sng +"' to '"+units_out_sng+"'\n");
+
+
+     //start heavy lifting
+    {
+      long idx;
+      long sz;
+      char schar[200];
+      time_t sgmt;
+      struct tm tp;  
+      double *dp;
+
+
+      // make some space for strings
+      var_ret->val.vp=(void *)nco_malloc(var_ret->sz*nco_typ_lng(var_ret->type));
+       
+       
+      (void)cast_void_nctype(var->type,&var->val);     
+      (void)cast_void_nctype(var_ret->type,&var->val);
+
+         
+     
+      dp=var->val.dp; 
+       
+      sz=var->sz;
+
+      for(idx=0;idx<sz;idx++)
+      {
+          
+        sgmt=(time_t)dp[idx];  
+#ifdef _MSC_VER
+    (void)gmtime_s(&tp, &sgmt);
+#else
+    (void)gmtime_r(&sgmt,&tp);
+#endif /* !_MSC_VER */
+        strftime(schar,sizeof(schar),cformat,&tp);
+        var_ret->val.sngp[idx]=strdup(schar);           
+      }
+
+
+      (void)cast_nctype_void(var->type,&var->val);
+      (void)cast_nctype_void(var_ret->type,&var_ret->val);     
+
+    }
+
+
+    var=(var_sct*)nco_var_free(var);
+
+    return var_ret;
+
+ }
+
+
+var_sct *udunits_cls::regular_fnd(bool &is_mtd, std::vector<RefAST> &args_vtr, fmc_cls &fmc_obj, ncoTree &walker)
+ {
+    int nbr_args;
+    int fdx=fmc_obj.fdx();
+    int rcd;
+    int iformat=0;
+
+    var_sct *var=NULL_CEWI;
+    var_sct *var_iformat=NULL_CEWI;
+    var_sct *var_ret=NULL_CEWI;
+
+    std::string sfnm =fmc_obj.fnm(); //method name
+    std::string susg;
+    std::string att_sng;
+    std::string units_in_sng;
+    std::string units_out_sng;
+    std::string calendar_in_sng;
+
+
+    prs_cls *prs_arg=walker.prs_arg;            
+    nc_type lcl_typ;
+    nco_cln_typ cln_typ;
+
+    nbr_args=args_vtr.size();
+
+    // convert time to UTC for now -hwta about other calendars ?
+    units_out_sng="seconds since 1970-01-01";
+
+    susg="usage: var_out="+sfnm+"(var_in ,\"format-timestring ? \")";
+
+  
+    if(nbr_args<1)
+       err_prn(sfnm,"Function has been called with less than two arguments\n"+susg); 
+    
+    /* data to convert */ 
+    var=walker.out(args_vtr[0]);  
+
+
+    lcl_typ=var->type;
+    if( !var->undefined && var->type !=NC_FLOAT && var->type !=NC_DOUBLE )
+      nco_var_cnf_typ(NC_DOUBLE,var); 
+
+     
+    var_ret=nco_var_dpl(var);
+    if(var_ret->val.vp)
+      var_ret->val.vp=nco_free(var_ret->val.vp);
+    
+    var_ret=nco_var_cnf_typ(NC_STRING, var_ret);
+
+    /* text string output units */
+    if(nbr_args >=2)
+       var_iformat=walker.out(args_vtr[1]);
+
+
+
+
+    if(prs_arg->ntl_scn  )
+    {
+      if(var_iformat)  
+         nco_var_free(var_iformat);
+      
+      if(var)        
+	     nco_var_free(var);
+
+      return var_ret;
+    }
+
+
+    if(var_iformat)
+    {
+       nco_var_cnf_typ(NC_INT,var_iformat);
+       cast_void_nctype(NC_INT,&var_iformat->val);
+       iformat=var_iformat->val.ip[0];
+
+       var_iformat=(var_sct*)nco_var_free(var_iformat);
+
+    }
+    // use default format
+    else
+      iformat=1;
+
+
+
+     // grab units attribute of var
+     units_in_sng=ncap_att2var(prs_arg, std::string(var->nm)+"@units");
+
+    // grab calendar attribute of var
+    att_sng=std::string(var->nm)+"@calendar";
+
+    if( ncap_att2var_chk(prs_arg, att_sng) )
+    {
+      calendar_in_sng = ncap_att2var(prs_arg, att_sng);
+      cln_typ=nco_cln_get_cln_typ(calendar_in_sng.c_str());
+    }
+    else
+      cln_typ=cln_nil;
+
+
+
+    rcd=nco_cln_var_prs(units_in_sng.c_str(), cln_typ,iformat, var,var_ret);
+    if(rcd==NCO_ERR)
+        err_prn(sfnm,"Error formatting time string");
+
+
+
+    var=(var_sct*)nco_var_free(var);
+
+    return var_ret;
+
+ }
+
+
+
+
+
+
+
 
 /* ncap2 functions and methods */
 

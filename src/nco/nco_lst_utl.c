@@ -2,7 +2,7 @@
 
 /* Purpose: List utilities */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -92,7 +92,7 @@ nco_fmt_sng_printf_subst /* [fnc] Replace printf() format statements */
 
   /* Replace match with desired format */
   fmt_sng_new=(char *)strdup(fmt_sng);
-  if(mch_nbr){
+  if(mch_nbr && fmt_sng && strlen(fmt_sng)){
     mch_psn_srt=result->rm_so; /* [B] Byte offset from start of string to start of substring */
     mch_psn_end=result->rm_eo-1L; /* [B] Byte offset from start of string to end of substring */
     (void)nco_realloc(fmt_sng_new,(mch_psn_srt+strlen(fmt_sng)-mch_psn_end+2L)*sizeof(char));
@@ -803,11 +803,10 @@ nco_sng_lst_free /* [fnc] Free memory associated with string list */
 {
   /* Threads: Routine is thread safe and calls no unsafe routines */
   /* Purpose: Free all memory associated with dynamically allocated string list */
-  int idx;
+  int sng_idx;
 
-  for(idx=0;idx<sng_nbr;idx++){
-    sng_lst[idx]=(char *)nco_free(sng_lst[idx]);
-  } /* end loop over idx */
+  for(sng_idx=0;sng_idx<sng_nbr;sng_idx++)
+    sng_lst[sng_idx]=(char *)nco_free(sng_lst[sng_idx]);
 
   /* Free structure pointer last */
   sng_lst=(char **)nco_free(sng_lst);

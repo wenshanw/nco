@@ -2,12 +2,36 @@
 
 /* Purpose: String utilities */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
 
 #include "nco_sng_utl.h" /* String utilities */
+
+#ifdef NEED_STRSEP
+/* 20161106 UNIX always provides strsep(), MSVC never does */
+char * /* O [sng] String to separate */
+strsep /* [fnc] Separate strings */
+(char ** const sng_trg, /* I [sng] String to separate */
+ const char * const sng_dlm) /* I [sng] Delimiter */
+{
+  /* Purpose: NCO replacement for strsep() for Windows MSVC
+     http://stackoverflow.com/questions/8512958/is-there-a-windows-variant-of-strsep */
+  char* sng_srt = *sng_trg;
+  char* sng_ptr;
+
+  sng_ptr= (sng_srt != NULL) ? strpbrk(sng_srt,sng_dlm) : NULL;
+
+  if(sng_ptr == NULL){
+    *sng_trg = NULL;
+  }else{
+    *sng_ptr='\0';
+    *sng_trg=sng_ptr+1;
+  } /* endif */
+  return sng_srt;
+} /* !strsep() */
+#endif /* !NEED_STRSEP */
 
 #ifdef NEED_STRCASECMP
 int /* O [enm] [-1,0,1] sng_1 [<,=,>] sng_2 */
@@ -239,6 +263,8 @@ nm2sng_cdl /* [fnc] Turn variable/dimension/attribute name into legal CDL */
   while(*chr_in_ptr){
     if(isascii(*chr_in_ptr)){
       if(iscntrl(*chr_in_ptr)){	/* Render control chars as two hex digits, \%xx */
+	/* 20170810: GCC7.x produces -Wformat-truncation warning here, that 4 B destination is too small
+	   False-positive warning? How to eliminate? */
 	snprintf(chr_out_ptr,4,"\\%%%.2x",*chr_in_ptr);
 	chr_out_ptr+=4;
       }else{
@@ -292,6 +318,67 @@ nm2sng_cdl /* [fnc] Turn variable/dimension/attribute name into legal CDL */
   return nm_cdl;
 } /* end nm2sng_cdl() */
 
+char * /* O [sng] JSON-compatible name */
+nm2sng_jsn /* [fnc] Turn variable/dimension/attribute name into legal JSON */
+(const char * const nm_sng) /* I [sng] Name to CDL-ize */
+{
+  /* Valid JSON strings can be any selected set of control chars, any non-conrol chars from ASCII and Unicode 
+     Leave unicode for now see Reference: http://www.json.org */   
+ 
+  char *chr_in_ptr; /* [sng] Pointer to current character in input name */
+  char *chr_out_ptr; /* [sng] Pointer to current character in output name */
+  char *nm_jsn; /* [sng] CDL-compatible name */
+  char *nm_cpy; /* [sng] Copy of input */
+
+  int nm_lng; /* [nbr] Length of original name */
+  
+  if(nm_sng == NULL) return NULL;
+
+  /* Otherwise name may contain special character(s)... */
+  nm_lng=strlen(nm_sng);
+  /* Maximum conceivable length of CDL-ized name */
+  chr_out_ptr=nm_jsn=(char *)nco_malloc(4*nm_lng+1L);
+  /* Copy to preserve const-ness */
+  chr_in_ptr=nm_cpy=(char *)strdup(nm_sng);
+  /* NUL-terminate in case input string is empty so will be output string */
+  chr_out_ptr[0]='\0';
+
+  /* Search and replace special characters */
+  while(*chr_in_ptr){
+    if(iscntrl(*chr_in_ptr)){ 
+      switch(*chr_in_ptr){    
+         case '\b':
+         case '\f':
+         case '\n':
+         case '\r':
+         case '\t': 
+         case '\\': 
+         case '\"': 
+	 /* According to json spec control char  '/' should be escaped but this is mangles filepaths so leave it out for now */
+         /* case '\/': */
+         case '\0':
+           *chr_out_ptr++='\\';
+	   *chr_out_ptr++=*chr_in_ptr;
+	   break;
+         default: 
+            /* ignore other control chars */
+      	  break;
+      } /* !switch */
+    }else{ /* !iscntrl() */
+      *chr_out_ptr++=*chr_in_ptr;
+    } /* !iscntrl() */
+    /* Advance character */
+    chr_in_ptr++;
+  } /* !while() */
+  /* NUL-terminate */
+  *chr_out_ptr='\0';
+
+  /* Free memory */
+  nm_cpy=(char *)nco_free(nm_cpy);
+
+  return nm_jsn;
+} /* end nm2sng_jsn() */
+
 char * /* O [sng] CDL-compatible name */
 nm2sng_fl /* [fnc] Turn file name into legal string for shell commands */
 (const char * const nm_sng) /* I [sng] Name to sanitize */
@@ -331,6 +418,8 @@ nm2sng_fl /* [fnc] Turn file name into legal string for shell commands */
   while(*chr_in_ptr){
     if(isascii(*chr_in_ptr)){
       if(iscntrl(*chr_in_ptr)){	/* Render control chars as two hex digits, \%xx */
+	/* 20170810: GCC7.x produces -Wformat-truncation warning here, that 4 B destination is too small 
+	   False-positive warning? How to eliminate? */
 	snprintf(chr_out_ptr,4,"\\%%%.2x",*chr_in_ptr);
 	chr_out_ptr+=4;
       }else{
@@ -411,7 +500,7 @@ chr2sng_cdl /* [fnc] Translate C language character to printable, visible ASCII 
   } /* end switch */
 
   return val_sng;
-} /* end chr2sng_cdl(0 */
+} /* end chr2sng_cdl() */
 
 char * /* O [sng] String containing printable result */
 chr2sng_xml /* [fnc] Translate C language character to printable, visible ASCII bytes */
@@ -441,7 +530,36 @@ chr2sng_xml /* [fnc] Translate C language character to printable, visible ASCII 
   } /* end switch */
 
   return val_sng;
-} /* end chr2sng_xml(0 */
+} /* end chr2sng_xml() */
+
+char * /* O [sng] String containing printable result */
+chr2sng_jsn /* [fnc] Translate C language character to printable, visible ASCII bytes */
+(const char chr_val, /* I [chr] Character to process */
+ char * const val_sng) /* I/O [sng] String to stuff printable result into */
+{
+  /* Purpose: Translate character to C-printable, visible ASCII bytes for JSON
+     Reference: http://www.json.org */
+  switch(chr_val){              /* man ascii:Oct   Dec   Hex   Char \X  */
+  case '\b': strcpy(val_sng,"\\b"); break; /* 010   8     08    BS  '\b' Backspace */
+  case '\f': strcpy(val_sng,"\\f"); break; /* 014   12    0C    FF  '\f' Formfeed */
+  case '\n': strcpy(val_sng,"\\n"); break; /* 012   10    0A    LF  '\n' Linefeed */
+  case '\r': strcpy(val_sng,"\\r"); break; /* 015   13    0D    CR  '\r' Carriage return */
+  case '\t': strcpy(val_sng,"\\t"); break; /* 011   9     09    HT  '\t' Horizontal tab */
+  case '\\': strcpy(val_sng,"\\\\"); break; /* 134  92    5C    \   '\\' */
+  case '\"': strcpy(val_sng,"\\\""); break;/* Unsure why or if this works! */
+  /* fxm: According to JSON spec '/' should be escaped but this mangles UNIX filepaths so leave it out for now */
+  /* case '\/': strcpy(val_sng,"\\/"); break; */ /* 057   47    2F    /   '\\' */
+  case '\0':	
+    break;
+  default: 
+    /* JSON is quite strict about control-chars - only the above are allowed */
+    // if(iscntrl(chr_val)) *val_sng=0; else sprintf(val_sng,"%c",chr_val);
+    if(iscntrl(chr_val)) *val_sng='\0'; else sprintf(val_sng,"%c",chr_val);
+    break;
+  } /* end switch */
+
+  return val_sng;
+} /* end chr2sng_jsn() */
 
 int /* O [nbr] Number of escape sequences translated */
 sng_ascii_trn /* [fnc] Replace C language '\X' escape codes in string with ASCII bytes */
@@ -502,6 +620,9 @@ sng_ascii_trn /* [fnc] Replace C language '\X' escape codes in string with ASCII
       (void)fprintf(stderr,"%s: WARNING C language escape code %.2s found in string, not translating to NUL since this would make the subsequent portion of the string invisible to all C Standard Library string functions\n",nco_prg_nm_get(),backslash_ptr); 
       trn_flg=False;
       /* 20101013: Tried changing above behavior to following, and it opened a Hornet's nest of problems... */
+      /* 20170221: Use-case where translating "\0" to NUL would be helpful is when user needs to pad netCDF3 character
+	 array value to size of underlying dimension, and have user-specified value NUL-terminated short of full 
+	 dimension size */
       /* *backslash_ptr='\0'; *//* 000   0     00    NUL '\0' */
       /*      (void)fprintf(stderr,"%s: WARNING translating C language escape code \"\\0\" found in user-supplied string to NUL. This will make the subsequent portion of the string, if any, invisible to C Standard Library string functions. And that may cause unintended consequences.\n",nco_prg_nm_get());*/
       break;
@@ -512,7 +633,7 @@ sng_ascii_trn /* [fnc] Replace C language '\X' escape codes in string with ASCII
     } /* end switch */
     if(trn_flg){
       /* Remove character after backslash character */
-      (void)memmove(backslash_ptr+1,backslash_ptr+2,(strlen(backslash_ptr+2)+1)*sizeof(char));
+      (void)memmove(backslash_ptr+1,backslash_ptr+2,(strlen(backslash_ptr+2)+1L)*sizeof(char));
       /* Count translations performed */
       trn_nbr++;
     } /* end if */
@@ -645,299 +766,3 @@ nco_sng2typ /* [fnc] Convert user-supplied string to netCDF type enum */
 
 } /* end nco_sng2typ() */
 
-kvm_sct /* O [kvm_sct] key-value pair*/
-nco_sng2kvm /* [fnc] convert a string to key-value pair */
-(const char *args) /* I [sng] input string argument with an equal sign connecting the key & value */
-{
-/*Implementation: parsing the args so they can be sent to a kvm (fake kvm here)
- * as a key-value pair.
- *
- * Example 1: ... --gaa a=1 ... should be exported as kvm.key = a; kvm.value = 1
- * Example 2: ... --gaa "a;b;c"=1 should be exported as kvm[0].key="a", kvm[1].key="b", kvm[2].key="c"
- *          and kvm[@] = 1 (the ";" will be parsed by caller). 
- *
- * IMPORTANT: Remember to free fake_kvm after use string_to_kvm.*/
-  int arg_index = 0;
-  kvm_sct kvm;
-
-  kvm.val = NULL;
-
-  for(char* char_token = strtok((char*)args, "="); char_token; char_token = strtok(NULL, "=")){
-    //Use memcpy because strdup is not a standard C lib func and memcpy is faster than strcpy (little bit).
-    char_token = nco_sng_strip(char_token);
-
-    if(arg_index == 0){
-
-      kvm.key = (char*)malloc(strlen(char_token) + 1);
-      if(kvm.key){memcpy(kvm.key, char_token, strlen(char_token) + 1);}
-
-    }else if(arg_index == 1){
-
-      kvm.val = (char*)malloc(strlen(char_token) + 1);
-      if(kvm.val){memcpy(kvm.val, char_token, strlen(char_token) + 1);}
-
-    }else{break;} //end if
-    //To get the next token.
-    arg_index ++;
-  } //end of loop
-
-  //If malloc cannot alloc sufficient memory, either key or value would be NULL; print error message and not quit.
-  if(!kvm.key || !kvm.val){
-
-    perror("Error: system does not have sufficient memory.\n");
-    nco_exit(EXIT_FAILURE);
-  }
-  
-  return kvm;
-}
-
-char * /* O [sng] Stripped-string */
-nco_sng_strip /* [fnc] Strip leading and trailing white space */
-(char *sng) /* I/O [sng] String to strip */
-{
-  /* fxm: seems not working for \n??? */
-  char *srt=sng;
-  while(isspace(*srt)) srt++;
-  size_t end=strlen(srt);
-  if(srt != sng){
-    memmove(sng,srt,end);
-    sng[end]='\0';
-  } /* endif */
-  while(isblank(*(sng+end-1L))) end--;
-  sng[end]='\0';
-  return sng;
-} /* end nco_sng_strip() */
-
-kvm_sct * /* O [sct] Pointer to free'd kvm list */
-nco_kvm_lst_free /* [fnc] Relinquish dynamic memory from list of kvm structures */
-(kvm_sct *kvm, /* I/O [sct] List of kvm structures */
- const int kvm_nbr) /* I [nbr] Number of kvm structures */
-{
-  /* Purpose: Relinquish dynamic memory from list of kvm structures
-     End of list is indicated by NULL in key slot */
-  for(int kvm_idx=0;kvm_idx<kvm_nbr;kvm_idx++){
-    /* Check pointers' nullity */
-    if(kvm[kvm_idx].key){kvm[kvm_idx].key=(char *)nco_free(kvm[kvm_idx].key);}
-    if(kvm[kvm_idx].val){kvm[kvm_idx].val=(char *)nco_free(kvm[kvm_idx].val);}
-  } /* end for */
-  if(kvm) kvm=(kvm_sct *)nco_free(kvm);
-  return kvm;
-} /* end nco_kvm_lst_free() */
-
-void
-nco_kvm_prn(kvm_sct kvm)
-{
-  if(kvm.key) (void)fprintf(stdout,"%s = %s\n",kvm.key,kvm.val); else return;
-} /* end nco_kvm_prn() */
-
-#ifndef NCO_STRING_SPLIT_
-#define NCO_STRING_SPLIT_
-
-char** /* O [pointer to sngs] group of splitted sngs*/
-nco_string_split /* [fnc] split the string by delimiter */
-(const char *restrict source, /* I [sng] the source string */
-const char* delimiter) /* I [char] the delimiter*/
-{
-    /* Use to split the string into a double character pointer, which each sencondary pointer represents
-     * the string after splitting.
-     * Example: a, b=1 will be split into *<a> = "a" *<b> = "b=1" with a delimiter of "," 
-     * Remember to free after calling this function. */
-    char** final = NULL, *temp = strdup(source);
-    size_t counter = nco_count_blocks(source, (char*)delimiter), index = 0;    
-
-    if(!strstr(temp, delimiter)){ //special case for one single argument
-
-      final    = (char**)malloc(sizeof(char*));
-
-      final[0] = temp;
-
-      return final;
-    }
-
-    final = (char**)malloc(sizeof(char*) * counter);
-
-    if(final){
-
-        for(char *token = strtok(temp, delimiter); token; token = strtok(NULL, delimiter)){
-
-            final[index ++] = strdup(token);
-        } //end for
-
-        free(temp);
-
-    }else{return NULL;} //end if
-
-    return final;
-}
-
-#endif
-
-#ifndef NCO_INPUT_CHECK_
-#define NCO_INPUT_CHECK_
-
-int /* O [int] the boolean for the checking result */
-nco_input_check /* [fnc] check whether the input is legal and give feedback accordingly. */
-(const char *restrict args) /* O [sng] input arguments */
-{
-    /* Use to check the syntax for the arguments.
-     * If the return value is false (which means the input value is illegal) the parser will terminate the program. */
-    if(!strstr(args, "=")){ //If no equal sign in arguments
-        
-        printf("\033[0;31mIn %s\n", args);
-
-        perror("Formatting Error: No equal sign detected \033[0m\n");
-
-        return 0;
-    } //endif
-    if(strstr(args, "=") == args){ //If equal sign is in the very beginning of the arguments (no key)
-        
-        printf("\033[0;31mIn %s\n", args);
-
-        perror("Formatting Error: No key in key-value pair.\033[0m\n"); 
-
-        return 0;
-    } //endif
-    if(strstr(args, "=") == args + strlen(args) - 1){ //If equal sign is in the very end of the arguments
-        
-        printf("\033[0;31mIn %s\n", args);
-
-        perror("Formatting Error: No value in key-value pair.\033[0m\n"); 
-
-        return 0;
-    } //endif
-    return 1;
-
-}
-#endif
-
-int // O [int] the number of string blocks if will be split with delimiter
-nco_count_blocks // [fnc] Check number of string blocks if will be split with delimiter
-(const char* args, // I [sng] the string which is going to be split
-char* delimiter) // I [sng] the delimiter
-{
-  int i = 0;
-
-  const char *pch = strchr(args, *(delimiter));
-
-  while (pch != NULL) {
-
-    i++;
-
-    pch = strchr(pch + 1, *(delimiter));
-  }
-  return i + 1;
-}
-
-void 
-nco_sng_lst_free_void /* [fnc] free() string list */
-(char **restrict sng_lst, /* I/O [sng] String list to free() */
- const int sng_nbr) /* I [int] Number of strings in list */
-{
-    /* Use to free the double character pointer, and set the pointer to NULL */
-    for(int i=0; i < sng_nbr; i++){free(sng_lst[i]);}
-
-    free(sng_lst);
-
-    sng_lst = NULL;
-}
-
-#ifndef NCO_ARG_MLT_PRS_
-#define NCO_ARG_MLT_PRS_
-
-kvm_sct* /* O [kvm_sct] the pointer to the first kvm structure */
-nco_arg_mlt_prs /* [fnc] main parser, split the string and assign to kvm structure */
-(const char *restrict args) /* I [sng] input string */
-{
-    /* Main parser for the argument. This will split the whole argument into key value pair and send to sng2kvm*/
-    if(!args){
-
-        nco_exit(EXIT_FAILURE);
-    }
-
-    char **separate_args = nco_string_split(args, "#");
-    size_t counter = nco_count_blocks(args, "#") * nco_count_blocks(args, ","); //Max number of kvm structure in this argument
-
-    for(int i=0; i < nco_count_blocks(args, "#"); i++){
-
-        if(!nco_input_check(separate_args[i])){
-
-            nco_exit(EXIT_FAILURE);
-        }//end if
-
-    }//end loop
-
-    kvm_sct* kvm_set = (kvm_sct*)malloc(sizeof(kvm_sct) * (counter + 1)); /* kvm array intended to be returned */
-    counter          = 0;
-
-    for(int i=0; i < nco_count_blocks(args, "#"); i++){
-        
-        char *value = strdup(strstr(separate_args[i], "="));
-
-        char **individual_args = nco_string_split(separate_args[i], ",");
-
-        for(int j=0; j < nco_count_blocks(separate_args[i], ","); j++){
-
-            char* temp_value = strdup(individual_args[j]);
-            if(!strstr(temp_value, "=")){
-
-                temp_value = strcat(temp_value, value);
-            }//end if
-
-            kvm_sct kvm_object = nco_sng2kvm(temp_value);
-
-            kvm_set[counter++] = kvm_object;
-
-            free(temp_value);
-        }//end inner loop
-
-        nco_sng_lst_free_void(individual_args, nco_count_blocks(separate_args[i], ","));
-        free(value);
-
-    }//end outer loop
-    nco_sng_lst_free_void(separate_args, nco_count_blocks(args, "#"));
-
-    kvm_set[counter].key = NULL; //Add an ending flag for kvm array.
-
-    return kvm_set;
-}
-
-#endif
-
-#ifndef NCO_JOIN_SNG_
-#define NCO_JOIN_SNG_
-
-char * /* O [sng] Joined strings */
-nco_join_sng /* [fnc] Join strings with delimiter */
-(const char **restrict sng_lst, /* I [sng] List of strings being connected */
- const char *dlm_sng, /* I [sng] Delimiter string */
- const int sng_nbr) /* I [int] Number of strings */
-{
-    if(sng_nbr == 1) {return strdup(sng_lst[0]);}
-
-    size_t word_length = 0;
-    size_t copy_counter = 0;
-
-    for(size_t i=0; i < sng_nbr; i++){
-
-        word_length += strlen(sng_lst[i]) + 1;
-    }
-
-    char *final_string = (char*)malloc(word_length + 1);
-
-    for(int i=0; i < sng_nbr; i++){
-
-        size_t temp_length = strlen(sng_lst[i]);
-
-        memcpy(final_string + copy_counter, sng_lst[i], temp_length);
-
-        if(i < sng_nbr - 1){ // If it is not the last block of string
-            memcpy(final_string + copy_counter + temp_length, dlm_sng, 1);
-        }
-
-        copy_counter += (temp_length + 1);
-    }
-    return final_string;
-
-}
-
-#endif

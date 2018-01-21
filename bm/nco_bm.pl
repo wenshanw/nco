@@ -190,7 +190,7 @@ dbg_msg(1,$lcl_vars); # Print local variables
 if($ARGV == 0){NCO_bm::bm_usg();}
 
 # Test file format
-if ($fl_fmt eq "64bit" || $fl_fmt eq "netcdf4" || $fl_fmt eq "netcdf4_classic") {
+if ($fl_fmt eq "64bit_offset" || $fl_fmt eq "netcdf4" || $fl_fmt eq "netcdf4_classic") {
     $fl_fmt="--fl_fmt=".$fl_fmt;
     dbg_msg(1,"File format set to [$fl_fmt]");
 }elsif ($fl_fmt eq "classic"){
@@ -374,7 +374,7 @@ $server_name="sand.ess.uci.edu";  #change this to dust.ess.uci.edu?
 $server_ip="128.200.14.132";
 $server_port=29659;
 
-if($usg){bm_usg()};
+if($usg){NCO_bm::bm_usg()};
 if(0){tst_tm_hrz();} # Test hires timer - needs explicit code mod to do this
 
 if($iosockfound){

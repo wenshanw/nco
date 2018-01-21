@@ -2,7 +2,7 @@
 
 /* Purpose: Variable list utilities */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -1073,13 +1073,13 @@ nco_var_lst_dvd /* [fnc] Divide input lists into output lists */
       (void)fprintf(stdout,"%s: HINT Extraction list must contain a variable that shares at least one dimension with the re-order list\n",nco_prg_nm_get());
       break;
     case ncra:
-      (void)fprintf(stdout,"%s: HINT Extraction list must contain at least one record variable that is not NC_CHAR or NC_STRING. A record variable is a variable defined with a record dimension. Often the record dimension, aka unlimited dimension, refers to time. For more information on creating record dimensions within existing datasets, see http://nco.sf.net/nco.html#mk_rec_dmn\n",nco_prg_nm_get());
+      (void)fprintf(stdout,"%s: HINT Extraction list must contain at least one record variable that is not NC_CHAR or NC_STRING. A record variable is a variable defined with a record dimension. Often the record dimension, aka unlimited dimension, refers to time. To change an existing dimension from a fixed to a record dimensions see http://nco.sf.net/nco.html#mk_rec_dmn or to add a new record dimension to all variables see http://nco.sf.net/nco.html#ncecat_rnm\n",nco_prg_nm_get());
       break;
     case ncrcat:
-      (void)fprintf(stdout,"%s: HINT Extraction list must contain a record variable which to concatenate. A record variable is a variable defined with a record dimension. Often the record dimension, aka unlimited dimension, refers to time. For more information on creating record dimensions within existing datasets, see http://nco.sf.net/nco.html#mk_rec_dmn\n",nco_prg_nm_get());
+      (void)fprintf(stdout,"%s: HINT Extraction list must contain a record variable to concatenate. A record variable is a variable defined with a record dimension. Often the record dimension, aka unlimited dimension, refers to time. To change an existing dimension from a fixed to a record dimensions see http://nco.sf.net/nco.html#mk_rec_dmn or to add a new record dimension to all variables see http://nco.sf.net/nco.html#ncecat_rnm\n",nco_prg_nm_get());
       break;
     case ncwa:
-      (void)fprintf(stdout,"%s: HINT Extraction list must contain a non-character variable with an averaging dimension\n",nco_prg_nm_get());
+      (void)fprintf(stdout,"%s: HINT Extraction list must contain a non-character variable with a dimension to be averaged\n",nco_prg_nm_get());
       break;
     default: nco_dfl_case_prg_id_err(); break;
     } /* end switch */
@@ -1295,7 +1295,7 @@ nco_var_is_fix                               /* [fnc] Variable should be treated
   
   /* Conditions #1 and #2 are already implemented above in the case() statement */
   /* Check condition #4 above: */
-  if(is_sz_rnk_prv_rth_opr && (!strcmp(var_nm,"lat") || !strcmp(var_nm,"lon") || !strcmp(var_nm,"lev") || !strcmp(var_nm,"longxy") || !strcmp(var_nm,"latixy") )) var_is_fix=True;
+  if(is_sz_rnk_prv_rth_opr && (!strcmp(var_nm,"lat") || !strcmp(var_nm,"lon") || !strcmp(var_nm,"lev") || !strcmp(var_nm,"longxy") || !strcmp(var_nm,"latixy") || !strcmp(var_nm,"latitude") || !strcmp(var_nm,"longitude") )) var_is_fix=True;
 
   return var_is_fix;
 

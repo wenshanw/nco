@@ -136,7 +136,7 @@ appending history to file.
 This script is part of the netCDF Operators package:
 http://nco.sf.net
 
-Copyright 1995--2016 Charlie Zender
+Copyright 1995--2018 Charlie Zender
 
 USAGE
 exit(0);
@@ -183,7 +183,8 @@ sub bm_ntl($$){
 # If libtool created shared libraries, then point to real executables
 # in ../src/nco/.libs
     my $dotlib = '';
-    $dotlib = ".libs/lt-" if `head -1 $MY_BIN_DIR/ncatted` =~ m/sh/;
+# 20170608: Removed at suggestion of Daniel Neumann
+#    $dotlib = ".libs/lt-" if `head -1 $MY_BIN_DIR/ncatted` =~ m/sh/;
     $sym_link{ncdiff}=$dotlib . "ncbo";
     $sym_link{nces}=$dotlib . "ncra";
     $sym_link{ncrcat}=$dotlib . "ncra";

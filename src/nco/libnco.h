@@ -2,7 +2,7 @@
 
 /* Purpose: netCDF Operator (NCO) library */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -37,10 +37,12 @@
 #include "nco_grp_utl.h" /* Group utilities */
 #include "nco_lmt.h" /* Hyperslab limits */
 #include "nco_lst_utl.h" /* List utilities */
+#include "nco_map.h" /* Map generation */
 #include "nco_md5.h" /* MD5 digests */
 #include "nco_mmr.h" /* Memory management */
 #include "nco_msa.h" /* Multi-slabbing algorithm */
 #include "nco_mss_val.h" /* Missing value utilities */
+#include "nco_mta.h" /* Multi-argument parsing */
 #include "nco_omp.h" /* OpenMP utilities */
 #include "nco_pck.h" /* Packing and unpacking variables */
 #include "nco_ppc.h" /* Precision-Preserving Compression */

@@ -2,7 +2,7 @@
 
 /* Purpose: Attribute utilities */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -36,6 +36,7 @@
 #include "nco_ctl.h" /* Program flow control functions */
 #include "nco_lst_utl.h" /* List utilities */
 #include "nco_mmr.h" /* Memory management */
+#include "nco_mta.h" /* Multi-argument parsing */
 #include "nco_mss_val.h" /* Missing value utilities */
 #ifdef _MSC_VER
 # include "nco_rth_flt.h" /* Float-precision arithmetic, MSVC macros */

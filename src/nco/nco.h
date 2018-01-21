@@ -2,7 +2,7 @@
 
 /* Purpose: netCDF Operator (NCO) definitions */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -138,10 +138,15 @@ extern "C" {
 #define CEWI_unused(x)   ((void)x)
   
   /* Numeric constants to simplify arithmetic */
-#define NCO_BYT_PER_KB 1024UL
-#define NCO_BYT_PER_MB 1048576UL
-#define NCO_BYT_PER_GB 1073741824UL
-#define NCO_BYT_PER_TB 1099511627776UL
+#define NCO_BYT_PER_KiB 1024UL
+#define NCO_BYT_PER_MiB 1048576UL
+#define NCO_BYT_PER_GiB 1073741824UL
+#define NCO_BYT_PER_TiB 1099511627776UL
+
+#define NCO_BYT_PER_KB 1000UL
+#define NCO_BYT_PER_MB 1000000UL
+#define NCO_BYT_PER_GB 1000000000UL
+#define NCO_BYT_PER_TB 1000000000000UL
 
   /* netcdf.h NC_GLOBAL is, strictly, the variable ID for global attributes
      NCO_REC_DMN_UNDEFINED is dimension ID of record dimension iff record dimension is undefined
@@ -169,6 +174,13 @@ extern "C" {
   /* Argument to strtol() and strtoul() indicating base-10 conversions */
 #define NCO_SNG_CNV_BASE10 10
 
+  /* 20161121 Chunk cache size default
+     http://www.unidata.ucar.edu/software/netcdf/docs/netcdf_perf_chunking.html
+     netCDF cache size default settable at netCDF build time with --with-chunk-cache-size option
+     If NCO default == 0, then NCO will use whatever default built-into netCDF library
+     If NCO default  > 0, then NCO will override netCDF default */
+#define NCO_CNK_CSH_BYT_DFL 0
+
   /* netCDF 4.3.2 (201404) implements a configure-time constant called DEFAULT_CHUNK_SIZE = 4194304 = 4 MB
      This is a good size for HPC systems with MB-scale blocksizes
      Token is not in netcdf.h, and NCO's equivalent need not match netCDF's
@@ -181,6 +193,9 @@ extern "C" {
 
   /* Linux default blocksize is 4096 B---a good chunk size for 1-D record dimension variables */
 #define NCO_CNK_SZ_BYT_R1D_DFL 4096
+
+  /* Maximum number of names to examine in CF "coordinates" attribute */
+#define NCO_MAX_CRD_PER_VAR 6
 
   /* netCDF provides no guidance on maximum nesting of groups */
 #define NCO_MAX_GRP_DEPTH 10
@@ -218,6 +233,7 @@ extern "C" {
 
   /* Prototype global functions before defining them in next block */
   char *nco_mss_val_sng_get(void); /* [sng] Missing value attribute name */
+  char *nco_mta_dlm_get(void); /* [sng] Multi-argument delimiter */
   char *nco_not_mss_val_sng_get(void); /* [sng] Not missing value attribute name */
   char *nco_prg_nm_get(void);
   int nco_prg_id_get(void);
@@ -228,6 +244,7 @@ extern "C" {
   unsigned short nco_rth_cnv_get(void);
   unsigned short nco_upk_cnv_get(void);
   void nco_fmt_xtn_set(unsigned short nco_fmt_xtn_arg);
+  void nco_mta_dlm_set(char *nco_mta_dlm_arg);
 
 #ifdef MAIN_PROGRAM_FILE /* Current file contains main() */
   
@@ -238,6 +255,11 @@ extern "C" {
   
   char *nco_prg_nm; /* [sng] Program name */
   char *nco_prg_nm_get(void){return nco_prg_nm;} /* [sng] Program name */
+  
+  char *nco_mta_dlm=NULL; /* [sng] Multi-argument delimiter */
+  char *nco_mta_dlm_get(void){if(!nco_mta_dlm){nco_mta_dlm=(char *)strdup("#");}
+    return nco_mta_dlm;} /* [sng] Multi-argument delimiter */
+  void nco_mta_dlm_set(char *nco_mta_dlm_arg){nco_mta_dlm=nco_mta_dlm_arg;} /* [sng] Multi-argument delimiter */
   
   unsigned short nco_baa_cnv=0; /* [enm] Bit-Adjustment Algorithm */
   unsigned short nco_baa_cnv_get(void){return nco_baa_cnv;} /* [enm] Bit-Adjustment Algorithm */
@@ -319,20 +341,20 @@ extern "C" {
 # define NCO_VERSION_MAJOR 4
 #endif /* !NCO_VERSION_MAJOR */
 #ifndef NCO_VERSION_MINOR
-# define NCO_VERSION_MINOR 6
+# define NCO_VERSION_MINOR 7
 #endif /* !NCO_VERSION_MINOR */
 #ifndef NCO_VERSION_PATCH
 # define NCO_VERSION_PATCH 2
 #endif /* !NCO_VERSION_PATCH */
 #ifndef NCO_VERSION_NOTE
-# define NCO_VERSION_NOTE "alpha01" /* Blank for final versions, non-blank (e.g., "beta37") for pre-release versions */
+# define NCO_VERSION_NOTE "-beta01" /* Blank for final versions, non-blank (e.g., "-beta37") for pre-release versions */
 #endif /* !NCO_VERSION_NOTE */
 #ifndef NCO_LIB_VERSION
   /* Define NC_LIB_VERSION as three-digit number for arithmetic comparisons by CPP */
 # define NCO_LIB_VERSION ( NCO_VERSION_MAJOR * 100 + NCO_VERSION_MINOR * 10 + NCO_VERSION_PATCH )
 #endif /* !NCO_LIB_VERSION */
 #ifndef NCO_VERSION
-# define NCO_VERSION "4.6.2-alpha01"
+# define NCO_VERSION "4.7.2-beta01"
 #endif /* !NCO_VERSION */
 
 /* Compatibility tokens new to netCDF4 netcdf.h: */
@@ -449,6 +471,7 @@ extern "C" {
 #ifndef NC_FORMAT_DAP4
 # define NC_FORMAT_DAP4    (6)
 #endif
+
 #ifndef NC_FORMATX_UNDEFINED
 # define NC_FORMATX_UNDEFINED (0)
 #else
@@ -477,7 +500,7 @@ extern "C" {
 #endif
 
   /* Three compatibility tokens from pnetcdf.h introduced to NCO 20140604 
-     None are used yet */
+     These were first fully supported in 201708 (NCO 4.6.9) */
 #ifndef NC_64BIT_DATA
 # define NC_64BIT_DATA	0x0010 /* CDF-5 format, (64-bit) supported */
 #endif
@@ -764,7 +787,14 @@ extern "C" {
     cln_366, /* Leap year Calendar */ 
     cln_nil /* No calendar found */
   } nco_cln_typ; /* [enm] Calendar type */
-  
+
+  typedef enum { /* [enm] Date format */
+    fmt_dt_nil=0, /* None specified */
+    fmt_dt_sht, /* Shortest string possible */
+    fmt_dt_rgl, /* All date and time fields */
+    fmt_dt_iso8601, /* Include ISO 8601 'T' separator between date and time */
+  } nco_fmt_dt;
+
   /* Limit structure */
   typedef struct { /* lmt_sct */
     char *nm; /* [sng] Dimension name */
@@ -781,7 +811,7 @@ extern "C" {
 
     double max_val; /* Double precision representation of maximum value of coordinate requested or implied */
     double min_val; /* Double precision representation of minimum value of coordinate requested or implied */
-    double origin;   /* Used by ncra, ncrcat to re-base record coordinate */
+    double origin; /* Used by ncra, ncrcat to re-base record coordinate */
 
     int id; /* Dimension ID */
     int lmt_typ; /* crd_val or dmn_idx */
@@ -920,9 +950,11 @@ extern "C" {
 
   /* Print flags structure */
   typedef struct{ /* prn_fmt_sct */
+    char *dlm_sng; /* [sng] User specified delimiter string for printed output */
     char *fl_in; /* [sng] Input filename */
     char *fl_stb; /* [sng] Input filename stub */
     char *smr_sng; /* [sng] Summary string */
+    char *smr_fl_sz_sng; /* [sng] String describing estimated file size */
     char *spr_chr; /* [sng] Separator string for character types */
     char *spr_nmr; /* [sng] Separator string for numeric types */
     gpe_sct *gpe; /* I [sng] GPE structure */
@@ -938,14 +970,17 @@ extern "C" {
     nco_bool nfo_xtr; /* [flg] Print extra information in CDL/XML mode */
     nco_bool new_fmt; /* [flg] Print in new format */
     nco_bool nwl_pst_val; /* [flg] Print newline after variable values */
+    int cdl_fmt_dt; /* [enm] CDL date-stamp format specifier */ 
+    int fl_out_fmt; /* [enm] Output file format */
+    int fll_pth; /* [nbr] Print full paths */
+    int jsn_att_fmt; /* [enm] JSON format for netCDF attributes: 0 (no object, only data), 1 (data only for string, char, int, and floating-point types, otherwise object), 2 (always object) */
+    int jsn_data_brk; /* [flg] JSON format for netCDF variables: 0 (no bracketing of var data ), 1 ( bracketing of var data )*/
     int nbr_zro; /* [nbr] Trailing zeros allowed after decimal point */
     int ndn; /* [nbr] Indentation */
-    int fll_pth; /* [nbr] Print full paths */
-    int tab; /* [nbr] Number of spaces in tab */
     int spc_per_lvl; /* [nbr] Indentation spaces per group level */
     int sxn_fst; /* [nbr] Offset of section from group name */
+    int tab; /* [nbr] Number of spaces in tab */
     int var_fst; /* [nbr] Offset of variable from section name */
-    char *dlm_sng; /* User specified delimiter string for printed output */
     nco_bool ALPHA_BY_FULL_GROUP; /* [flg] Print alphabetically by full group */
     nco_bool ALPHA_BY_FULL_OBJECT; /* [flg] Print alphabetically by full object */
     nco_bool ALPHA_BY_STUB_GROUP; /* [flg] Print alphabetically by stub group */
@@ -958,6 +993,7 @@ extern "C" {
     nco_bool PRN_MSS_VAL_BLANK; /* [flg] Print missing values as blanks */
     nco_bool PRN_VAR_DATA; /* [flg] Print variable data */
     nco_bool PRN_VAR_METADATA; /* [flg] Print variable metadata */
+    nco_bool PRN_CLN_LGB; /* [flg] Print UDUnits-formatted calendar dates/times human-legibly */
   } prn_fmt_sct;
   
   /* Types used in Terraref structure */
@@ -1083,6 +1119,8 @@ extern "C" {
     char *bnd_tm_nm; /* [sng] Name of dimension to employ for temporal bounds */
     char *col_nm_in; /* [sng] Name to recognize as input horizontal spatial dimension on unstructured grid */
     char *col_nm_out; /* [sng] Name of horizontal spatial output dimension on unstructured grid */
+    char *fl_hnt_dst; /* [sng] ERWG hint destination */
+    char *fl_hnt_src; /* [sng] ERWG hint source */
     char *frc_nm; /* [sng] Name of variable containing gridcell fraction */
     char *lat_bnd_nm; /* [sng] Name of rectangular boundary variable for latitude */
     char *lat_dmn_nm; /* [sng] Name of latitude dimension in inferred grid */
@@ -1095,11 +1133,14 @@ extern "C" {
     char *lon_nm_in; /* [sng] Name of dimension to recognize as longitude */
     char *lon_nm_out; /* [sng] Name of output dimension for longitude */
     char *lon_vrt_nm; /* [sng] Name of non-rectangular boundary variable for longitude */
+    char *msk_nm; /* [sng] Name of variable containing destination mask */
     char *vrt_nm; /* [sng] Name of dimension to employ for vertices */
     // User-specified grid properties
-    char *fl_grd; /* [sng] Name of grid file to create */
+    char *fl_grd; /* [sng] Name of SCRIP grid file to create */
+    char *fl_ugrid; /* [sng] Name of UGRID grid file to create */
     char *fl_skl; /* [sng] Name of skeleton data file to create */
     char *grd_ttl; /* [sng] Grid title */
+    char *msk_var; /* [sng] Mask-template variable */
     double lat_crv; /* [dgr] Latitudinal  curvilinearity */
     double lon_crv; /* [dgr] Longitudinal curvilinearity */
     double lat_sth; /* [dgr] Latitude of southern edge of grid */
@@ -1123,14 +1164,20 @@ extern "C" {
     int xtn_nbr; /* [nbr] Number of extensive variables */
     long idx_dbg; /* [idx] Index of gridcell for debugging */
     long tst; /* [enm] Generic key for testing (undocumented) */
-    nco_bool flg_usr_rqs; /* [flg] User requested regridding */
-    nco_bool flg_grd_src; /* [flg] User-specified input grid */
-    nco_bool flg_grd_dst; /* [flg] User-specified destination grid */
+    nco_bool flg_area_out; /* [flg] Add area to output */
+    nco_bool flg_cll_msr; /* [flg] Add cell_measures attribute */
     nco_bool flg_crv; /* [flg] Use curvilinear coordinates */
+    nco_bool flg_dgn_area; /* [flg] Diagnose rather than copy inferred area */
+    nco_bool flg_dgn_bnd; /* [flg] Diagnose rather than copy inferred bounds */
     nco_bool flg_grd; /* [flg] Create SCRIP-format grid file */
+    nco_bool flg_grd_dst; /* [flg] User-specified destination grid */
+    nco_bool flg_grd_src; /* [flg] User-specified input grid */
+    nco_bool flg_wgt; /* [flg] User-specified mapping weights */
+    nco_bool flg_msk_out; /* [flg] Add mask to output */
     nco_bool flg_nfr; /* [flg] Infer SCRIP-format grid file */
-    nco_bool flg_map; /* [flg] User-specified mapping weights */
     nco_bool flg_rnr; /* [flg] Renormalize destination values by valid area */
+    nco_bool flg_stg; /* [flg] Write staggered grid with FV output */
+    nco_bool flg_usr_rqs; /* [flg] User requested regridding */
   } rgr_sct; /* end Regrid structure */
 
   /* Key-value structure */
@@ -1163,6 +1210,7 @@ extern "C" {
     cnk_dmn_sct **cnk_dmn; /* [sct] User-specified per-dimension chunking information */
     int cnk_map; /* [enm] Chunking map */
     int cnk_plc; /* [enm] Chunking policy */
+    size_t cnk_csh_byt; /* [B] Chunk cache size */
     size_t cnk_min_byt; /* [B] Minimize size of variable to chunk */
     size_t cnk_sz_byt; /* [B] Chunk size in Bytes */
     size_t cnk_sz_scl; /* [nbr] Chunk size scalar */
@@ -1267,10 +1315,14 @@ extern "C" {
   typedef struct{ 
     nco_obj_typ nco_typ;              /* [enm] netCDF4 object type: group or variable */
     char *nm_fll;                     /* [sng] Fully qualified name (path) */
-    var_dmn_sct *var_dmn;             /* [sct] (For variables only) Dimensions for variable object */
-    nco_bool is_crd_var;              /* [flg] (For variables only) Is a coordinate variable? (unique dimension exists in scope) */
-    nco_bool is_rec_var;              /* [flg] (For variables only) Is a record variable? (is_crd_var must be True) */
-    nc_type var_typ;                  /* [enm] (For variables only) NetCDF type  */  
+    var_dmn_sct *var_dmn;             /* [sct] Dimensions for variable object */
+    nco_bool is_crd_lk_var;           /* [flg] Is a coordinate-like variable (same as var_sct is_crd_var: crd, 2D, bounds...) */
+    nco_bool is_rec_lk_var;           /* [flg] Is a record variable of any dimension (same as var_sct is_rec_var) */
+    nco_bool is_1D_crd;               /* [flg] Is a 1D coordinate variable? (unique dimension exists in scope) */
+    nco_bool is_1D_rec_crd;           /* [flg] Is a 1D record coordinate (e.g., time)? */
+    nco_bool is_crd_var;              /* [flg] Is a coordinate variable? (OLD incompatible definition meant is_1D_crd, new definition identical with is_crd_var in var_sct, i.e., coordinate-like variables, 2D, bounds...) */
+    nco_bool is_rec_var;              /* [flg] Is a record variable? (OLD incorrect definition meant is_1D_rec_crd, new definition identical with is_rec_var in var_sct, i.e., any variable with a record dimension) */
+    nc_type var_typ;                  /* [enm] netCDF type */
     size_t nm_fll_lng;                /* [sng] Length of full name */
     char *grp_nm_fll;                 /* [sng] Full group name (for groups, same as nm_fll) */
     char *grp_nm;                     /* [sng] Group name (for groups, same as nm) */

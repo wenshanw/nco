@@ -2,7 +2,7 @@
 
 /* Purpose: Description (definition) of Swath-Like Data (SLD) functions */
 
-/* Copyright (C) 2015--2016 Charlie Zender
+/* Copyright (C) 2015--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -32,11 +32,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
-
-  int /* O [rcd] Return code */
-  nco_scrip_read /* [fnc] Read, parse, and print contents of SCRIP file */
-  (char *fl_scrip, /* I [sng] SCRIP file name with proper path */
-   kvm_sct *kvm_scrip); /* I/O [sct] Structure to hold contents of SCRIP file */ 
 
   int /* O [rcd] Return code */
   nco_trr_read /* [fnc] Read, parse, and print contents of TERRAREF file */

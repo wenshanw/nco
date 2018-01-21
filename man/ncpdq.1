@@ -6,10 +6,11 @@
 .SH NAME
 ncpdq \- netCDF Permute Dimensions Quickly, Pack Data Quietly...
 .SH SYNTAX
-ncpdq [\-3] [\-4] [\-6] [\-7] [\-A] [\-a 
+ncpdq [\-3] [\-4] [\-5] [\-6] [\-7] [\-A] [\-a 
 .IR dim [,...]]
 [\-\-bfr
 .IR sz_byt ] [\-C] [\-c] [\-\-cnk_byt
+.IR sz_byt ] [\-\-cnk_csh
 .IR sz_byt ] [\-\-cnk_dmn 
 .IR nm,sz_lmn ]
 [\-\-cnk_map 
@@ -25,7 +26,7 @@ ncpdq [\-3] [\-4] [\-6] [\-7] [\-A] [\-a
 .IR dim ,[
 .IR min ][,[
 .IR max ]]]
-[\-F] [\-G
+[-F] [--fl_fmt=fmt] [\-G
 .IR gpe_dsc ]
 [\-g  
 .IR grp [,...]]
@@ -40,7 +41,7 @@ ncpdq [\-3] [\-4] [\-6] [\-7] [\-A] [\-a
 .IR path ]
 [\-M 
 .IR pck_map ]
-[\-\-mrd] [\-\-msa] [\-\-no_tmp_fl] [\-O] [\-o 
+[\-\-mrd] [\-\-msa] [\-\-no_cll_msr] [\-\-no_frm_trm] [\-\-no_tmp_fl] [\-O] [\-o 
 .IR output-file ]
 [\-P 
 .IR pck_plc ]
@@ -139,7 +140,7 @@ manual pages written by Charlie Zender and originally formatted by Brian Mays.
 Report bugs to <http://sf.net/bugs/?group_id=3331>.
 
 .SH COPYRIGHT
-Copyright \(co 1995-2016 Charlie Zender
+Copyright \(co 1995-2018 Charlie Zender
 .br
 This is free software; see the source for copying conditions.  There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
@@ -148,13 +149,13 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 The full documentation for
 .B NCO
 is maintained as a Texinfo manual called the 
-.B NCO User's Guide.
+.B NCO Users Guide.
 Because 
 .B NCO
 is mathematical in nature, the documentation includes TeX-intensive
 portions not viewable on character-based displays. 
 Hence the only complete and authoritative versions of the 
-.B NCO User's Guide 
+.B NCO Users Guide 
 are the PDF (recommended), DVI, and Postscript versions at
 <http://nco.sf.net/nco.pdf>, <http://nco.sf.net/nco.dvi>,
 and <http://nco.sf.net/nco.ps>, respectively.

@@ -3,7 +3,7 @@ header {
 
 /* Purpose: ANTLR Grammar and support files for ncap2 */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -24,9 +24,12 @@ header {
     #include <fstream>
     #include <string>
   
+    // custom exception -used for "exit" function
+    #include "ExitException.hpp" 
     // Custom Headers
     #include "prs_cls.hh"
     #include "ncap2_utl.hh"
+    #include "ncap2_att.hh"
     #include "fmc_cls.hh"
     #include "NcapVar.hh"
     #include "NcapVarVector.hh"
@@ -108,6 +111,8 @@ statement:
              if( #def2 ){  #def2->setType(DEFDIM);#def2->setText("0");}
  
         }
+        //exit statement 
+        | EXIT^ LPAREN! expr RPAREN! SEMI!
         // while loop
         | WHILE^ LPAREN! expr RPAREN! statement 
         // for statement
@@ -117,7 +122,7 @@ statement:
         | CONTINUE SEMI!        
         //deal with empty statement
         | SEMI! { #statement = #([ NULL_NODE, "null_stmt"]); } 
-
+         
         // if statement
         | IF^ LPAREN! expr RPAREN! statement 
          ( //standard if-else ambiguity
@@ -325,6 +330,7 @@ tokens {
    
     DEFDIMA="defdim";
     DEFDIMU="defdimunlim";
+    EXIT="exit";
  
     /*
 
@@ -342,12 +348,22 @@ tokens {
 {
 private:
     prs_cls *prs_arg;
+    std::vector<std::string> paths_vtr;      
+
 public:
 
     // Customized constructor !!
    ncoLexer(ANTLR_USE_NAMESPACE(std)istream& in, prs_cls *prs_in )
    : ANTLR_USE_NAMESPACE(antlr)CharScanner(new ANTLR_USE_NAMESPACE(antlr)CharBuffer(in),true)
-   {
+   {    
+        char *spaths;
+
+        /* a list of include paths delimited by ':' */   
+        /* if nco NCO_PATH then NULL */
+        spaths=getenv("NCO_PATH");  
+        if( spaths &&  strlen(spaths) >0  ) 
+          paths_vtr=ncap_make_include_paths(spaths);
+
         prs_arg=prs_in;
         // This shouldn't really be here 
         // fxm:: should call default constructor
@@ -360,7 +376,10 @@ public:
             // Do not allow EOF until main lexer 
             // Force selector to retry for another token
             parser->inc_vtr.pop_back();
-            std::cout<<"Setting parser(filename)=" <<parser->inc_vtr.back()<<std::endl; 
+
+            if(nco_dbg_lvl_get() >= 1)
+               std::cout<<"Setting parser(filename)=" <<parser->inc_vtr.back()<<std::endl; 
+
             parser->setFilename(parser->inc_vtr.back());
 			selector.pop(); // return to old lexer/stream
 			selector.retry();
@@ -630,11 +649,27 @@ INCLUDE
 		{
 		// ANTLR_USING_NAMESPACE(std)
 		// create lexer to handle include
+        int idx; 
+        int sz=paths_vtr.size(); 
 		std::string f_nm=f->getText();
+
 		std::ifstream* input=new std::ifstream(f_nm.c_str());
+        // if(*input==NULL){ // 20150413: Trips clang 6.0 MACOSX Yosemite warning from -Wnull-arithmetic and subsequent error "invalid operands to binary expression" 
 		if(!(*input)){
-            //		if(*input==NULL){ // 20150413: Trips clang 6.0 MACOSX Yosemite warning from -Wnull-arithmetic and subsequent error "invalid operands to binary expression" 
-            err_prn("Lexer cannot find include file "+f_nm);
+          // only search include paths if f_nm NOT an absolute path  
+          // add include paths and stop if opened ok  
+          if( sz==0 || f_nm[0]=='/')  
+              err_prn("Lexer cannot find include file \""+f_nm+"\""); 
+             
+          for(idx=0;idx<sz;idx++)
+          {   
+              input=new std::ifstream( (paths_vtr[idx] + f_nm).c_str()); 
+              if(*input)
+                break;  
+          }
+          if(idx==sz) 
+             err_prn("Lexer cannot find the include file \""+f_nm+ "\" in the locations specified in the env-var \"NCO_PATH\""); 
+
 		}
 		ncoLexer* sublexer = new ncoLexer(*input,prs_arg);
 		// make sure errors are reported in right file
@@ -1085,7 +1120,7 @@ if( nbr_dmn!=lmt_init(lmt,ast_lmt_vtr) )
     for(idx=0 ; idx < nbr_stmt; idx++){
       ntyp=ntr->getType();
       // we have hit an IF or a basic block
-      if(ntyp==BLOCK || ntyp==IF ||ntyp==DEFDIM || ntyp==WHILE ||ntyp==FOR || ntyp==FEXPR ||ntyp==WHERE) {
+      if(ntyp==BLOCK || ntyp==IF ||ntyp==DEFDIM || ntyp==WHILE ||ntyp==FOR || ntyp==FEXPR ||ntyp==WHERE || ntyp==EXIT) {
       //  if(ntyp != EXPR ){ 
         if(icnt>0) 
          (void)run_dbl(etr,icnt);
@@ -1339,6 +1374,23 @@ static std::vector<std::string> lpp_vtr;
         
     } // end  for action
 
+    // throw a custom ExitException 
+    | #(EXIT var=out ) { 
+      int sret;
+      ostringstream os;       
+      
+      // convert to INT   
+      nco_var_cnf_typ(NC_INT,var);  
+      cast_void_nctype(NC_INT,&var->val);
+      sret=var->val.ip[0];
+      cast_nctype_void(NC_INT,&var->val);
+      var=nco_var_free(var); 
+      
+      iret=EXIT; 
+      os<<sret;
+      throw  ANTLR_USE_NAMESPACE(antlr)ExitException(os.str());
+
+    }
     | ELSE { iret=ELSE;}
     | BREAK { iret=BREAK;}
     | CONTINUE {iret=CONTINUE;} 
@@ -1501,33 +1553,61 @@ var=NULL_CEWI;
             }
 
           | vid2:VAR_ID {   
-              
-              var_sct *var_rhs;
+
+              var_sct *var_rhs=NULL_CEWI;
+              var_sct *var_lhs=NULL_CEWI;
+              var_sct *var_ret=NULL_CEWI;
               std::string var_nm;
-              
+              NcapVar *Nvar;
+
+              // Set class wide variables
+              bcst=false;
+              var_cst=NULL_CEWI;
+
               var_nm=vid2->getText();
 
               if(nco_dbg_lvl_get() >= nco_dbg_var) dbg_prn(fnc_nm,var_nm);
-               
-               // Set class wide variables           
-               bcst=false;
-               var_cst=NULL_CEWI; 
-             
-               // get shape from RHS
-               var_rhs=out(vid2->getNextSibling());
-               (void)nco_free(var_rhs->nm);                
-               var_rhs->nm =strdup(var_nm.c_str());
 
-               //Copy return variable
-               if(bret)
-                  var=nco_var_dpl(var_rhs);
-               else
-                  var=(var_sct*)NULL;  
-                
-               // Write var to int_vtr
-               // if var already in int_vtr or var_vtr then write call does nothing
-               (void)prs_arg->ncap_var_write(var_rhs,bram);
-               //(void)ncap_var_write_omp(var_rhs,bram,prs_arg);
+              // get shape from RHS
+              var_rhs=out(vid2->getNextSibling());
+
+              // deal with special case where RHS is a NC_CHAR
+              if(var_rhs->type==NC_CHAR)
+              {
+
+                Nvar=prs_arg->int_vtr.find(var_nm);
+                if(!Nvar)
+                   Nvar=prs_arg->var_vtr.find(var_nm);
+
+                // var is unread, is it in Input ?
+                if(!Nvar && prs_arg->ncap_var_init_chk(var_nm)){
+                    var_lhs=prs_arg->ncap_var_init(var_nm,false);
+                    if(var_lhs->type !=NC_CHAR)
+                        var_lhs=nco_var_free(var_lhs);
+                }
+               }
+
+               if(var_lhs)
+               {
+                 var_rhs=(var_sct*)nco_var_free(var_rhs);
+                 var_ret=var_lhs;
+
+               }
+               else if(var_rhs)
+               {
+                  (void)nco_free(var_rhs->nm);
+                  var_rhs->nm =strdup(var_nm.c_str());
+                  var_ret=var_rhs;
+                }
+
+                //Copy return variable
+                if(bret)
+                  var=nco_var_dpl(var_ret);
+                else
+                   var=(var_sct*)NULL;
+
+                (void)prs_arg->ncap_var_write(var_ret,bram);
+
 
 
         } // end action
@@ -1613,7 +1693,7 @@ var=NULL_CEWI;
                // index in limit -- i.e hyperslab a mult-dimensional var
                // with a single index 
               
-               if(lmt->getNumberOfChildren()==1 && 
+               if(lmt->getNumberOfChildren()==1 &&
                   lmt->getFirstChild()->getNumberOfChildren()==1 &&
                   lmt->getFirstChild()->getFirstChild()->getType() != COLON
                  ){
@@ -1634,11 +1714,11 @@ var=NULL_CEWI;
                   
                  if(Nvar && Nvar->flg_stt==1){
                     var_sct *var_ini;
-                    var_ini=prs_arg->ncap_var_init(var_nm,true);       
+                    var_ini=prs_arg->ncap_var_init(var_nm,true);
                     Nvar->var->val.vp=var_ini->val.vp;
                     var_ini->val.vp=(void*)NULL;
                     var_ini=nco_var_free(var_ini);
-                    Nvar->flg_stt=2; 
+                    Nvar->flg_stt=2;
                  }
 
                  if(Nvar && Nvar->flg_stt==2)
@@ -1681,13 +1761,13 @@ var=NULL_CEWI;
                  if(var_rhs->sz != slb_sz){
                    err_prn(fnc_nm, "Hyperslab for "+var_nm+" - number of elements on LHS(" +nbr2sng(slb_sz) +  ") doesn't equal number of elements on RHS(" +nbr2sng(var_rhs->sz) +  ")");                                       
                  }
-
+                    
                 (void)nco_put_var_mem(var_rhs,var_lhs,lmt_vtr);
                 if(Nvar==NULL)
                    (void)prs_arg->ncap_var_write(var_lhs,true); 
 
               // deal with Regular Vars
-              } else {                 
+              }else{                 
 
               // if var undefined in O or defined but not populated
                if(!Nvar || ( Nvar && Nvar->flg_stt==1)){              
@@ -1765,9 +1845,9 @@ var=NULL_CEWI;
 
               } // end put block !!
 
-             } // end else if regular var
+              } // end else if regular var
 
-              var_rhs=nco_var_free(var_rhs);
+             var_rhs=nco_var_free(var_rhs);
               
                // Empty and free vector 
               for(idx=0 ; idx < nbr_dmn ; idx++)
@@ -1885,6 +1965,7 @@ end0:         if(bret)
 
                // Set class wide variables
                var_sct *var_rhs;
+               var_sct *var_shp;
                NcapVar *Nvar;
                std::string var_nm;
  
@@ -1911,30 +1992,66 @@ end0:         if(bret)
                  (void)ncap_att_cpy(var_nm,s_var_rhs,prs_arg);
                
                 // var is defined and populated &  RHS is scalar -then stretch var to match
-               if(Nvar && Nvar->flg_stt==2)
-               {  
-                  long n_sz=Nvar->var->sz;
+               // if(Nvar && Nvar->flg_stt==2)
+               if(Nvar )
+               {
+                  var_shp=Nvar->cpyVarNoData();
+                  nco_var_cnf_typ(var_shp->type,var_rhs);
 
-                  if(var_rhs->sz ==1 && Nvar->var->sz >1)
+                  long n_sz=var_shp->sz;
+
+                  if(var_rhs->sz ==1 && n_sz >1)
                   {
-                    var_rhs=nco_var_cnf_typ(Nvar->var->type,var_rhs);  
                     (void)ncap_att_stretch(var_rhs,n_sz);
                     
                     // this is a special case -- if the RHS scalar has
                     // no missing value then retain LHS missing value
                     // else LHS missing value gets over written by RHS
-                    if(!var_rhs->has_mss_val)
-                      (void)nco_mss_val_cp(Nvar->var,var_rhs);   
+                    //if(!var_rhs->has_mss_val)
+                    // (void)nco_mss_val_cp(Nvar->var,var_rhs);
                   }
-                  
-                  else if( var_rhs->sz >1 && n_sz >1 && var_rhs->sz != n_sz && n_sz % var_rhs->sz ==0)  
+
+                  // deal with NC_CHAR on RHS as special case - if too short then pad out with nulls else trucate
+                  else if(var_rhs->sz>1 &&  n_sz != var_rhs->sz &&  var_shp->type==NC_CHAR  )
+                      ncap_att_char_stretch(var_rhs, n_sz);
+
+                  else if( var_rhs->sz >1 && n_sz >1 && var_rhs->sz != n_sz && n_sz % var_rhs->sz ==0)
                       ncap_var_cnf_dmn(&Nvar->var,&var_rhs); 
-                   
-                
-                  if(var_rhs->sz != Nvar->var->sz)
+
+                  if(var_rhs->sz != n_sz)
                    err_prn(fnc_nm, "size miss-match in simple assign between \""+ var_nm +"\""+ " size="+nbr2sng(Nvar->var->sz) + "var_rhs expr size="+nbr2sng(var_rhs->sz) );
 
-               } 
+                   var_shp->val.vp=var_rhs->val.vp;
+                   var_rhs->val.vp=(void*)NULL;
+
+                   if(var_rhs->has_mss_val)
+                        (void)nco_mss_val_cp(var_rhs,var_shp);
+
+                   var_rhs=nco_var_free(var_rhs);
+                   var_rhs=var_shp;
+
+               }
+               // var is undefined in Output and special treatment of NC_CHAR on RHS
+               else if(!Nvar && var_rhs->type ==NC_CHAR)
+               {
+                 if( prs_arg->ncap_var_init_chk(var_nm))
+                    var_shp=prs_arg->ncap_var_init(var_nm,false);
+
+                 if(var_shp->type==NC_CHAR && var_shp->sz != var_rhs->sz)
+                 {
+                     ncap_att_char_stretch(var_rhs, var_shp->sz);
+                     var_shp->val.vp=var_rhs->val.vp;
+                     var_rhs->val.vp=(void*)NULL;
+                     if(var_rhs->has_mss_val)
+                        (void)nco_mss_val_cp(var_rhs,var_shp);
+
+                     var_rhs=nco_var_free(var_rhs);
+                     var_rhs=var_shp;
+
+                 }
+
+                }
+
 
                // finally add new name before write  
                (void)nco_free(var_rhs->nm);                
@@ -1942,7 +2059,7 @@ end0:         if(bret)
 
                // Write var to disk
                (void)prs_arg->ncap_var_write(var_rhs,bram);
-               //(void)ncap_var_write_omp(var_rhs,bram,prs_arg);
+
 
                 // See If we have to return something
                if(bret)
@@ -2944,7 +3061,156 @@ att2var returns [ RefAST tr ]
 
 
 
+
 value_list returns [var_sct *var]
+{
+const std::string fnc_nm("value_list");
+var=NULL_CEWI; 
+}
+ :(vlst:VALUE_LIST) {
+         char *cp;  
+         int nbr_lst;
+         int idx;
+         int tsz;
+
+         nc_type type=NC_NAT;
+         var_sct *var_ret;                        
+         var_sct *var_int; 
+         RefAST rRef;
+
+         rRef=vlst->getFirstChild();
+
+         nbr_lst=vlst->getNumberOfChildren(); 
+
+         /* get type of first element */ 
+         var_int=out(rRef);       
+
+         /* first element undefined */  
+         if(var_int->undefined)
+          {   
+            var_ret=ncap_var_udf("~zz@value_list");  
+            goto end_val; 
+          } 
+          
+          type=var_int->type;   
+
+          if(type==NC_STRING) 
+          { 
+           var_ret=value_list_string(vlst); 
+           goto end_val; 
+          }
+   
+
+          var_ret=(var_sct *)nco_malloc(sizeof(var_sct));
+          /* Set defaults */
+          (void)var_dfl_set(var_ret); 
+
+          /* Overwrite with attribute expression information */
+          var_ret->nm=strdup("~zz@value_list");
+          var_ret->nbr_dim=0;
+          var_ret->sz=nbr_lst;
+          var_ret->type=type;
+
+          /* deal with initial scan */   
+          if(prs_arg->ntl_scn)
+             goto end_val;
+
+          /* create some space for output */
+          tsz=nco_typ_lng(type);
+          var_ret->val.vp=(void*)nco_malloc(nbr_lst*tsz);
+
+          /* copy first value over */
+          memcpy(var_ret->val.vp, var_int->val.vp, tsz);  
+          var_int=nco_var_free(var_int); 
+          rRef=rRef->getNextSibling();
+
+          /* rest of values */
+          for(idx=1;idx<nbr_lst;idx++) 
+          {
+            var_int=out(rRef);   
+            nco_var_cnf_typ(type,var_int);  
+            cp=(char*)(var_ret->val.vp)+ (ptrdiff_t)(idx*tsz);
+            memcpy(cp,var_int->val.vp,tsz);
+ 
+            var_int=nco_var_free(var_int); 
+            rRef=rRef->getNextSibling();
+          }
+          
+          end_val: if(var_int)
+                      nco_var_free(var_int);  
+          var=var_ret;
+
+    } // end action
+;
+
+
+value_list_string returns [var_sct *var]
+{
+const std::string fnc_nm("value_list");
+var=NULL_CEWI; 
+}
+ :(vlst:VALUE_LIST) {
+
+         char *cp;
+         int nbr_lst;
+         int idx;
+         int tsz;
+
+         nc_type type=NC_NAT;
+         var_sct *var_ret;                        
+         var_sct *var_int; 
+         RefAST rRef;
+         
+         rRef=vlst->getFirstChild();
+
+         nbr_lst=vlst->getNumberOfChildren(); 
+         
+         type=NC_STRING;   
+
+         var_ret=(var_sct *)nco_malloc(sizeof(var_sct));
+         /* Set defaults */
+         (void)var_dfl_set(var_ret); 
+
+         /* Overwrite with attribute expression information */
+         var_ret->nm=strdup("~zz@value_list");
+         var_ret->nbr_dim=0;
+         var_ret->sz=nbr_lst;
+         var_ret->type=type;
+
+         /* deal with initial scan */   
+         if(prs_arg->ntl_scn)
+             goto end_val;
+
+         /* create some space for output */
+         tsz=nco_typ_lng(type);
+         var_ret->val.vp=(void*)nco_malloc(nbr_lst*tsz);
+         (void)cast_void_nctype((nc_type)NC_STRING,&var_ret->val);
+
+         for(idx=0;idx<nbr_lst;idx++) 
+             {
+                 var_int=out(rRef);   
+                 if(var_int->type != NC_STRING)
+                     err_prn(fnc_nm," error processing value list string: to successfully parse value list of strings all elements must be of type NC_STRING");    
+
+                 (void)cast_void_nctype((nc_type)NC_STRING,&var_int->val);
+                 var_ret->val.sngp[idx]=strdup(var_int->val.sngp[0]); 
+                 // cast pointer back
+                 (void)cast_nctype_void((nc_type)NC_STRING,&var_int->val);
+
+                 nco_var_free(var_int);  
+                 rRef=rRef->getNextSibling();
+             }
+         (void)cast_nctype_void((nc_type)NC_STRING,&var_ret->val);
+
+    end_val: var=var_ret;
+
+
+    } // end action
+;
+
+
+
+value_list_old returns [var_sct *var]
 {
 const std::string fnc_nm("value_list");
 var=NULL_CEWI; 
@@ -2968,11 +3234,12 @@ var=NULL_CEWI;
            rRef=rRef->getNextSibling();
          }       
          nbr_lst=exp_vtr.size();
+         
 
          // if any types are NC_STRING then call value_list_string() action 
          for(idx=0;idx <nbr_lst ;idx++)
            if(exp_vtr[idx]->type == NC_STRING){
-             var_ret=value_list_string(rRef,exp_vtr);
+             var_ret=value_list_string_old(rRef,exp_vtr);
              goto end_val;
            }
       
@@ -3038,9 +3305,13 @@ var=NULL_CEWI;
         } // end action
 ;
 
+
+
+
+
 // Deal here with a value list of strings
 // Called only from value_list
-value_list_string[ std::vector<var_sct*> &exp_vtr] returns [var_sct *var]
+value_list_string_old[ std::vector<var_sct*> &exp_vtr] returns [var_sct *var]
 {
 const std::string fnc_nm("value_list_string");
 var=NULL_CEWI; 
@@ -3100,23 +3371,27 @@ var=NULL_CEWI;
 where_assign [var_sct *var_msk] returns [bool bret=false]
 {
 const std::string fnc_nm("where_assign");
+var_sct *var_lhs;
 var_sct *var_rhs;
 
 }
-  :#(EXPR #(ASSIGN vid:VAR_ID var_rhs=out)) {
+  //:#(EXPR #(ASSIGN vid:VAR_ID var_rhs=out)) {
+:#(EXPR #(ASSIGN var_lhs=out var_rhs=out)) {
     
    bool bfr=false;
    nco_bool DO_CONFORM;
-   std::string var_nm=vid->getText();
-   var_sct *var_lhs;
+   //std::string var_nm=vid->getText();
+   std::string var_nm;
    NcapVar *Nvar;
 
    bret=false;
 
-   var_lhs=prs_arg->ncap_var_init(var_nm,true);
+   //var_lhs=prs_arg->ncap_var_init(var_nm,true);
    if(var_lhs==NULL_CEWI) 
      nco_exit(EXIT_FAILURE);
             
+   var_nm=std::string(var_lhs->nm); 
+
    var_rhs=nco_var_cnf_typ(var_lhs->type,var_rhs);         
    if(var_rhs->sz >1L && var_rhs->sz != var_lhs->sz) {
      var_sct *var_tmp=NULL_CEWI;
@@ -3235,7 +3510,7 @@ var_sct *var_nbr;
               int fl_id;
               int nbr_dim=var_rhs->nbr_dim;
               long srt; 
-              long srt1[NC_MAX_DIMS];   
+              long srt1[NC_MAX_VAR_DIMS];   
               long sz_dim=1;
               NcapVar *Nvar;
 
@@ -3372,7 +3647,7 @@ var_sct *var_nbr;
 
                  }else{
                     var_lhs=prs_arg->ncap_var_init(var_nm,true);       
-               }
+                 }
                   
                // fortran index convention   
                if(prs_arg->FORTRAN_IDX_CNV)
@@ -3395,7 +3670,11 @@ var_sct *var_nbr;
                  var_rhs=nco_var_cnf_typ(var_lhs->type,var_rhs);             
                
                  slb_sz=nco_typ_lng(var_lhs->type);     
-                 (void)memcpy((char*)var_lhs->val.vp+(ptrdiff_t)(srt*slb_sz),var_rhs->val.vp,slb_sz);    
+                 (void)memcpy((char*)var_lhs->val.vp+(ptrdiff_t)(srt*slb_sz),var_rhs->val.vp,slb_sz);
+                 
+                 if(var_lhs->type==NC_STRING)
+                    (void)ncap_sngcpy((char*)var_lhs->val.vp+(ptrdiff_t)(srt*slb_sz),slb_sz);
+
 
                  if(!Nvar)
                    (void)prs_arg->ncap_var_write(var_lhs,true); 
@@ -3414,6 +3693,7 @@ var_sct *var_nbr;
                 }
  
                 var_lhs=prs_arg->ncap_var_init(var_nm,false);
+
                     
                // fortran index convention   
                if(prs_arg->FORTRAN_IDX_CNV)
@@ -3441,9 +3721,10 @@ var_sct *var_nbr;
                 // write block
                 { 
                  int nbr_dim=var_lhs->nbr_dim;
-                 long srt1[NC_MAX_DIMS];   
+                 long srt1[NC_MAX_VAR_DIMS];   
                  long sz_dim=1; 
 
+                 var_lhs->sz=1;
                  // convert srt into multiple indices  
                  for(idx=0;idx<nbr_dim;idx++)
                    sz_dim*= var_lhs->cnt[idx]; 
@@ -3465,7 +3746,7 @@ var_sct *var_nbr;
                  (void)prs_arg->ncap_var_write_slb(var_lhs);     
 
                 }//end write block 
-            }     
+              }     
                    var_rhs=nco_var_free(var_rhs); 
                    var_nbr=nco_var_free(var_nbr); 
 }
@@ -3573,7 +3854,7 @@ var=NULL_CEWI;
            // copy lmt_sct to dmn_sct;
            for(idx=0 ;idx <nbr_dmn ; idx++){
               dmn_sct *dmn_nw;
-              dmn_nw=(dmn_sct*)nco_malloc(sizeof(dmn_sct));
+              dmn_nw=(dmn_sct*)nco_calloc(1,sizeof(dmn_sct));
               dmn_nw->nm=strdup(lmt_vtr[idx]->nm);
 
               // Fudge -if the variable is from input then nco_lmt_evl
@@ -3646,7 +3927,19 @@ var=NULL_CEWI;
            if(var->sz ==1) {
               
              var1=ncap_sclr_var_mk(var_nm,var->type,true);
+             
              (void)memcpy( (void*)var1->val.vp,var->val.vp,nco_typ_lng(var1->type));
+             if(var1->type==NC_STRING)
+                 (void)ncap_sngcpy((char*)var1->val.vp, nco_typ_lng(var1->type) );
+             /*
+             if(var->type==NC_STRING){
+                 cast_void_nctype(NC_STRING, &var->val); 
+                 var1->val.sngp[0]=(nco_string)strdup(var->val.sngp[0]);
+                 cast_nctype_void(NC_STRING, &var->val); 
+             }else{
+             
+           }
+           */  
              
              // copy missing value if any from var_rhs to var1
              nco_mss_val_cp(var_rhs,var1);

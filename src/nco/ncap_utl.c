@@ -2,7 +2,7 @@
 
 /* Purpose: netCDF arithmetic processor */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -1260,14 +1260,14 @@ ncap_var_stretch /* [fnc] Stretch variables */
     char *var_lsr_cp;
     char *var_lsr_out_cp;
     
-    int idx_var_lsr_var_gtr[NC_MAX_DIMS];
+    int idx_var_lsr_var_gtr[NC_MAX_VAR_DIMS];
     int var_lsr_nbr_dim;
     int var_gtr_nbr_dmn_m1;
     
     long *var_gtr_cnt;
-    long dmn_ss[NC_MAX_DIMS];
-    long dmn_var_gtr_map[NC_MAX_DIMS];
-    long dmn_var_lsr_map[NC_MAX_DIMS];
+    long dmn_ss[NC_MAX_VAR_DIMS];
+    long dmn_var_gtr_map[NC_MAX_VAR_DIMS];
+    long dmn_var_lsr_map[NC_MAX_VAR_DIMS];
     long var_gtr_lmn;
     long var_lsr_lmn;
     long var_gtr_sz;

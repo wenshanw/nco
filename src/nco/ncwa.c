@@ -5,7 +5,7 @@
 /* Purpose: Compute averages of specified hyperslabs of specfied variables
    in a single input netCDF file and output them to a single file. */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3.
@@ -48,6 +48,9 @@
 #include <sys/stat.h> /* stat() */
 #include <time.h> /* machine time */
 #ifndef _MSC_VER
+# if !defined(HAVE_BISON_FLEX)
+#  define HAVE_BISON_FLEX /* 21070906 pvn add this definition to automake, currently in CMake */
+# endif /* HAVE_BISON_FLEX */
 # include <unistd.h> /* POSIX stuff */
 #endif /* _MSC_VER */
 #ifndef HAVE_GETOPT_LONG
@@ -81,17 +84,17 @@
 
 /* #define MAIN_PROGRAM_FILE MUST precede #include libnco.h */
 #define MAIN_PROGRAM_FILE
-#ifndef _MSC_VER
+#ifdef HAVE_BISON_FLEX
 # include "ncap.h" /* netCDF arithmetic processor-specific definitions (symbol table, ...) */
-#endif /* _MSC_VER */
+#endif /* !HAVE_BISON_FLEX */
 #include "libnco.h" /* netCDF Operator (NCO) library */
 
-#ifndef _MSC_VER
+#ifdef HAVE_BISON_FLEX
 /* Global variables (keep consistent with global variables declared in ncap.c) */ 
 size_t ncap_ncl_dpt_crr=0UL; /* [nbr] Depth of current #include file (incremented in ncap.l) */
 size_t *ncap_ln_nbr_crr; /* [cnt] Line number (incremented in ncap.l) */
 char **ncap_fl_spt_glb; /* [fl] Script file */
-#endif /* _MSC_VER */
+#endif /* !HAVE_BISON_FLEX */
 
 int 
 main(int argc,char **argv)
@@ -125,7 +128,7 @@ main(int argc,char **argv)
 
   const char * const CVS_Id="$Id$"; 
   const char * const CVS_Revision="$Revision$";
-  const char * const opt_sht_lst="3467Aa:B:bCcD:d:Fg:G:hIL:l:M:m:nNOo:p:rRT:t:v:Ww:xy:-:";
+  const char * const opt_sht_lst="34567Aa:B:bCcD:d:Fg:G:hIL:l:M:m:nNOo:p:rRT:t:v:Ww:xy:-:";
 
   cnk_sct cnk; /* [sct] Chunking structure */
 
@@ -195,6 +198,8 @@ main(int argc,char **argv)
   nco_bool EXCLUDE_INPUT_LIST=False; /* Option c */
   nco_bool EXTRACT_ALL_COORDINATES=False; /* Option c */
   nco_bool EXTRACT_ASSOCIATED_COORDINATES=True; /* Option C */
+  nco_bool EXTRACT_CLL_MSR=True; /* [flg] Extract cell_measures variables */
+  nco_bool EXTRACT_FRM_TRM=True; /* [flg] Extract formula_terms variables */
   nco_bool FL_RTR_RMT_LCN;
   nco_bool FL_LST_IN_FROM_STDIN=False; /* [flg] fl_lst_in comes from stdin */
   nco_bool FORCE_APPEND=False; /* Option A */
@@ -214,12 +219,13 @@ main(int argc,char **argv)
   nco_bool WGT_MSK_CRD_VAR=True; /* [flg] Weight and/or mask coordinate variables */
   nco_bool WRT_TMP_FL=True; /* [flg] Write output to temporary file */
   nco_bool flg_cll_mth=True; /* [flg] Add/modify cell_methods attributes */
-  nco_bool flg_cln=True; /* [flg] Clean memory prior to exit */
+  nco_bool flg_mmr_cln=True; /* [flg] Clean memory prior to exit */
   nco_bool flg_dmn_prc_usr_spc=False; /* [flg] Processed dimensions specified on command line */
   nco_bool flg_ddra=False; /* [flg] DDRA diagnostics */
   nco_bool flg_rdd=False; /* [flg] Retain degenerate dimensions */
   
   size_t bfr_sz_hnt=NC_SIZEHINT_DEFAULT; /* [B] Buffer size hint */
+  size_t cnk_csh_byt=NCO_CNK_CSH_BYT_DFL; /* [B] Chunk cache size */
   size_t cnk_min_byt=NCO_CNK_SZ_MIN_BYT_DFL; /* [B] Minimize size of variable to chunk */
   size_t cnk_sz_byt=0UL; /* [B] Chunk size in bytes */
   size_t cnk_sz_scl=0UL; /* [nbr] Chunk size scalar */
@@ -239,9 +245,9 @@ main(int argc,char **argv)
 
   gpe_sct *gpe=NULL; /* [sng] Group Path Editing (GPE) structure */
 
-#ifndef _MSC_VER
+#ifdef HAVE_BISON_FLEX
   prs_sct prs_arg;  /* I/O [sct] Global information required in ncwa parser */
-#endif /* _MSC_VER */
+#endif /* !HAVE_BISON_FLEX */
 
 #ifdef ENABLE_MPI
   /* Declare all MPI-specific variables here */
@@ -252,10 +258,18 @@ main(int argc,char **argv)
   
   static struct option opt_lng[]={ /* Structure ordered by short option key if possible */
     /* Long options with no argument, no short option counterpart */
+    {"cll_msr",no_argument,0,0}, /* [flg] Extract cell_measures variables */
+    {"cell_measures",no_argument,0,0}, /* [flg] Extract cell_measures variables */
+    {"no_cll_msr",no_argument,0,0}, /* [flg] Do not extract cell_measures variables */
+    {"no_cell_measures",no_argument,0,0}, /* [flg] Do not extract cell_measures variables */
+    {"frm_trm",no_argument,0,0}, /* [flg] Extract formula_terms variables */
+    {"formula_terms",no_argument,0,0}, /* [flg] Extract formula_terms variables */
+    {"no_frm_trm",no_argument,0,0}, /* [flg] Do not extract formula_terms variables */
+    {"no_formula_terms",no_argument,0,0}, /* [flg] Do not extract formula_terms variables */
     {"cll_mth",no_argument,0,0}, /* [flg] Add/modify cell_methods attributes */
     {"cell_methods",no_argument,0,0}, /* [flg] Add/modify cell_methods attributes */
     {"no_cll_mth",no_argument,0,0}, /* [flg] Do not add/modify cell_methods attributes */
-    {"cln",no_argument,0,0}, /* [flg] Clean memory prior to exit */
+    {"no_cell_methods",no_argument,0,0}, /* [flg] Do not add/modify cell_methods attributes */
     {"clean",no_argument,0,0}, /* [flg] Clean memory prior to exit */
     {"mmr_cln",no_argument,0,0}, /* [flg] Clean memory prior to exit */
     {"drt",no_argument,0,0}, /* [flg] Allow dirty memory on exit */
@@ -270,6 +284,8 @@ main(int argc,char **argv)
     {"hdf4",no_argument,0,0}, /* [flg] Treat file as HDF4 */
     {"hdf_upk",no_argument,0,0}, /* [flg] HDF unpack convention: unpacked=scale_factor*(packed-add_offset) */
     {"hdf_unpack",no_argument,0,0}, /* [flg] HDF unpack convention: unpacked=scale_factor*(packed-add_offset) */
+    {"help",no_argument,0,0},
+    {"hlp",no_argument,0,0},
     {"ram_all",no_argument,0,0}, /* [flg] Open (netCDF3) and create file(s) in RAM */
     {"create_ram",no_argument,0,0}, /* [flg] Create file in RAM */
     {"open_ram",no_argument,0,0}, /* [flg] Open (netCDF3) file(s) in RAM */
@@ -284,6 +300,8 @@ main(int argc,char **argv)
     {"buffer_size_hint",required_argument,0,0}, /* [B] Buffer size hint */
     {"cnk_byt",required_argument,0,0}, /* [B] Chunk size in bytes */
     {"chunk_byte",required_argument,0,0}, /* [B] Chunk size in bytes */
+    {"cnk_csh",required_argument,0,0}, /* [B] Chunk cache size in bytes */
+    {"chunk_cache",required_argument,0,0}, /* [B] Chunk cache size in bytes */
     {"cnk_dmn",required_argument,0,0}, /* [nbr] Chunk size */
     {"chunk_dimension",required_argument,0,0}, /* [nbr] Chunk size */
     {"cnk_map",required_argument,0,0}, /* [nbr] Chunking map */
@@ -306,8 +324,13 @@ main(int argc,char **argv)
     /* Long options with short counterparts */
     {"3",no_argument,0,'3'},
     {"4",no_argument,0,'4'},
-    {"64bit",no_argument,0,'4'},
     {"netcdf4",no_argument,0,'4'},
+    {"5",no_argument,0,'5'},
+    {"64bit_data",no_argument,0,'5'},
+    {"cdf5",no_argument,0,'5'},
+    {"pnetcdf",no_argument,0,'5'},
+    {"64bit_offset",no_argument,0,'6'},
+    {"7",no_argument,0,'7'},
     {"append",no_argument,0,'A'},
     {"average",required_argument,0,'a'},
     {"avg",required_argument,0,'a'},
@@ -361,13 +384,11 @@ main(int argc,char **argv)
     {"normalize-by-tally",no_argument,0,'W',},
     {"exclude",no_argument,0,'x'},
     {"xcl",no_argument,0,'x'},
-    {"weight",no_argument,0,'w'},
-    {"wgt",no_argument,0,'w'},
-    {"wgt_var",no_argument,0,'w'},
+    {"weight",required_argument,0,'w'},
+    {"wgt",required_argument,0,'w'},
+    {"wgt_var",required_argument,0,'w'},
     {"operation",required_argument,0,'y'},
     {"op_typ",required_argument,0,'y'},
-    {"help",no_argument,0,'?'},
-    {"hlp",no_argument,0,'?'},
     {0,0,0,0}
   }; /* end opt_lng */
   int opt_idx=0; /* Index of current long option into opt_lng array */
@@ -410,6 +431,10 @@ main(int argc,char **argv)
         cnk_sz_byt=strtoul(optarg,&sng_cnv_rcd,NCO_SNG_CNV_BASE10);
         if(*sng_cnv_rcd) nco_sng_cnv_err(optarg,"strtoul",sng_cnv_rcd);
       } /* endif cnk_byt */
+      if(!strcmp(opt_crr,"cnk_csh") || !strcmp(opt_crr,"chunk_cache")){
+        cnk_csh_byt=strtoul(optarg,&sng_cnv_rcd,NCO_SNG_CNV_BASE10);
+        if(*sng_cnv_rcd) nco_sng_cnv_err(optarg,"strtoul",sng_cnv_rcd);
+      } /* endif cnk_csh_byt */
       if(!strcmp(opt_crr,"cnk_min") || !strcmp(opt_crr,"chunk_min")){
         cnk_min_byt=strtoul(optarg,&sng_cnv_rcd,NCO_SNG_CNV_BASE10);
         if(*sng_cnv_rcd) nco_sng_cnv_err(optarg,"strtoul",sng_cnv_rcd);
@@ -433,10 +458,14 @@ main(int argc,char **argv)
         cnk_plc_sng=(char *)strdup(optarg);
         cnk_plc=nco_cnk_plc_get(cnk_plc_sng);
       } /* endif cnk */
+      if(!strcmp(opt_crr,"cll_msr") || !strcmp(opt_crr,"cell_measures")) EXTRACT_CLL_MSR=True; /* [flg] Extract cell_measures variables */
+      if(!strcmp(opt_crr,"no_cll_msr") || !strcmp(opt_crr,"no_cell_measures")) EXTRACT_CLL_MSR=False; /* [flg] Do not extract cell_measures variables */
+      if(!strcmp(opt_crr,"frm_trm") || !strcmp(opt_crr,"formula_terms")) EXTRACT_FRM_TRM=True; /* [flg] Extract formula_terms variables */
+      if(!strcmp(opt_crr,"no_frm_trm") || !strcmp(opt_crr,"no_formula_terms")) EXTRACT_FRM_TRM=False; /* [flg] Do not extract formula_terms variables */
       if(!strcmp(opt_crr,"cll_mth") || !strcmp(opt_crr,"cell_methods")) flg_cll_mth=True; /* [flg] Add/modify cell_methods attributes */
       if(!strcmp(opt_crr,"no_cll_mth") || !strcmp(opt_crr,"no_cell_methods")) flg_cll_mth=False; /* [flg] Add/modify cell_methods attributes */
-      if(!strcmp(opt_crr,"cln") || !strcmp(opt_crr,"mmr_cln") || !strcmp(opt_crr,"clean")) flg_cln=True; /* [flg] Clean memory prior to exit */
-      if(!strcmp(opt_crr,"drt") || !strcmp(opt_crr,"mmr_drt") || !strcmp(opt_crr,"dirty")) flg_cln=False; /* [flg] Clean memory prior to exit */
+      if(!strcmp(opt_crr,"mmr_cln") || !strcmp(opt_crr,"clean")) flg_mmr_cln=True; /* [flg] Clean memory prior to exit */
+      if(!strcmp(opt_crr,"drt") || !strcmp(opt_crr,"mmr_drt") || !strcmp(opt_crr,"dirty")) flg_mmr_cln=False; /* [flg] Clean memory prior to exit */
       if(!strcmp(opt_crr,"ddra") || !strcmp(opt_crr,"mdl_cmp")) ddra_info.flg_ddra=flg_ddra=True; /* [flg] DDRA diagnostics */
       if(!strcmp(opt_crr,"fl_fmt") || !strcmp(opt_crr,"file_format")) rcd=nco_create_mode_prs(optarg,&fl_out_fmt);
       if(!strcmp(opt_crr,"dbl") || !strcmp(opt_crr,"rth_dbl")) nco_rth_cnv=nco_rth_flt_dbl; /* [flg] Arithmetic convention: promote float to double */
@@ -451,6 +480,10 @@ main(int argc,char **argv)
         hdr_pad=strtoul(optarg,&sng_cnv_rcd,NCO_SNG_CNV_BASE10);
         if(*sng_cnv_rcd) nco_sng_cnv_err(optarg,"strtoul",sng_cnv_rcd);
       } /* endif "hdr_pad" */
+      if(!strcmp(opt_crr,"help") || !strcmp(opt_crr,"hlp")){
+	(void)nco_usg_prn();
+	nco_exit(EXIT_SUCCESS);
+      } /* endif "help" */
       if(!strcmp(opt_crr,"ppc") || !strcmp(opt_crr,"precision_preserving_compression") || !strcmp(opt_crr,"quantize")){
         ppc_arg[ppc_nbr]=(char *)strdup(optarg);
         ppc_nbr++;
@@ -471,11 +504,14 @@ main(int argc,char **argv)
     case '3': /* Request netCDF3 output storage format */
       fl_out_fmt=NC_FORMAT_CLASSIC;
       break;
-    case '4': /* Catch-all to prescribe output storage format */
-      if(!strcmp(opt_crr,"64bit")) fl_out_fmt=NC_FORMAT_64BIT; else fl_out_fmt=NC_FORMAT_NETCDF4; 
+    case '4': /* Request netCDF4 output storage format */
+      fl_out_fmt=NC_FORMAT_NETCDF4; 
+      break;
+    case '5': /* Request netCDF3 64-bit offset+data storage (i.e., pnetCDF) format */
+      fl_out_fmt=NC_FORMAT_CDF5;
       break;
     case '6': /* Request netCDF3 64-bit offset output storage format */
-      fl_out_fmt=NC_FORMAT_64BIT;
+      fl_out_fmt=NC_FORMAT_64BIT_OFFSET;
       break;
     case '7': /* Request netCDF4-classic output storage format */
       fl_out_fmt=NC_FORMAT_NETCDF4_CLASSIC;
@@ -495,10 +531,10 @@ main(int argc,char **argv)
       break;
     case 'B': /* Mask string to be parsed */
       msk_cnd_sng=(char *)strdup(optarg);
-#ifdef _MSC_VER
-      (void)fprintf(fp_stdout,"%s: ERROR -B and --mask_condition options unsupported on Windows, which lacks a standard parser and lexer that are free. HINT: Break condition into component -m -T -M switches, e.g., use -m ORO -T lt -M 1.0 instead of -B \"ORO < 1\"\n",nco_prg_nm);
+#ifndef HAVE_BISON_FLEX
+      (void)fprintf(fp_stdout,"%s: ERROR -B and --mask_condition options unsupported because configuration could not find a parser (e.g., Bison) and lexer (e.g., Flex). HINT: Break condition into component -m -T -M switches, e.g., use -m ORO -T lt -M 1.0 instead of -B \"ORO < 1\"\n",nco_prg_nm);
       nco_exit(EXIT_FAILURE);
-#endif /* !_MSC_VER */
+#endif /* HAVE_BISON_FLEX */
       break;
     case 'b': /* [flg] Retain degenerate dimensions */
       flg_rdd=True;
@@ -550,7 +586,7 @@ main(int argc,char **argv)
     case 'm': /* Name of variable to use as mask in reducing. Default is none */
       msk_nm=(char *)strdup(optarg);
       break;
-    case 'M': /* Good data defined by relation to mask value. Default is 1. */
+    case 'M': /* Good data defined by relation to mask value. Default is 1.0 */
       msk_val=strtod(optarg,&sng_cnv_rcd);
       if(*sng_cnv_rcd) nco_sng_cnv_err(optarg,"strtod",sng_cnv_rcd);
       break;
@@ -613,9 +649,10 @@ main(int argc,char **argv)
       nco_op_typ_sng=(char *)strdup(optarg);
       nco_op_typ=nco_op_typ_get(nco_op_typ_sng);
       break;
-    case '?': /* Print proper usage */
+    case '?': /* Question mark means unrecognized option, print proper usage then EXIT_FAILURE */
+      (void)fprintf(stdout,"%s: ERROR in command-line syntax/options. Missing or unrecognized option. Please reformulate command accordingly.\n",nco_prg_nm_get());
       (void)nco_usg_prn();
-      nco_exit(EXIT_SUCCESS);
+      nco_exit(EXIT_FAILURE);
       break;
     case '-': /* Long options are not allowed */
       (void)fprintf(stderr,"%s: ERROR Long options are not available in this build. Use single letter options instead.\n",nco_prg_nm_get());
@@ -630,11 +667,14 @@ main(int argc,char **argv)
     if(opt_crr) opt_crr=(char *)nco_free(opt_crr);
   } /* end while loop */
 
+  /* Set/report global chunk cache */
+  rcd+=nco_cnk_csh_ini(cnk_csh_byt);
+
   /* Initialize traversal table */ 
   trv_tbl_init(&trv_tbl);
 
   /* Parse mask string */
-#ifndef _MSC_VER
+#ifdef HAVE_BISON_FLEX
   if(msk_cnd_sng){
     int cst_zero=0;
     /* Set arguments for scan */
@@ -659,7 +699,7 @@ main(int argc,char **argv)
     ncap_ln_nbr_crr[ncap_ncl_dpt_crr]=1UL; /* [cnt] Line number incremented in ncap.l */
     if(ncap_ncwa_scn(&prs_arg,msk_cnd_sng,&msk_nm,&msk_val,&op_typ_rlt) != NCO_NOERR) nco_exit(EXIT_FAILURE); 
   } /* endif msk_cnd_sng */ 
-#endif /* _MSC_VER */
+#endif /* !HAVE_BISON_FLEX */
 
   /* Ensure we do not attempt to normalize by non-existent weight */
   if(!wgt_nm) NORMALIZE_BY_WEIGHT=False;
@@ -682,7 +722,7 @@ main(int argc,char **argv)
   (void)nco_inq_format(in_id,&fl_in_fmt);
 
   /* Construct GTT, Group Traversal Table (groups,variables,dimensions, limits) */
-  (void)nco_bld_trv_tbl(in_id,trv_pth,lmt_nbr,lmt_arg,aux_nbr,aux_arg,MSA_USR_RDR,FORTRAN_IDX_CNV,grp_lst_in,grp_lst_in_nbr,var_lst_in,xtr_nbr,EXTRACT_ALL_COORDINATES,GRP_VAR_UNN,False,EXCLUDE_INPUT_LIST,EXTRACT_ASSOCIATED_COORDINATES,nco_pck_plc_nil,&flg_dne,trv_tbl);
+  (void)nco_bld_trv_tbl(in_id,trv_pth,lmt_nbr,lmt_arg,aux_nbr,aux_arg,MSA_USR_RDR,FORTRAN_IDX_CNV,grp_lst_in,grp_lst_in_nbr,var_lst_in,xtr_nbr,EXTRACT_ALL_COORDINATES,GRP_VAR_UNN,False,EXCLUDE_INPUT_LIST,EXTRACT_ASSOCIATED_COORDINATES,EXTRACT_CLL_MSR,EXTRACT_FRM_TRM,nco_pck_plc_nil,&flg_dne,trv_tbl);
 
   /* Get number of variables, dimensions, and global attributes in file, file format */
   (void)trv_tbl_inq((int *)NULL,(int *)NULL,(int *)NULL,&nbr_dmn_fl,(int *)NULL,(int *)NULL,(int *)NULL,(int *)NULL,&nbr_var_fl,trv_tbl);
@@ -759,7 +799,7 @@ main(int argc,char **argv)
   fl_out_tmp=nco_fl_out_open(fl_out,&FORCE_APPEND,FORCE_OVERWRITE,fl_out_fmt,&bfr_sz_hnt,RAM_CREATE,RAM_OPEN,WRT_TMP_FL,&out_id);
 
   /* Initialize chunking from user-specified inputs */
-  if(fl_out_fmt == NC_FORMAT_NETCDF4 || fl_out_fmt == NC_FORMAT_NETCDF4_CLASSIC) rcd+=nco_cnk_ini(in_id,fl_out,cnk_arg,cnk_nbr,cnk_map,cnk_plc,cnk_min_byt,cnk_sz_byt,cnk_sz_scl,&cnk);
+  if(fl_out_fmt == NC_FORMAT_NETCDF4 || fl_out_fmt == NC_FORMAT_NETCDF4_CLASSIC) rcd+=nco_cnk_ini(in_id,fl_out,cnk_arg,cnk_nbr,cnk_map,cnk_plc,cnk_csh_byt,cnk_min_byt,cnk_sz_byt,cnk_sz_scl,&cnk);
 
   /* Define dimensions, extracted groups, variables, and attributes in output file.  */
   (void)nco_xtr_dfn(in_id,out_id,&cnk,dfl_lvl,gpe,md5,!FORCE_APPEND,True,False,nco_pck_plc_nil,(char *)NULL,trv_tbl);
@@ -855,8 +895,8 @@ main(int argc,char **argv)
        firstprivate(): rcd gets incremented, so keep initial value
        lastprivate(): retain rcd value from last thread
        private(): wgt_avg does not need initialization
-       shared(): msk and wgt are not altered within loop */
-#pragma omp parallel for default(none) firstprivate(DO_CONFORM_MSK,DO_CONFORM_WGT,ddra_info,rcd) lastprivate(rcd) private(idx,in_id,wgt_avg) shared(MULTIPLY_BY_TALLY,MUST_CONFORM,NRM_BY_DNM,WGT_MSK_CRD_VAR,dmn_avg,dmn_avg_nbr,flg_ddra,flg_rdd,gpe,in_id_arr,msk_nm,msk_val,nbr_var_prc,nco_dbg_lvl,nco_op_typ,nco_prg_nm,op_typ_rlt,out_id,trv_tbl,var_prc,var_prc_out,wgt_nm)
+       shared(): msk, wgt and lmt_nbr are not altered within loop */
+#pragma omp parallel for default(none) firstprivate(DO_CONFORM_MSK,DO_CONFORM_WGT,ddra_info,rcd) lastprivate(rcd) private(idx,in_id,wgt_avg) shared(MULTIPLY_BY_TALLY,MUST_CONFORM,NRM_BY_DNM,WGT_MSK_CRD_VAR,dmn_avg,dmn_avg_nbr,flg_ddra,flg_rdd,gpe,in_id_arr,msk_nm,msk_val,nbr_var_prc,nco_dbg_lvl,nco_op_typ,nco_prg_nm,op_typ_rlt,out_id,trv_tbl,var_prc,var_prc_out,wgt_nm,lmt_nbr,lmt_arg,FORTRAN_IDX_CNV,MSA_USR_RDR)
 #endif /* !_OPENMP */
     for(idx=0;idx<nbr_var_prc;idx++){ /* Process all variables in current file */
       char *grp_out_fll=NULL; /* [sng] Group name */
@@ -870,12 +910,6 @@ main(int argc,char **argv)
       var_sct *msk_out=NULL;
 
       in_id=in_id_arr[omp_get_thread_num()];
-
-      /* Find weighting variable that matches current variable */
-      if(wgt_nm) wgt=nco_var_get_wgt_trv(in_id,wgt_nm,var_prc[idx],trv_tbl);
-
-      /* Find mask variable that matches current variable */
-      if(msk_nm) msk=nco_var_get_wgt_trv(in_id,msk_nm,var_prc[idx],trv_tbl);
 
       /* Obtain variable GTT object using full variable name */
       var_trv=trv_tbl_var_nm_fll(var_prc[idx]->nm_fll,trv_tbl);
@@ -903,11 +937,17 @@ main(int argc,char **argv)
 
       (void)nco_var_mtd_refresh(grp_id,var_prc[idx]);
 
+      /* Find weighting variable that matches current variable */
+      if(wgt_nm) wgt=nco_var_get_wgt_trv(in_id,lmt_nbr,lmt_arg,MSA_USR_RDR,FORTRAN_IDX_CNV,wgt_nm,var_prc[idx],trv_tbl);
+
+      /* Find mask variable that matches current variable */
+      if(msk_nm) msk=nco_var_get_wgt_trv(in_id,lmt_nbr,lmt_arg,MSA_USR_RDR,FORTRAN_IDX_CNV,msk_nm,var_prc[idx],trv_tbl);
+
       /* Retrieve variable from disk into memory */
       (void)nco_msa_var_get_trv(in_id,var_prc[idx],trv_tbl);
       /* var_prc_out still has type = packed type for packed variables
-	 nco_typ_cnv_rth() fixes that for most operations, though not for minimization or maximization
-	 Following line is necessary only for packed variables subject to minimization or maximization */
+      nco_typ_cnv_rth() fixes that for most operations, though not for minimization or maximization
+      Following line is necessary only for packed variables subject to minimization or maximization */
       if(var_prc[idx]->typ_dsk != var_prc[idx]->type && var_prc[idx]->typ_upk == var_prc[idx]->type) var_prc_out[idx]=nco_var_cnf_typ(var_prc[idx]->type,var_prc_out[idx]);
 
       /* Convert char, short, long, int, and float types to doubles before arithmetic */
@@ -968,7 +1008,7 @@ main(int argc,char **argv)
 	 nco_var_avg() will perform nco_op_typ on all variables except coordinate variables
 	 nco_var_avg() always averages coordinate variables */
       var_prc_out[idx]=nco_var_avg(var_prc_out[idx],dmn_avg,dmn_avg_nbr,nco_op_typ,flg_rdd,&ddra_info);
-      /* var_prc_out[idx]->val now holds numerator of averaging expression documented in NCO User's Guide
+      /* var_prc_out[idx]->val now holds numerator of averaging expression documented in NCO Users Guide
 	 Denominator is also tricky due to sundry normalization options
 	 These logical switches are tricky---modify them with care */
       if(NRM_BY_DNM && DO_CONFORM_WGT && (!var_prc[idx]->is_crd_var || WGT_MSK_CRD_VAR)){
@@ -1025,40 +1065,41 @@ main(int argc,char **argv)
 	   sometimes, before the tally array for var_prc_out[idx] is created. 
 	   When this occurs the nco_var_dpl() call in nco_var_cnf_dmn() does not copy
 	   tally array into wgt_avg. See related note about this above. TODO #114.*/
-        if(wgt_avg->sz > 0)
+        if(wgt_avg->sz > 0){
           if(!(wgt_avg->tally=(long *)nco_realloc(wgt_avg->tally,wgt_avg->sz*sizeof(long)))){
             (void)fprintf(fp_stdout,"%s: ERROR Unable to realloc() %ld*%ld bytes for tally buffer for weight %s in main()\n",nco_prg_nm_get(),wgt_avg->sz,(long)sizeof(long),wgt_avg->nm);
             nco_exit(EXIT_FAILURE); 
           } /* end if */
-          /* Average weight over specified dimensions (tally array is set here) */
-          wgt_avg=nco_var_avg(wgt_avg,dmn_avg,dmn_avg_nbr,nco_op_avg,flg_rdd,&ddra_info);
+	} /* wgt_avg->sz */
+        /* Average weight over specified dimensions (tally array is set here) */
+	wgt_avg=nco_var_avg(wgt_avg,dmn_avg,dmn_avg_nbr,nco_op_avg,flg_rdd,&ddra_info);
 
-          if(MULTIPLY_BY_TALLY){
-            /* NB: Currently this is not implemented */
-            /* Multiply numerator (weighted sum of variable) by tally 
-	       We deviously accomplish this by dividing denominator by tally */
-            (void)nco_var_nrm(wgt_avg->type,wgt_avg->sz,wgt_avg->has_mss_val,wgt_avg->mss_val,wgt_avg->tally,wgt_avg->val);
-          } /* endif */
+	if(MULTIPLY_BY_TALLY){
+	  /* NB: Currently this is not implemented */
+	  /* Multiply numerator (weighted sum of variable) by tally 
+	     We deviously accomplish this by dividing denominator by tally */
+	  (void)nco_var_nrm(wgt_avg->type,wgt_avg->sz,wgt_avg->has_mss_val,wgt_avg->mss_val,wgt_avg->tally,wgt_avg->val);
+	} /* endif */
           /* Divide numerator by denominator */
           /* Diagnose common PEBCAK before it causes core dump */
-          if(var_prc_out[idx]->sz == 1L && var_prc_out[idx]->type == NC_INT && var_prc_out[idx]->val.ip[0] == 0){
-            (void)fprintf(fp_stdout,"%s: ERROR Weight in denominator weight = 0.0, will cause SIGFPE\n%s: HINT Sum of masked, averaged weights must be non-zero\n%s: HINT A possible workaround is to remove variable \"%s\" from output file using \"%s -x -v %s ...\"\n%s: Expecting core dump...now!\n",nco_prg_nm,nco_prg_nm,nco_prg_nm,var_prc_out[idx]->nm,nco_prg_nm,var_prc_out[idx]->nm,nco_prg_nm);
-          } /* end if */
+	if(var_prc_out[idx]->sz == 1L && var_prc_out[idx]->type == NC_INT && var_prc_out[idx]->val.ip[0] == 0){
+	  (void)fprintf(fp_stdout,"%s: ERROR Weight in denominator weight = 0.0, will cause SIGFPE\n%s: HINT Sum of masked, averaged weights must be non-zero\n%s: HINT A possible workaround is to remove variable \"%s\" from output file using \"%s -x -v %s ...\"\n%s: Expecting core dump...now!\n",nco_prg_nm,nco_prg_nm,nco_prg_nm,var_prc_out[idx]->nm,nco_prg_nm,var_prc_out[idx]->nm,nco_prg_nm);
+	} /* end if */
           /* Rather complex conditional statement is shorter than switch() */
-          if( /* Normalize by weighted tally if ....  */
-	     var_prc[idx]->is_crd_var || /* ...variable is a coordinate or ...*/
-	     ((nco_op_typ != nco_op_min) && /* ...operation is not min() and... */
-	      (nco_op_typ != nco_op_max) && /* ...operation is not max() and... */
-	      (nco_op_typ != nco_op_mabs) && /* ...operation is not mabs() and... */
-	      (nco_op_typ != nco_op_mibs) && /* ...operation is not mibs() and... */
-	      (nco_op_typ != nco_op_tabs) && /* ...operation is not tabs() and... */
-	      (nco_op_typ != nco_op_ttl)) /* ...operation is not ttl() and... */
-	      ){ /* Divide numerator by masked, averaged, weights */
-	    (void)nco_var_dvd(var_prc_out[idx]->type,var_prc_out[idx]->sz,var_prc_out[idx]->has_mss_val,var_prc_out[idx]->mss_val,wgt_avg->val,var_prc_out[idx]->val);
-          } /* endif */
+	if( /* Normalize by weighted tally if ....  */
+	   var_prc[idx]->is_crd_var || /* ...variable is a coordinate or ...*/
+	   ((nco_op_typ != nco_op_min) && /* ...operation is not min() and... */
+	    (nco_op_typ != nco_op_max) && /* ...operation is not max() and... */
+	    (nco_op_typ != nco_op_mabs) && /* ...operation is not mabs() and... */
+	    (nco_op_typ != nco_op_mibs) && /* ...operation is not mibs() and... */
+	    (nco_op_typ != nco_op_tabs) && /* ...operation is not tabs() and... */
+	    (nco_op_typ != nco_op_ttl)) /* ...operation is not ttl() and... */
+	    ){ /* Divide numerator by masked, averaged, weights */
+	  (void)nco_var_dvd(var_prc_out[idx]->type,var_prc_out[idx]->sz,var_prc_out[idx]->has_mss_val,var_prc_out[idx]->mss_val,wgt_avg->val,var_prc_out[idx]->val);
+	} /* endif */
           /* Free wgt_avg, but keep wgt_out, after each use */
-          if(wgt_avg) wgt_avg=nco_var_free(wgt_avg);
-          /* End of branch for normalization when weights were specified */
+	if(wgt_avg) wgt_avg=nco_var_free(wgt_avg);
+	/* End of branch for normalization when weights were specified */
       }else if(NRM_BY_DNM){
         /* Branch for normalization when no weights were specified
 	   Normalization is just due to tally */
@@ -1202,7 +1243,7 @@ main(int argc,char **argv)
   (void)nco_fl_out_cls(fl_out,fl_out_tmp,out_id);
 
   /* Clean memory unless dirty memory allowed */
-  if(flg_cln){
+  if(flg_mmr_cln){
     /* ncwa-specific memory */
     if(dmn_avg_nbr > 0) dmn_avg=(dmn_sct **)nco_free(dmn_avg);
     if(msk_nm) msk_nm=(char *)nco_free(msk_nm);
@@ -1248,7 +1289,7 @@ main(int argc,char **argv)
     if(flg_dne) flg_dne=(nco_dmn_dne_t *)nco_free(flg_dne);
     /* Free traversal table */
     trv_tbl_free(trv_tbl); 
-  } /* !flg_cln */
+  } /* !flg_mmr_cln */
 
   /* End timer */ 
   ddra_info.tmr_flg=nco_tmr_end; /* [enm] Timer flag */

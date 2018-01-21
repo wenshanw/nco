@@ -238,6 +238,9 @@
 /* Define to 1 if compiler finds external `nc_inq_format' function */
 #undef HAVE_NC_INQ_FORMAT
 
+/* Define to 1 if compiler finds external `nc_inq_path' function */
+#undef HAVE_NC_INQ_PATH
+
 /* Define to 1 if compiler finds external `nearbyint' function */
 #undef HAVE_NEARBYINT
 
@@ -249,6 +252,9 @@
 
 /* Define to 1 if you have the <netcdf.h> header file. */
 #undef HAVE_NETCDF_H
+
+/* Define to 1 if <netcdf_mem.h> is present */
+#undef HAVE_NETCDF_MEM_H
 
 /* Define to 1 if you have the <netinet/in.h> header file. */
 #undef HAVE_NETINET_IN_H
@@ -344,6 +350,9 @@
 /* Define to 1 if you have the `strrchr' function. */
 #undef HAVE_STRRCHR
 
+/* Define to 1 if compiler finds external `strsep' function */
+#undef HAVE_STRSEP
+
 /* Define to 1 if you have the `strstr' function. */
 #undef HAVE_STRSTR
 
@@ -417,6 +426,9 @@
 
 /* Building TeXInfo documentation requires version greater than 4.8 */
 #undef MAKEINFO_VERSION
+
+/* System used to build/install NCO */
+#undef NCO_BUILDENGINE
 
 /* GSL major version number */
 #undef NCO_GSL_MAJOR_VERSION
@@ -502,6 +514,9 @@
 /* Define to 1 if compiler needs external `nc_inq_format' function */
 #undef NEED_NC_INQ_FORMAT
 
+/* Define to 1 if compiler needs external `nc_inq_path' function */
+#undef NEED_NC_INQ_PATH
+
 /* Define to 1 if compiler needs external `nearbyint' function */
 #undef NEED_NEARBYINT
 
@@ -540,6 +555,9 @@
 
 /* Define to 1 if compiler needs external `strdup' function */
 #undef NEED_STRDUP
+
+/* Define to 1 if compiler needs external `strsep' function */
+#undef NEED_STRSEP
 
 /* Define to 1 if compiler needs external `tanf' function */
 #undef NEED_TANF

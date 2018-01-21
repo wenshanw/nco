@@ -2,7 +2,7 @@
 
 /* Purpose: Software configuration management */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -148,8 +148,8 @@ void
 nco_cpy_prn(void) /* [fnc] Print copyright notice */
 {
   /* Purpose: Print copyright notice */
-  (void)fprintf(stderr,"Copyright (C) 1995--2016 Charlie Zender\n");
-  (void)fprintf(stdout,"This program is part of NCO, the netCDF Operators.\nNCO is free software and comes with a BIG FAT KISS and ABOLUTELY NO WARRANTY\nYou may redistribute and/or modify NCO under the terms of the\nGNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file\nGPL: http://www.gnu.org/copyleft/gpl.html\nLICENSE: https://github.com/nco/nco/tree/master/LICENSE\n");
+  (void)fprintf(stderr,"Copyright (C) 1995--2018 Charlie Zender\n");
+  (void)fprintf(stdout,"This program is part of NCO, the netCDF Operators.\nNCO is free software and comes with a BIG FAT KISS and ABSOLUTELY NO WARRANTY\nYou may redistribute and/or modify NCO under the terms of the\nGNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file\nGPL: http://www.gnu.org/copyleft/gpl.html\nLICENSE: https://github.com/nco/nco/tree/master/LICENSE\n");
 } /* end copyright_prn() */
 
 void
@@ -168,9 +168,20 @@ nco_vrs_prn /* [fnc] Print NCO version */
   const char date_cpp[]=__DATE__; /* [sng] Date from C pre-processor */
   const char time_cpp[]=__TIME__; /* [sng] Time from C pre-processor */
   /*  const char time_cpp[]=__TIME__; *//* [sng] Time from C pre-processor */
-  const char vrs_cpp[]=TKN2SNG(NCO_VERSION); /* [sng] Version from C pre-processor */
   const char hst_cpp[]=TKN2SNG(HOSTNAME); /* [sng] Hostname from C pre-processor */
   const char usr_cpp[]=TKN2SNG(USER); /* [sng] Hostname from C pre-processor */
+
+  char vrs_cpp[]=TKN2SNG(NCO_VERSION); /* [sng] Version from C pre-processor */
+
+  /* 20170417: vrs_cpp is typically something like "4.6.6-alpha08" (quotes included) 
+     The quotation marks annoy me yet are necessary to protect the string in nco.h 
+     Here we remove the quotation marks by pointing past the first and putting NUL in the last */
+  char *vrs_sng; /* [sng] NCO version */
+  vrs_sng=vrs_cpp;
+  if(vrs_cpp[0L] == '"'){
+    vrs_cpp[strlen(vrs_cpp)-1L]='\0';
+    vrs_sng=vrs_cpp+1L;
+  } /* endif */
 
   if(strlen(CVS_Id) > strlen("*Id*")){
     /* CVS_Id is defined */
@@ -195,17 +206,17 @@ nco_vrs_prn /* [fnc] Print NCO version */
   } /* endif */
 
   if(strlen(CVS_Id) > strlen("*Id*")){
-    (void)fprintf(stderr,"NCO netCDF Operators version %s last modified %s built %s on %s by %s\n",vrs_cpp,date_cvs,date_cpp,hst_cpp,usr_cpp);
+    (void)fprintf(stderr,"NCO netCDF Operators version %s last modified %s built %s on %s by %s\n",vrs_sng,date_cvs,date_cpp,hst_cpp,usr_cpp);
   }else{
     /* 20141008: Try new nco.h-based versioning */
-    /*    (void)fprintf(stderr,"NCO netCDF Operators version %s built %s on %s by %s\n",vrs_cpp,date_cpp,hst_cpp,usr_cpp);*/
-    (void)fprintf(stderr,"NCO netCDF Operators version %s built by %s on %s at %s %s\n",vrs_cpp,usr_cpp,hst_cpp,date_cpp,time_cpp);
+    /*    (void)fprintf(stderr,"NCO netCDF Operators version %s built %s on %s by %s\n",vrs_sng,date_cpp,hst_cpp,usr_cpp);*/
+    (void)fprintf(stderr,"NCO netCDF Operators version %s built by %s on %s at %s %s\n",vrs_sng,usr_cpp,hst_cpp,date_cpp,time_cpp);
   } /* endif */
   if(strlen(CVS_Id) > strlen("*Id*")){
     vrs_cvs=cvs_vrs_prs();
     (void)fprintf(stderr,"%s version %s\n",nco_prg_nm_get(),vrs_cvs);
   }else{
-    (void)fprintf(stderr,"%s version %s\n",nco_prg_nm_get(),vrs_cpp);
+    (void)fprintf(stderr,"%s version %s\n",nco_prg_nm_get(),vrs_sng);
   } /* endif */
 
   if(date_cvs) date_cvs=(char *)nco_free(date_cvs);

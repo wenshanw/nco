@@ -2,7 +2,7 @@
 
 /* Purpose: Group utilities */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -154,6 +154,14 @@ nco_xtr_xcl                          /* [fnc] Convert extraction list to exclusi
 void
 nco_xtr_crd_add                       /* [fnc] Add all coordinates to extraction list */
 (trv_tbl_sct * const trv_tbl);        /* I/O [sct] Traversal table */
+
+void
+nco_xtr_lst /* [fnc] Print extraction list and exit */
+(trv_tbl_sct * const trv_tbl); /* I [sct] GTT (Group Traversal Table) */
+
+void
+nco_xtr_ND_lst /* [fnc] Print extraction list of N>=D variables and exit */
+(trv_tbl_sct * const trv_tbl); /* I [sct] GTT (Group Traversal Table) */
 
 void
 nco_xtr_cf_add                        /* [fnc] Add to extraction list variable associated with CF convention */
@@ -537,6 +545,8 @@ nco_bld_trv_tbl                       /* [fnc] Construct GTT, Group Traversal Ta
  const nco_bool GRP_XTR_VAR_XCL,      /* I [flg] Extract matching groups, exclude matching variables */
  const nco_bool EXCLUDE_INPUT_LIST,   /* I [flg] Exclude rather than extract groups and variables specified with -v */ 
  const nco_bool EXTRACT_ASSOCIATED_COORDINATES,  /* I [flg] Extract all coordinates associated with extracted variables? */ 
+ const nco_bool EXTRACT_CLL_MSR, /* I [flg] Extract cell_measures variables */
+ const nco_bool EXTRACT_FRM_TRM, /* I [flg] Extract formula_terms variables */
  const int nco_pck_plc,               /* I [enm] Packing policy */
  nco_dmn_dne_t **flg_dne,             /* I/O [lst] Flag to check if input dimension -d "does not exist" */
  trv_tbl_sct * const trv_tbl);        /* I/O [sct] Traversal table */
@@ -549,6 +559,16 @@ nco_bld_lmt                           /* [fnc] Assign user specified dimension l
  lmt_sct **lmt,                       /* I [sct] Structure comming from nco_lmt_prs() */
  nco_bool FORTRAN_IDX_CNV,            /* I [flg] Hyperslab indices obey Fortran convention */
  trv_tbl_sct * const trv_tbl);        /* I/O [sct] Traversal table */
+
+void
+nco_bld_lmt_var                       /* [fnc] Assign user specified dimension limits to one GTT variable */
+(const int nc_id,                     /* I [ID] netCDF file ID */
+  nco_bool MSA_USR_RDR,               /* I [flg] Multi-Slab Algorithm returns hyperslabs in user-specified order */
+  int lmt_nbr,                        /* I [nbr] Number of user-specified dimension limits */
+  lmt_sct **lmt,                      /* I [sct] Structure comming from nco_lmt_prs() */
+  nco_bool FORTRAN_IDX_CNV,           /* I [flg] Hyperslab indices obey Fortran convention */
+  trv_sct *wgt_trv);                  /* I/O [sct] GTT variable (used for weight/mask) */
+ 
 
 void 
 nco_msa_var_get_rec_trv             /* [fnc] Read one record of a variable */
@@ -564,10 +584,14 @@ nco_skp_var                          /* [fnc] Skip variable while doing record  
  const char * const rec_nm_fll,      /* I [sng] Full name of record being done in loop (trv_tbl->lmt_rec[idx_rec]->nm_fll ) */
  const trv_tbl_sct * const trv_tbl); /* I [sct] Traversal table */
 
-var_sct *                             /* O [sct] Variable (weight) */  
+var_sct *                             /* O [sct] Variable (weight or mask) */  
 nco_var_get_wgt_trv                   /* [fnc] Retrieve weighting or mask variable */
 (const int nc_id,                     /* I [id] netCDF file ID */
- const char * const wgt_nm,           /* I [sng] Weight variable name (relative) */
+ const int lmt_nbr,                   /* I [nbr] number of dimensions with limits */
+ CST_X_PTR_CST_PTR_CST_Y(char, lmt_arg), /* I [sng] List of user-specified dimension limits */
+ nco_bool MSA_USR_RDR,                /* I [flg] Multi-Slab Algorithm returns hyperslabs in user-specified order */
+ nco_bool FORTRAN_IDX_CNV,            /* I [flg] Hyperslab indices obey Fortran convention */
+ const char * const wgt_nm,           /* I [sng] Weight or mask variable name (relative or absolute) */
  const var_sct * const var,           /* I [sct] Variable that needs the weight/mask variable */
  const trv_tbl_sct * const trv_tbl);  /* I [lst] Traversal table */
 
@@ -928,6 +952,12 @@ nco_get_dmn_nm_fll                     /* [fnc] Return name corresponding to inp
 void
 nco_var_xtr_trv                       /* [fnc] Print all variables to extract (debug) */
 (const trv_tbl_sct * const trv_tbl);  /* I [sct] Traversal table */
+
+crd_sct*
+nco_get_crd_sct                       /* [fnc] Return a coordinate variable crd_sct for a given table variable var_trv */
+(trv_sct * const var_trv,             /* I [sct] GTT Variable */
+ int lmt_nbr,                         /* I [nbr] Number of user-specified dimension limits */
+ lmt_sct **lmt);                      /* I [sct] Limit array. Structure comming from nco_lmt_prs() */
 
 #ifdef __cplusplus
 } /* end extern "C" */

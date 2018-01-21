@@ -3,7 +3,7 @@
 # Purpose: Template autoconf uses to generate NCO configure script
 # Newer convention names this file configure.ac, rather than configure.in
 
-# Copyright (C) 2003--2016 Charlie Zender
+# Copyright (C) 2003--2018 Charlie Zender
 # License: GNU General Public License (GPL) Version 3
 # See http://www.gnu.org/copyleft/gpl.html for full license text
 
@@ -51,7 +51,11 @@
 
 # Process configure input with autoconf to produce configure script
 # (package name,version,bug-report-address,tarball name)
-AC_INIT([NCO netCDF Operators],[4.6.2-alpha01],[nco-bugs@lists.sourceforge.net],[nco])
+# 20170808: Choose between traditional version and Git-based version
+# If Git, consider that Linux dynamic libraries will have full messy name, MacOSX will not
+# https://stackoverflow.com/questions/43526939/how-to-insert-git-based-version-in-autoconf-managed-project
+AC_INIT([NCO netCDF Operators],[4.7.2-beta01],[nco-bugs@lists.sourceforge.net],[nco])
+#AC_INIT([NCO netCDF Operators],m4_esyscmd([git describe --abbrev=7 --dirty --always --tags | tr -d '\n']),[nco-bugs@lists.sourceforge.net],[nco])
 
 # Print GNU copyright in configure script
 AC_COPYRIGHT
@@ -73,11 +77,13 @@ AC_CANONICAL_TARGET
 
 # Get NCO version
 if test -r doc/VERSION; then
-#    nco_version=`cat doc/VERSION`
-##  AC_DEFINE_UNQUOTED(NCO_VERSION,${nco_version},NCO Version)
-    NCO_VERSION=`cat doc/VERSION`
+#    NCO_VERSION=`cat doc/VERSION`
+    NCO_VERSION=`git describe --abbrev=7 --dirty --always --tags`
     AC_SUBST(NCO_VERSION)
 fi
+
+# Set build-engine
+AC_DEFINE(NCO_BUILDENGINE,Autoconf,System used to build/install NCO)
 
 # Set egrep
 AC_PROG_EGREP
@@ -277,6 +283,7 @@ AC_ARG_VAR([NETCDF_ROOT],[Root of netCDF4 installation] (compile-time))
 # Test if user set NETCDF_ROOT and it exists
 if test "x${enable_netcdf4}" = 'xyes'; then
     if test -z "${NETCDF_ROOT}"; then
+	# 20160901: Branch fails on Fedora Core 23+ (not MacOSX, not Ubuntu) due to mysterious emission of "Using <pathname>/nf-config" text as if warning user about security hole
 	NETCDF_CONFIG='nc-config'
 	NETCDF_ROOT="`nc-config --prefix`"
     else
@@ -305,6 +312,19 @@ if (test "x${enable_netcdf4}" = 'xyes' && test "x${header_defines_nc_chunked}" =
 	    ])
 fi
 
+# 20171218: nc_open_mem() is defined in netCDF >= 4.4.0, however ...
+# Ubuntu (Xenial at least) used broken netCDF CMake (not autoconf) to package 4.4.0 (it does not install netcdf_mem.h):
+# https://github.com/nco/nco/issues/44
+# Symptom of "missing netcdf_mem.h" and/or "unresolved nc_open_mem()" occurs with NCO 4.6.2+
+# Until 20171112 we used (Option 1): 
+# #if NC_LIB_VERSION >= 440 
+# which forces Ubuntu netCDF 4.4.0 users to build netCDF with autoconf and install, e.g., into /usr/local, or
+# to manually copy netcdf_mem.h into /usr/include (has anyone tested whether that really solves the problem?)
+# Option 2 is to add test/symbol in build-engine, e.g., 
+#  #if defined(HAVE_NETCDF_MEM_H)
+# which requires additional build tests in Autoconf/CMake/Makefile */
+AC_CHECK_HEADER([netcdf_mem.h],AC_DEFINE([HAVE_NETCDF_MEM_H],1,[Define to 1 if <netcdf_mem.h> is present]),nco_have_netcdf_mem_h=no)
+
 # Begin OpenMP
 AC_ARG_ENABLE(openmp,AS_HELP_STRING([--enable-openmp],[Build NCO with OpenMP [[default=yes]]]),enable_openmp=${enableval},enable_openmp=yes)
 # Enable OpenMP unless told not to
@@ -314,6 +334,9 @@ if ((test "x${enable_openmp}" != 'xno') && (test "x${enable_netcdf4}" = 'xyes'))
     AC_DEFINE([ENABLE_OPENMP],[1],[Compile operators with OpenMP support])
     AC_MSG_NOTICE([OpenMP support enabled])
     CFLAGS="${CFLAGS} ${OPENMP_CFLAGS}"
+    # Oddly, linker needs same OpenMP flag(s) as compiler
+    # 20170909 Linux clang on travis does not resolve __kmpc* symbols, apparently needs -lgomp or -lomp
+    # LDFLAGS="${LDFLAGS} ${OPENMP_CFLAGS}"
 fi
 # End OpenMP
 
@@ -366,7 +389,7 @@ esac
 # "#define HAVE_XXX 1" and "#undef NEED_XXX" when function xxx() is found and
 # "#undef HAVE_XXX" and "#define NEED_XXX 1" when function xxx() is not found
 # Purpose: CPP macros like "if(NEED_XXX)" are simpler to read than "if(!HAVE_xxx)"
-NCO_CHECK_FUNCS([nc_inq_format])
+NCO_CHECK_FUNCS([nc_inq_format nc_inq_path])
 NCO_CHECK_FUNCS([getopt getopt_long])
 NCO_CHECK_FUNCS([atan2])
 NCO_CHECK_FUNCS([acosf asinf atanf atan2f cosf expf fabsf fmodf log10f logf powf sinf sqrtf tanf])
@@ -376,7 +399,7 @@ NCO_CHECK_FUNCS([ceilf floorf])
 NCO_CHECK_FUNCS([nearbyint rint round trunc])
 NCO_CHECK_FUNCS([nearbyintf rintf roundf truncf])
 NCO_CHECK_FUNCS([getopt_long])
-NCO_CHECK_FUNCS([strdup strcasecmp strcasestr])
+NCO_CHECK_FUNCS([strdup strcasecmp strsep strcasestr])
 
 echo "##########################################################"
 echo "#     Sorting out MacOSX build parameters                #"
@@ -419,15 +442,15 @@ if test "${enable_ncoxx}" != 'no'; then
 	    ANTLR_LIB="${ANTLR_ROOT}/lib"
 	fi
     fi
-    if test "${ANTLR_BIN}"; then
+    if test -d "${ANTLR_BIN}"; then
 # Add ${ANTLR_BIN}, if present, to binary search path
 	PATH="${PATH}:${ANTLR_BIN}"
     fi
-    if test "${ANTLR_INC}"; then
+    if test -d "${ANTLR_INC}"; then
 # Add ${ANTLR_INC}, if present, to include search path
 	CPPFLAGS="${CPPFLAGS} -I${ANTLR_INC}"
     fi
-    if test "${ANTLR_LIB}"; then
+    if test -d "${ANTLR_LIB}"; then
 # Add ${ANTLR_LIB}, if present, to library search path
 	LDFLAGS="${LDFLAGS} -L${ANTLR_LIB}"
     fi
@@ -634,10 +657,8 @@ if test "${enable_gsl}" != 'no'; then
     fi
     if test "${GSL_LIB}"; then
 	LIBS="${LIBS} -L${GSL_LIB}"
-    else
-	GSL_LIB="${GSL_ROOT}/lib"
-	LIBS="${LIBS} `${GSL_CONFIG} --libs`"
     fi
+	LIBS="${LIBS} `${GSL_CONFIG} --libs`"
     AC_MSG_NOTICE([These GSL library and header tests must succeed for GSL support:])
 # fxm: default action of check_lib adds a superfluous -lgsl to $LIBS
     AC_CHECK_LIB([gsl],[gsl_sf_gamma_inc],,enable_gsl=no)
@@ -719,8 +740,19 @@ if test "${enable_udunits2}" != 'no'; then
 	if test -d "${UDUNITS2_PATH}"; then
 	    # NB: Use ${UDUNITS2_PATH} not ${UDUNITS2_ROOT} because UDUnits software looks for ${UDUNITS2_PATH}
 	    # Add ${UDUNITS2_PATH}/lib to search path if present
-	    nco_udunits2_xml=${UDUNITS2_PATH}/share/udunits/udunits2.xml
-	    LDFLAGS="${LDFLAGS} -L${UDUNITS2_PATH}/lib"
+      # Some systems install 64bit libraries into $prefix/lib64 instead of 
+      #  $prefix/lib. If NCO libraries are installed into $prefix/lib64, 
+      #  UDUNITS presumably was installed in $UDUNITS2_PATH/lib64 as well.
+      #  Therefore, we take `basename $libdir` (libdir=$prefix/lib|lib64),
+      #  which is 'lib' or 'lib64', and append it to UDUNITS2_PATH. If this
+      #  directory does not exist, we append 'lib' to UDUNITS2_PATH.
+      #   (Daniel Neumann, 3rd June 2017)
+      nco_udunits2_xml=${UDUNITS2_PATH}/share/udunits/udunits2.xml
+      if test -d "${UDUNITS2_PATH}/`basename $libdir`"; then
+        LDFLAGS="${LDFLAGS} -L${UDUNITS2_PATH}/`basename $libdir`"
+      else
+        LDFLAGS="${LDFLAGS} -L${UDUNITS2_PATH}/lib"
+      fi
 	    CPPFLAGS="${CPPFLAGS} -I${UDUNITS2_PATH}/include"
 	else
 	    echo "WARNING: UDUNITS2_PATH location \"${UDUNITS2_PATH}\" does not exist!"
@@ -734,6 +766,7 @@ if test "${enable_udunits2}" != 'no'; then
 	# 20160418 FC23 has /usr/include/udunits2/udunits2.h
 	# Add this path to CPPFLAGS if it exists, otherwise do nothing
 	AC_CHECK_FILE([/usr/include/udunits2/udunits2.h], [CPPFLAGS="$CPPFLAGS -I/usr/include/udunits2"], [])
+	# 20170113 FC25 has /usr/include/udunits2/udunits2.h
 	# Ubuntu
 	# /usr/lib/x86_64-linux-gnu/libudunits2.a
 	# /usr/lib/i386-linux-gnu/libudunits2.a
@@ -804,7 +837,6 @@ case ${host} in
     i*86-*-linux-gnu | x86_64*-linux* )
 	case ${CC} in
 	    como* ) CFLAGS="${CFLAGS} --c99" ; ;;
-# 20150109: fxm Introduce -D_DEFAULT_SOURCE in place of deprecated (as of gcc 4.9.2) -D_BSD_SOURCE -D_POSIX_SOURCE 
 # 20150525: fxm Remove -no-gcc from icc flags as per ocehugo
 #	    icc* ) CFLAGS="${CFLAGS} -std=c99" ; CPPFLAGS="${CPPFLAGS} -D_BSD_SOURCE -D_POSIX_SOURCE -no-gcc" ; ;;
 	    icc* ) CFLAGS="${CFLAGS} -std=c99" ; CPPFLAGS="${CPPFLAGS} -D_BSD_SOURCE -D_POSIX_SOURCE" ; ;;
@@ -1136,6 +1168,7 @@ fi
 # Tell GNU C compiler to use C99 standard (older gcc versions default to C89)
 # fxm: only do this for gcc, not g++
 if test $ac_compiler_gnu = 'yes'; then
+    # 20150109: fxm Introduce -D_DEFAULT_SOURCE in place of deprecated (as of gcc 4.9.2) -D_BSD_SOURCE -D_POSIX_SOURCE 
     # _BSD_SOURCE needed for backward compatibility with old GCC
     # 20160418: default cori gcc is 4.3.4 from 2008!
     CFLAGS="${CFLAGS} -std=c99 -D_BSD_SOURCE -D_POSIX_SOURCE"
@@ -1223,9 +1256,9 @@ AC_CHECK_PROG(HAVE_MAKEINFO,makeinfo,yes,no,${PATH})
 DOC_FOLDER=""
 if test "x${enable_doc}" = 'xyes' && test "x${HAVE_MAKEINFO}" = 'xyes' ; then
     # Ensure makeinfo is recent enough, i.e., version 4.12 or later
-    MAKEINFO_VERSION="`makeinfo --version` | grep makeinfo | cut -d ' ' -f 4"
+    MAKEINFO_VERSION="`makeinfo --version | grep texinfo | cut -d ' ' -f 4`"
     echo "MAKEINFO_VERSION=${MAKEINFO_VERSION}"
-    AC_DEFINE(MAKEINFO_VERSION,${MAKEINFO_VERSION},Building TeXInfo documentation requires version greater than 4.8)
+    AC_DEFINE_UNQUOTED(MAKEINFO_VERSION,${MAKEINFO_VERSION},Building TeXInfo documentation requires version greater than 4.8)
     #    test_result=m4_version_compare([${MAKEINFO_VERSION}],[4.8])
     test_result='1'
     if test "${test_result}" = '1'; then

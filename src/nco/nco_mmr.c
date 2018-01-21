@@ -2,7 +2,7 @@
 
 /* Purpose: Memory management */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -100,13 +100,13 @@ nco_malloc /* [fnc] Wrapper for malloc() */
     if((nvr_NCO_MMR_DBG=getenv("NCO_MMR_DBG"))) ntg_NCO_MMR_DBG=(int)strtol(nvr_NCO_MMR_DBG,&sng_cnv_rcd,NCO_SNG_CNV_BASE10); /* [sng] Environment variable NCO_MMR_DBG */
   } /* endif dbg */
 
-  if(ntg_NCO_MMR_DBG && sz > sz_thr) (void)fprintf(stdout,"%s: INFO %s received request to allocate %zu B = %zu kB = %zu MB = %zu GB\n",nco_prg_nm_get(),fnc_nm,sz,sz/NCO_BYT_PER_KB,sz/NCO_BYT_PER_MB,sz/NCO_BYT_PER_GB);
+  if(ntg_NCO_MMR_DBG && sz > sz_thr) (void)fprintf(stdout,"%s: INFO %s received request to allocate %lu B = %lu kB = %lu MB = %lu GB\n",nco_prg_nm_get(),fnc_nm,sz,sz/NCO_BYT_PER_KB,sz/NCO_BYT_PER_MB,sz/NCO_BYT_PER_GB);
 
-  if(sz > sz_max) (void)fprintf(stdout,"%s: WARNING %s received request to allocate %zu B = %zu kB = %zu MB = %zu GB = %zu TB\n",nco_prg_nm_get(),fnc_nm,sz,sz/NCO_BYT_PER_KB,sz/NCO_BYT_PER_MB,sz/NCO_BYT_PER_GB,sz/NCO_BYT_PER_TB);
+  if(sz > sz_max) (void)fprintf(stdout,"%s: WARNING %s received request to allocate %lu B = %lu kB = %lu MB = %lu GB = %lu TB\n",nco_prg_nm_get(),fnc_nm,sz,sz/NCO_BYT_PER_KB,sz/NCO_BYT_PER_MB,sz/NCO_BYT_PER_GB,sz/NCO_BYT_PER_TB);
 
   ptr=malloc(sz); /* [ptr] Pointer to new buffer */
   if(ptr == NULL){
-    (void)fprintf(stdout,"%s: ERROR %s unable to allocate %zu B = %zu kB = %zu MB = %zu GB\n",nco_prg_nm_get(),fnc_nm,sz,sz/NCO_BYT_PER_KB,sz/NCO_BYT_PER_MB,sz/NCO_BYT_PER_GB);
+    (void)fprintf(stdout,"%s: ERROR %s unable to allocate %lu B = %lu kB = %lu MB = %lu GB\n",nco_prg_nm_get(),fnc_nm,sz,sz/NCO_BYT_PER_KB,sz/NCO_BYT_PER_MB,sz/NCO_BYT_PER_GB);
     (void)nco_malloc_err_hnt_prn();
     /* fxm: Should be exit(8) on ENOMEM errors? */
     nco_exit(EXIT_FAILURE);
@@ -199,7 +199,7 @@ nco_malloc_err_hnt_prn /* [fnc] Explain meaning and workarounds for malloc() fai
 (void)
 {
   /* Purpose: Explain meaning and workarounds for malloc() failures */
-  (void)fprintf(stdout,"%s: INFO NCO has reported a malloc() failure. malloc() failures usually indicate that your machine does not have enough free memory (RAM+swap) to perform the requested operation. As such, malloc() failures result from the physical limitations imposed by your hardware. Read http://nco.sf.net/nco.html#mmr for a description of NCO memory usage. The likiest case is that this problem is caused by inadequate RAM on your system, and is not an NCO bug. If so, there are two potential workarounds: First is to process your data in smaller chunks, e.g., smaller or more hyperslabs. The second is to use a machine with more free memory, so that malloc() succeeds.\n\n",nco_prg_nm_get());
+  (void)fprintf(stdout,"%s: INFO NCO has reported a malloc() failure. malloc() failures usually indicate that your machine has less free memory (RAM+swap) than the requested amount. As such, malloc() failures result from the physical limitations imposed by your hardware. Read http://nco.sf.net/nco.html#mmr for a description of NCO memory usage. The likeliest case is that this problem is caused by inadequate RAM on your system, and is not an NCO bug. If so, there are two potential workarounds: First is to process your data in smaller chunks, e.g., smaller or more hyperslabs. The second is to use a machine with more free memory, so that malloc() succeeds. NB: Operating on compressed netCDF4 data can easily consume more RAM than expected or mentioned in the NCO documentation.\n\n",nco_prg_nm_get());
   if(nco_prg_id_get() == ncap) (void)fprintf(stdout,"Large tasks may uncover memory leaks in NCO. ncap2 scripts are completely dynamic and may be of arbitrary length and complexity. A script that contains many thousands of operations may uncover a slow memory leak even though each single operation consumes little additional memory. Memory leaks are usually identifiable by their memory usage signature. Leaks cause peak memory usage to increase monotonically with time regardless of script complexity. Slow leaks are very difficult to find. Sometimes a malloc() failure is the only noticeable clue to their existence. If you have good reasons to believe that your malloc() failure is ultimately due to an NCO memory leak (rather than inadequate RAM on your system), then we would like to receive a detailed bug report.\n");
 } /* nco_malloc_err_hnt_prn() */
 

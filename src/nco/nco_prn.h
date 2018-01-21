@@ -2,7 +2,7 @@
 
 /* Purpose: Print variables, attributes, metadata */
 
-/* Copyright (C) 1995--2016 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -48,6 +48,11 @@
 extern "C" {
 #endif /* __cplusplus */
 
+int 
+nco_att_nbr        /* [fnc] return number of atts in var or global atts in group */ 
+(const int grp_id, /* I [id] netCDF group ID */
+ const int var_id); /* I [id] netCDF input variable ID */
+
 void 
 nco_prn_att /* [fnc] Print all attributes of single variable or group */
 (const int grp_id, /* I [id] netCDF group ID */
@@ -69,6 +74,11 @@ nco_typ_fmt_sng_att_cdl /* [fnc] Provide sprintf() format string for specified a
 const char * /* O [sng] sprintf() format string for XML attribute type typ */
 nco_typ_fmt_sng_att_xml /* [fnc] Provide sprintf() format string for specified attribute type in XML */
 (const nc_type typ); /* I [enm] netCDF attribute type to provide XML format string for */
+
+void
+nco_prn_var_val_cmt     /* 0 print to stdout var values formatted  by prn_flg or dlm_sng_in  or */
+(var_sct *var,          /* I [sct] variable to print */
+const prn_fmt_sct * const prn_flg);  /* I [sct] Print-format information */
 
 void
 nco_prn_var_val_lmt /* [fnc] Print variable data */
@@ -96,6 +106,27 @@ nco_prn_var_dfn /* [fnc] Print variable metadata */
 
 int /* [rcd] Return code */
 nco_grp_prn /* [fnc] Recursively print group contents */
+(const int nc_id, /* I [id] netCDF file ID */
+ const char * const grp_nm_fll, /* I [sng] Absolute group name (path) */
+ prn_fmt_sct * const prn_flg, /* I/O [sct] Print-format information */
+ const trv_tbl_sct * const trv_tbl); /* I [sct] Traversal table */
+
+int /* [rcd] Return code */
+nco_prn_cdl_trd /* [fnc] Recursively print group contents in cdl or trd format */
+(const int nc_id, /* I [id] netCDF file ID */
+ const char * const grp_nm_fll, /* I [sng] Absolute group name (path) */
+ prn_fmt_sct * const prn_flg, /* I/O [sct] Print-format information */
+ const trv_tbl_sct * const trv_tbl); /* I [sct] Traversal table */
+
+int /* [rcd] Return code */
+nco_prn_jsn /* [fnc] Recursively print group contents in JSON format */
+(const int nc_id, /* I [id] netCDF file ID */
+ const char * const grp_nm_fll, /* I [sng] Absolute group name (path) */
+ prn_fmt_sct * const prn_flg, /* I/O [sct] Print-format information */
+ const trv_tbl_sct * const trv_tbl); /* I [sct] Traversal table */
+
+int /* [rcd] Return code */
+nco_prn_xml /* [fnc] Recursively print group contents in XML format */
 (const int nc_id, /* I [id] netCDF file ID */
  const char * const grp_nm_fll, /* I [sng] Absolute group name (path) */
  prn_fmt_sct * const prn_flg, /* I/O [sct] Print-format information */
