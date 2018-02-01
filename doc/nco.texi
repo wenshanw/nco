@@ -13299,7 +13299,7 @@ Sum of values
 
 @example
 // Average a variable over time
-four_time_avg=four_dmn_rec_var($time);
+four_time_avg=four_dmn_rec_var.avg($time);
 @end example
 
 @sp 1
