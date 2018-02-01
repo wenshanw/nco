@@ -119,11 +119,11 @@ Octave TeXInfo manual shows clean TeXInfo structure
 @setfilename nco.info
 
 @c Define edition, date, ...
-@set nco-edition 4.7.2-beta01
-@set doc-edition 4.7.2-beta01
+@set nco-edition 4.7.3-alpha02
+@set doc-edition 4.7.3-alpha02
 @set copyright-years 1995--2018
 @set update-year 2018
-@set update-date 19 January 2018
+@set update-date 29 January 2018
 @set update-month January 2018
 
 @settitle @acronym{NCO} @value{nco-edition} User Guide
@@ -11893,6 +11893,7 @@ already contain the appended dimensions.
 * Operator precedence and associativity ::
 * ID Quoting::
 * create_bounds() function::
+* solar_zenith_angle function::
 @end menu
 
 @html
@@ -16166,7 +16167,7 @@ netcdf-4.0 Final  2008/08/28@*
 @end example
 @c End HMB documentation
 
-@node create_bounds() function,  , ID Quoting, ncap2 netCDF Arithmetic Processor
+@node create_bounds() function, solar_zenith_angle function, ID Quoting, ncap2 netCDF Arithmetic Processor
 @subsection create_bounds() function
 @cindex create_bounds() function
 The @command{ncap2} custom function 'create_bounds()' takes any monotonic 1D coordinate variable with regular or irregular (e.g., Gaussian) spacing and creates a bounds variable.
@@ -16195,6 +16196,38 @@ Another common CF convention:
 @example
 defdim("nv",2);
 climatology_bounds=create_bounds(time,$nv,"climatology_bounds");
+@end example
+
+@node solar_zenith_angle function,  , create_bounds() function, ncap2 netCDF Arithmetic Processor
+@subsection solar_zenith_angle function
+@cindex solar_zenith_angle function
+
+@emph{<zenith_out>=solar_zenith_angle( <time_in>, <latitude in>)}  
+
+This function takes two arguments, mean local solar time and latitude.
+Calculation and output is done with type @code{NC_DOUBLE}.
+The calendar attribute for <time_in> in is NOT read and is assumed to be
+Gregorian (this is the calendar that UDUnits uses).
+As part of the calculation <time_in> is converted to days since start of
+year.
+For some  input units e.g., seconds, this function may produce
+gobbledygook.
+The output <zenith_out> is in @code{degrees}. 
+For more details of the algorithm used please examine the function
+@code{solar_geometry()} in @code{fmc_all_cls.cc}.
+Note that this routine does not account for the equation of time,
+and so can be in error by the angular equivalent of up to about fifteen
+minutes time depending on the day of year.
+
+@example
+my_time[time]=@{10.50, 11.0, 11.50, 12.0, 12.5, 13.0, 13.5, 14.0, 14.50, 15.00@};  
+my_time@@units="hours since 2017-06-21";
+
+// Assume we are at Equator
+latitude=0.0;
+
+// 32.05428, 27.61159, 24.55934, 23.45467, 24.55947, 27.61184, 32.05458, 37.39353, 43.29914, 49.55782 ;
+zenith=solar_zenith_angle(my_time,latitude);
 @end example
 
 @page
@@ -22120,7 +22153,7 @@ ncrcat -d time,6.,54. ??.nc 8506_8906.nc
 SYNTAX
 @example
 ncremap [-3] [-4] [-5] [-6] [-7] 
-[-a @var{alg_typ}] [-D @var{dbg_lvl}] [-d @var{dst_fl}] [--fl_fmt=@var{fl_fmt}] 
+[-a @var{alg_typ}] [--a2o] [-D @var{dbg_lvl}] [-d @var{dst_fl}] [--fl_fmt=@var{fl_fmt}] 
 [-G @var{grd_sng}] [-g @var{grd_dst}] [-I @var{drc_in}] [-i @var{input-file}] [-j @var{job_nbr}]
 [-L @var{dfl_lvl}] [-M] [-m @var{map_fl}]
 [--msk_dst=@var{msk_dst}] [--msk_out=@var{msk_out}] [--msk_src=@var{msk_src}] [--mss_val=@var{mss_val}]
@@ -22132,7 +22165,7 @@ ncremap [-3] [-4] [-5] [-6] [-7]
 [-U] [-u @var{unq_sfx}] [--ugrid=@var{ugrid-file}]
 [-V @var{rgr_var}] [-v @var{var_lst}[,@dots{}]] [--version] [--vrb=@var{vrb_lvl}] 
 [-W @var{wgt_opt}] [-w @var{wgt_cmd}] [-x @var{xtn_lst}[,@dots{}]]
-[@var{input-file(s)}] [@var{output-file}]
+[@var{input-files}] [@var{output-file}]
 @end example
 
 @noindent
@@ -22231,12 +22264,28 @@ Features common to many operators are described in
 
 @html
 <a name="alg_typ"></a> <!-- http://nco.sf.net/nco.html#alg_typ -->
+<a name="neareststod"></a> <!-- http://nco.sf.net/nco.html#neareststod -->
+<a name="nearestdtos"></a> <!-- http://nco.sf.net/nco.html#nearestdtos -->
+<a name="patch"></a> <!-- http://nco.sf.net/nco.html#patch -->
+<a name="bilinear"></a> <!-- http://nco.sf.net/nco.html#bilinear -->
+<a name="conserve"></a> <!-- http://nco.sf.net/nco.html#conserve -->
+<a name="fv2se_flx"></a> <!-- http://nco.sf.net/nco.html#fv2se_flx -->
+<a name="se2fv_flx"></a> <!-- http://nco.sf.net/nco.html#se2fv_flx -->
+<a name="fv2se_stt"></a> <!-- http://nco.sf.net/nco.html#fv2se_stt -->
+<a name="se2fv_stt"></a> <!-- http://nco.sf.net/nco.html#se2fv_stt -->
+<a name="fv2se_alt"></a> <!-- http://nco.sf.net/nco.html#fv2se_alt -->
+<a name="se2fv_alt"></a> <!-- http://nco.sf.net/nco.html#se2fv_alt -->
 @end html
 @cindex @code{-a @var{alg_typ}}
 @cindex @var{alg_typ}
 @cindex @code{--alg_typ}
 @cindex @code{--algorithm}
 @cindex @code{--regrid_algorithm}
+@cindex @code{neareststod}
+@cindex @code{nearestdtos}
+@cindex @code{patch}
+@cindex @code{bilinear}
+@cindex @code{conserve}
 @item -a @var{alg_typ} (@code{--alg_typ}, @code{--algorithm}, @code{--regrid_algorithm})
 Specifies the interpolation algorithm for weight-generation for use by
 @command{ESMF_RegridWeightGen} (@acronym{ERWG}) and/or TempestRemap.
@@ -22335,6 +22384,73 @@ for TempestRemap is
 (may require @acronym{E3SM}-authorization to view).
 Let us know iff you would like other boutique TempestRemap switch sets
 added as canonical options for @command{ncremap}.
+
+@html
+<a name="a2o"></a> <!-- http://nco.sf.net/nco.html#a2o -->
+<a name="atm2ocn"></a> <!-- http://nco.sf.net/nco.html#atm2ocn -->
+<a name="b2l"></a> <!-- http://nco.sf.net/nco.html#b2l -->
+<a name="big2ltl"></a> <!-- http://nco.sf.net/nco.html#big2ltl -->
+<a name="l2s"></a> <!-- http://nco.sf.net/nco.html#l2s -->
+<a name="lrg2sml"></a> <!-- http://nco.sf.net/nco.html#lrg2sml -->
+@end html
+@cindex @command{GenerateOverlapMesh}
+@cindex @var{a2o}
+@cindex @code{--a2o}
+@cindex @code{--atm2ocn}
+@cindex @code{--b2l}
+@cindex @code{--big2ltl}
+@cindex @code{--l2s}
+@cindex @code{--lrg2sml}
+@item --a2o (@code{--a2o}, @code{--atm2ocn}, @code{--b2l}, @code{--big2ltl}, @code{--l2s}, @code{--lrg2sml})
+Use one of these flags (which takes no argument) to indicate to
+TempestRemap to generate mapping weights from a source grid that has
+more coverage than the destination grid, i.e., the destination grid is a 
+subset of the source.
+When computing the intersection of two meshes, TempestRemap uses an
+algorithm (an executable named @command{GenerateOverlapMesh}) that
+expects the mesh with less coverage to be the first grid, and the
+grid with greater coverage to be the second, regardless of the mapping
+direction.
+By default, @command{ncremap} supplies the source grid first and the
+destination second, but this order causes @command{GenerateOverlapMesh}  
+(which is agnostic about ordering when the grids have the same coverage)
+to fail when the source grid covers regions not in the destination grid.  
+For example, a global atmosphere grid has more coverage than a global
+ocean grid, so that remapping from atmosphere-to-ocean would require
+invoking the @samp{--atm2ocn} switch:
+@example
+# Use --a2o to generate weights for "big" to "little" remaps:
+ncremap --a2o -a se2fv_flx --src_grd=atm.nc --dst_grd=ocn.nc -m map.nc
+# Otherwise, omit it:
+ncremap       -a se2fv_flx --src_grd=ocn.nc --dst_grd=atm.nc -m map.nc
+ncremap       -a se2fv_flx --src_grd=atm1.nc --dst_grd=atm2.nc -m map.nc
+# Only necessary when generating, not applying, weights:
+ncremap -m atm2ocn.nc in.nc out.nc
+@end example
+As shown in the second example above, remapping from global
+ocean-to-atmosphere grids does not require (and should not invoke) this
+switch. 
+The third example shows that the switch is only needed when
+@emph{generating} weights, not when applying them. 
+The switch is never needed (and is ignored) when generating weights
+with @acronym{ERWG} (which constructs the intersection mesh with a
+different algorithm than TempestRemap).
+Attempting to remap a larger source grid to a subset destination grid
+without using @samp{--a2o} causes @command{GenerateOverlapMesh} to emit
+an error (and a potential workaround) like this:
+@example
+....Nearest target face 130767
+....ERROR: No overlapping face found
+....This may be caused by mesh B being a subset of mesh A
+....Try swapping order of mesh A and B, or override with --allow_no_overlap
+....EXCEPTION (../src/OverlapMesh.cpp, Line 1738) Exiting
+@end example
+The @samp{--a2o} switch and its synonyms are available in @acronym{NCO}
+version 4.7.3 (February, 2018) and later.
+Currently (January, 2018) @code{ncremap} has no means of transmitting
+options (like @samp{--allow_no_overlap} to
+@command{GenerateOverlapMesh}.
+Please let us know if this capability is important to you.
 
 @html
 <a name="dbg_lvl"></a> <!-- http://nco.sf.net/nco.html#dbg_lvl -->

@@ -41,7 +41,7 @@ nco_prn_att /* [fnc] Print all attributes of single variable or group */
 
   att_sct *att=NULL_CEWI;
 
-  //  const char fnc_nm[]="nco_prn_att()"; /* [sng] Function name  */
+  const char fnc_nm[]="nco_prn_att()"; /* [sng] Function name */
   const char spc_sng[]=""; /* [sng] Space string */
 
   char *nm_cdl;
@@ -251,6 +251,30 @@ nco_prn_att /* [fnc] Print all attributes of single variable or group */
 	  att[idx].val.vp=(void *)nco_malloc(att_sz*nco_typ_lng(att[idx].type));
 	  for(int dmn_idx=0;dmn_idx<dmn_nbr;dmn_idx++) att[idx].val.ip[dmn_idx]=cnk_sz[dmn_idx];
 	} /* srg_typ != NC_CHUNKED */
+	/* _Filter */
+	if(NC_LIB_VERSION >= 460){
+	  if(!XML){
+	    if(srg_typ == NC_CHUNKED){
+	      unsigned int flt_id;
+	      size_t prm_nbr;
+	      unsigned int *prm_lst=NULL;
+	      rcd=nco_inq_var_filter(grp_id,var_id,&flt_id,&prm_nbr,NULL);
+	      if(nco_dbg_lvl_get() >= nco_dbg_std) (void)fprintf(stdout,"%s: DEBUG %s reports flt_id = %u, prm_nbr = %lu\n",nco_prg_nm_get(),fnc_nm,flt_id,(unsigned long)prm_nbr);
+	      if(flt_id){
+		/* Print _Filter for filtered variables */
+		idx=att_nbr_ttl++;
+		att=(att_sct *)nco_realloc(att,att_nbr_ttl*sizeof(att_sct));
+		att[idx].nm=(char *)strdup("_Filter");
+		att[idx].type=NC_UINT;
+		att_sz=att[idx].sz=prm_nbr;
+		att[idx].val.vp=(void *)nco_malloc(att_sz*nco_typ_lng(att[idx].type));
+		rcd=nco_inq_var_filter(grp_id,var_id,NULL,NULL,att[idx].val.uip);
+		/* prm_lst=(unsigned int *)nco_malloc(prm_nbr*sizeof(unsigned int));
+		   if(prm_lst) prm_lst=(unsigned int *)nco_free(prm_lst); */
+	      } /* !flt_id */
+	    } /* srg_typ != NC_CHUNKED */
+	  } /* !xml */
+	} /* !4.6.0 */
 	/* _DeflateLevel */
 	if(!XML){
 	  rcd=nco_inq_var_deflate(grp_id,var_id,&shuffle,&deflate,&dfl_lvl);
@@ -1835,7 +1859,6 @@ nco_prn_var_val_trv /* [fnc] Print variable data (GTT version) */
     char fmt_sng[NCO_MAX_LEN_FMT_SNG];
     dmn_trv_sct *dmn_trv; /* [sct] Unique dimension object */
     long chr_idx;
-    nco_bool is_compound; /* [flg] Variable is compound (has non-leading record dimension) */
     char * (*chr2sng_sf)(const char chr_val, /* I [chr] Character to process */
     char * const val_sng); /* I/O [sng] String to stuff printable result into */
 

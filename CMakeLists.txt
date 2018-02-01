@@ -54,7 +54,7 @@ endif()
 #on multi-configuration generators (Visual Studio, Xcode) define only 2 types: Debug;Release
 #/////////////////////////////////////////////////////////////////////////////////////
 
-set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build." FORCE)
+set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build.")
 if(CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_CONFIGURATION_TYPES "Debug;Release")
 endif()
@@ -85,11 +85,11 @@ set(find_opt NO_SYSTEM_ENVIRONMENT_PATH)
 #If not found, business as usual
 #//////////////////////////
 
+# NETCDF_ROOT, if found in environment, will be searched after specific command line locations for NETCDF_INCLUDE
+# and NETCDF_LIBRARY
 set(netcdf_root "$ENV{NETCDF_ROOT}")
 if(netcdf_root)
-  set(NETCDF_INCLUDE "${netcdf_root}/include")
-  set(NETCDF_LIBRARY_PATH "${netcdf_root}/lib")
-  message("${color_blue}-- Using user defined netCDF location: ${netcdf_root}${color_reset}")
+  message("${color_blue}-- Using user-defined netCDF root location: ${netcdf_root}${color_reset}")
 endif()
 
 #//////////////////////////
@@ -100,7 +100,14 @@ if(NETCDF_INCLUDE)
   if(EXISTS "${NETCDF_INCLUDE}/netcdf.h")
     message("-- Using ${NETCDF_INCLUDE}/netcdf.h")
   else()
-    message(FATAL_ERROR "${color_red}netcdf.h not found at ${NETCDF_INCLUDE}${color_reset}")
+    if(netcdf_root)
+        set(NETCDF_INCLUDE "${netcdf_root}/include")
+    endif()
+    if(EXISTS "${NETCDF_INCLUDE}/netcdf.h")
+      message("-- Using ${NETCDF_INCLUDE}/netcdf.h")
+    else()
+      message(FATAL_ERROR "${color_red}netcdf.h not found at ${NETCDF_INCLUDE}${color_reset}")
+    endif()
   endif()
 endif()
 
@@ -119,7 +126,11 @@ if(NETCDF_LIBRARY)
   if(EXISTS "${NETCDF_LIBRARY}")
     message("-- Using ${NETCDF_LIBRARY}")
   else()
-    message(FATAL_ERROR "${color_red}Specified ${NETCDF_LIBRARY} does not exist${color_reset}")
+    if(netcdf_root)
+        set(NETCDF_LIBRARY_PATH "${netcdf_root}/lib")
+    else()
+        message(FATAL_ERROR "${color_red}Specified ${NETCDF_LIBRARY} does not exist${color_reset}")
+    endif()
   endif()
 endif()
 
@@ -145,11 +156,33 @@ if (has_nc_inq_path)
   message("-- Found nc_inq_path in: " ${NETCDF_LIBRARY})
   add_definitions(-DHAVE_NC_INQ_PATH)
 endif()
+
 check_library_exists(${NETCDF_LIBRARY} nc_inq_format "" has_nc_inq_format)
 if (has_nc_inq_format)
   message("-- Found nc_inq_format in: " ${NETCDF_LIBRARY})
   add_definitions(-DHAVE_NC_INQ_FORMAT)
 endif()
+
+#/////////////////////////////////////////////////////////////////////////////////////
+#netCDF 4.6.0 
+#nc_def_var_filter , has_inq_var_filter, define NC_LIB_VERSION=460 if both found 
+#/////////////////////////////////////////////////////////////////////////////////////
+
+check_library_exists(${NETCDF_LIBRARY} nc_def_var_filter "" has_nc_def_var_filter)
+if (has_nc_def_var_filter)
+  message("-- Found nc_def_var_filter in: " ${NETCDF_LIBRARY})
+  add_definitions(-DHAVE_NC_DEF_VAR_FILTER)
+endif()
+
+check_library_exists(${NETCDF_LIBRARY} nc_inq_var_filter "" has_inq_var_filter)
+if (has_inq_var_filter)
+  message("-- Found has_inq_var_filter in: " ${NETCDF_LIBRARY})
+  add_definitions(-DHAVE_NC_INQ_VAR_FILTER)
+endif()
+
+if (has_nc_def_var_filter AND has_inq_var_filter)
+  add_definitions(-DNC_LIB_VERSION=460)
+endif ()
 
 find_path(path_netcdf_mem_h netcdf_mem.h PATHS ${NETCDF_INCLUDE})
 if (path_netcdf_mem_h)
@@ -295,24 +328,18 @@ if (MSVC)
     message("-- Using static CRT ${MSVC_USE_STATIC_CRT}")
     foreach(flag_var CMAKE_CXX_FLAGS_DEBUG 
       CMAKE_CXX_FLAGS_RELEASE
-      CMAKE_CXX_FLAGS_MINSIZEREL 
-      CMAKE_CXX_FLAGS_RELWITHDEBINFO
       CMAKE_C_FLAGS_DEBUG 
-      CMAKE_C_FLAGS_RELEASE
-      CMAKE_C_FLAGS_MINSIZEREL 
-      CMAKE_C_FLAGS_RELWITHDEBINFO)
+      CMAKE_C_FLAGS_RELEASE)
     string(REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
     endforeach()
-  endif()
+  endif(MSVC_USE_STATIC_CRT)
 
   #//////////////////////////
   #compile as C++ Code (/TP)
   #//////////////////////////
   
   foreach(flag_var CMAKE_C_FLAGS_DEBUG 
-    CMAKE_C_FLAGS_RELEASE
-    CMAKE_C_FLAGS_MINSIZEREL 
-    CMAKE_C_FLAGS_RELWITHDEBINFO)
+    CMAKE_C_FLAGS_RELEASE)
   set(${flag_var} "/TP ${${flag_var}}")
   endforeach()
 
@@ -986,3 +1013,53 @@ if (UNIX)
  file(APPEND ${file_sh} "export PATH=\"${path}\"")
  execute_process(COMMAND chmod a+x ${file_sh} RESULT_VARIABLE res)
 endif()
+
+#//////////////////////////
+# compiler/linker warnings
+#//////////////////////////
+
+if(MSVC)
+add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+add_definitions(-D_CRT_NONSTDC_NO_DEPRECATE)
+set(MSVC_DEVELOPER ON CACHE BOOL "Disable MSVC warnings /wd4267 /wd4244 /wd4477")
+if (MSVC_DEVELOPER)
+  set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /wd4267 /wd4244 /wd4477")
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /wd4267 /wd4244 /wd4477")
+  set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /wd4267 /wd4244 /wd4477")
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /wd4267 /wd4244 /wd4477")
+endif()
+endif()
+
+#//////////////////////////
+# disable .pdb not found warnings
+#//////////////////////////
+
+
+if (MSVC)
+set_target_properties(ncks PROPERTIES LINK_FLAGS "/ignore:4099")
+set_target_properties(ncbo PROPERTIES LINK_FLAGS "/ignore:4099")
+set_target_properties(ncecat PROPERTIES LINK_FLAGS "/ignore:4099")
+set_target_properties(ncflint PROPERTIES LINK_FLAGS "/ignore:4099")
+set_target_properties(ncpdq PROPERTIES LINK_FLAGS "/ignore:4099")
+set_target_properties(ncra PROPERTIES LINK_FLAGS "/ignore:4099")
+set_target_properties(ncrename PROPERTIES LINK_FLAGS "/ignore:4099")
+set_target_properties(ncatted PROPERTIES LINK_FLAGS "/ignore:4099")
+set_target_properties(ncwa PROPERTIES LINK_FLAGS "/ignore:4099")
+set_target_properties(ncap2 PROPERTIES LINK_FLAGS "/ignore:4099")
+endif (MSVC)
+
+#//////////////////////////
+# use of strcasecmp and strncasecmp
+# UDUNITS2 defines strcasecmp
+#//////////////////////////
+
+if (UDUNITS2_LIBRARY AND UDUNITS2_INCLUDE)
+ set(have_udunits)
+endif()
+
+if (MSVC)
+ if (NOT ${have_udunits})
+   add_definitions(-DNEED_STRCASECMP)
+ endif()
+ add_definitions(-DNEED_STRNCASECMP)
+endif(MSVC)

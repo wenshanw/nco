@@ -232,12 +232,12 @@ if exist %root_win%\GSL\build\GSL.sln (
 )
 
 :build_antlr
-if exist %root_win%\antlr2\lib\cpp\build\Project.sln (
+if exist %root_win%\antlr2\lib\cpp\build\antlr.sln (
  echo skipping antlr build
  goto build_nco
 ) else (
   echo building antlr
-  pushd antlr2
+  pushd antlr
   pushd lib
   pushd cpp
   mkdir build
@@ -246,7 +246,7 @@ if exist %root_win%\antlr2\lib\cpp\build\Project.sln (
            -DMSVC_USE_STATIC_CRT=%STATIC_CRT% ^
            -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON ^
            -DBUILD_SHARED_LIBS=OFF
-  msbuild Project.sln /target:build /property:configuration=debug
+  msbuild antlr.sln /target:build /property:configuration=debug
   popd
   popd
   popd
@@ -264,8 +264,9 @@ if exist Debug\ncks.exe (
   echo building NCO
   rm -rf CMakeCache.txt CMakeFiles
   cmake .. -G %MSVC_VERSION% ^
-  -DMSVC_USE_STATIC_CRT=%STATIC_CRT% ^
+  -DMSVC_DEVELOPER=ON ^
   -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON ^
+  -DMSVC_USE_STATIC_CRT=%STATIC_CRT% ^
   -DNETCDF_INCLUDE:PATH=%root%/netcdf-c/include ^
   -DNETCDF_LIBRARY:FILE=%root%/netcdf-c/build/liblib/Debug/netcdf.lib ^
   -DHDF5_LIBRARY:FILE=%root%/hdf5/build/bin/Debug/libhdf5_D.lib ^

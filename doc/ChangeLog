@@ -1,8 +1,54 @@
-2018-01-20  Charlie Zender  <zender@uci.edu>
+2018-01-30  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.7.3-alpha02 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.7.3-alpha02: Hedgy';git push
+	git tag -a 4.7.3-alpha02 -m 'AppVeyor, a2o, nco_def/inq_var_filter(), _Filter';git push --tags
+
+	* Fix and test a2o switch to work with transpose maps
+
+2018-01-28  Charlie Zender  <zender@uci.edu>
+
+	* Integrate --a2o with consistenly with GenerateOverlapMesh call for all options including monotr
+
+2018-01-26  Charlie Zender  <zender@uci.edu>
+
+	* Pedro, Filipe, Isuru, and Xylar fixed AppVeyor failure
+
+	* ncremap --a2o indicates large-to-small regridding, e.g., atmosphere-to-ocean, so reverse grids in GenerateOverlapMesh
+
+	* Cast "size_t" to "unsigned long" for %lu formats
+
+	* Give cmake -DNETCDF_INCLUDE:PATH=${NETCDF_INC} precedence over ${NETCDF_ROOT}/include, same for lib
+
+	* Modify code to eliminate MSVC compiler warnings
+
+2018-01-25  Charlie Zender  <zender@uci.edu>
+
+	* Add _Filter printing to nco_prn_att()
+
+	* Add timers to ncclimo
+
+	* Add nc[o]_def/inq_var_filter() stubs
+
+	* NCO 4.7.3-alpha01 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.7.3-alpha01: Coughy';git push
+	git tag -a 4.7.3-alpha01 -m 'Functionally identical to 4.7.2';git push --tags
+
+	* Add tm3_lat_flt to buggy.cdl to test _Filter attribute
+
+	* Add DSCOVR L2 dimensions number_of_lines, number_of_pixels to ncremap database
+
+	* ncclimo/ncremap: deprecate pileus
+
+	* nco.texi: Fix errors introduced by solar_zenith_angle() documentation
 
 	* NCO 4.7.2 release procedure:
 	cd ~/nco;git commit -a -m 'Version 4.7.2: Sapiens';git push
 	git tag -a 4.7.2 -m 'Sapiens: splitter ypf, tempest2 boutique, ncremap psn arg, cheyenne';git push --tags
+
+	* ncclimo: provisional, lackluster support for Theta
+
+2018-01-20  Charlie Zender  <zender@uci.edu>
 
 	* NCO 4.7.2-beta01 release procedure:
 	cd ~/nco;git commit -a -m 'Version 4.7.2-beta01: Flighty';git push
@@ -30,7 +76,7 @@
 
 	* Update ncremap/ncclimo to use latest cheyenne paths, deprecate yellowstone
 
-	* Successfully built Tempest2 on MacOS, so now ncremap is cross-platform again
+	* Successful Tempest2 builds on MacOS, now ncremap is cross-platform again
 
 	* Update CF references to version 1.7 in nco.texi
 

@@ -100,13 +100,14 @@ nco_malloc /* [fnc] Wrapper for malloc() */
     if((nvr_NCO_MMR_DBG=getenv("NCO_MMR_DBG"))) ntg_NCO_MMR_DBG=(int)strtol(nvr_NCO_MMR_DBG,&sng_cnv_rcd,NCO_SNG_CNV_BASE10); /* [sng] Environment variable NCO_MMR_DBG */
   } /* endif dbg */
 
-  if(ntg_NCO_MMR_DBG && sz > sz_thr) (void)fprintf(stdout,"%s: INFO %s received request to allocate %lu B = %lu kB = %lu MB = %lu GB\n",nco_prg_nm_get(),fnc_nm,sz,sz/NCO_BYT_PER_KB,sz/NCO_BYT_PER_MB,sz/NCO_BYT_PER_GB);
+  /* Casting from "size_t" to "unsigned long" necessary since %zu format only available in C99 */
+  if(ntg_NCO_MMR_DBG && sz > sz_thr) (void)fprintf(stdout,"%s: INFO %s received request to allocate %lu B = %lu kB = %lu MB = %lu GB\n",nco_prg_nm_get(),fnc_nm,(unsigned long)sz,(unsigned long)sz/NCO_BYT_PER_KB,(unsigned long)sz/NCO_BYT_PER_MB,(unsigned long)sz/NCO_BYT_PER_GB);
 
-  if(sz > sz_max) (void)fprintf(stdout,"%s: WARNING %s received request to allocate %lu B = %lu kB = %lu MB = %lu GB = %lu TB\n",nco_prg_nm_get(),fnc_nm,sz,sz/NCO_BYT_PER_KB,sz/NCO_BYT_PER_MB,sz/NCO_BYT_PER_GB,sz/NCO_BYT_PER_TB);
+  if(sz > sz_max) (void)fprintf(stdout,"%s: WARNING %s received request to allocate %lu B = %lu kB = %lu MB = %lu GB = %lu TB\n",nco_prg_nm_get(),fnc_nm,(unsigned long)sz,(unsigned long)sz/NCO_BYT_PER_KB,(unsigned long)sz/NCO_BYT_PER_MB,(unsigned long)sz/NCO_BYT_PER_GB,(unsigned long)sz/NCO_BYT_PER_TB);
 
   ptr=malloc(sz); /* [ptr] Pointer to new buffer */
   if(ptr == NULL){
-    (void)fprintf(stdout,"%s: ERROR %s unable to allocate %lu B = %lu kB = %lu MB = %lu GB\n",nco_prg_nm_get(),fnc_nm,sz,sz/NCO_BYT_PER_KB,sz/NCO_BYT_PER_MB,sz/NCO_BYT_PER_GB);
+    (void)fprintf(stdout,"%s: ERROR %s unable to allocate %lu B = %lu kB = %lu MB = %lu GB\n",nco_prg_nm_get(),fnc_nm,(unsigned long)sz,(unsigned long)sz/NCO_BYT_PER_KB,(unsigned long)sz/NCO_BYT_PER_MB,(unsigned long)sz/NCO_BYT_PER_GB);
     (void)nco_malloc_err_hnt_prn();
     /* fxm: Should be exit(8) on ENOMEM errors? */
     nco_exit(EXIT_FAILURE);
@@ -503,7 +504,6 @@ nco_mmr_usg_prn /* [fnc] Print rusage memory usage statistics */
 
   int rcd_stm; /* [enm] Return code for /proc/PID/statm call */
   int rcd_stt; /* [enm] Return code for /proc/PID/stat call */
-  int rcd_sys; /* [enm] Return code for system call */
 
 #ifndef __GNUG__
   extern int errno; /* [enm] Error code in errno.h */
@@ -585,10 +585,10 @@ nco_mmr_usg_prn /* [fnc] Print rusage memory usage statistics */
   (void)fprintf(stdout,"%s: INFO %s reports system type is SUNMP so getrusage() uses pages [pg] for size and ticks [tck] for time. Page size is %d B.\n",nco_prg_nm_get(),fnc_nm,sz_pg);
 #endif /* !SUNMP */
 
-  /* fxm: CEWI, not necessary */
-  rcd_sys=rusage_who;
   /* fxm: use input argument rusage_who instead of RUSAGE_SELF */
-  rcd_sys=0*rcd_sys+getrusage(RUSAGE_SELF,&usg);
+  int rcd_sys; /* [enm] Return code for system call */
+  rcd_sys=getrusage(RUSAGE_SELF,&usg);
+  if(rcd_sys) rcd_sys+=0; /* CEWI */
   /* MACOSX rusage structure elements ru_utime and ru_stime are of type 'int' not 'long int' */
   if(nco_dbg_lvl_get() > nco_dbg_io) (void)fprintf(stdout,"%s: INFO %s reports: rusage.ru_utime.tv_sec = user time used = %li s, rusage.ru_utime.tv_usec = user time used = %li us, rusage.ru_stime.tv_sec = system time used = %li s, rusage.ru_stime.tv_usec = system time used = %li us, rusage.ru_maxrss = maximum resident set size = %li [sz], rusage.ru_ixrss = integral shared memory size =  %li [sz tm], rusage.ru_idrss = integral unshared data size = %li [sz], rusage.ru_isrss = integral unshared stack size = %li [sz], rusage.ru_minflt = page reclaims = %li, rusage.ru_majflt = page faults = %li, rusage.ru_nswap = swaps = %li\n",nco_prg_nm_get(),fnc_nm,usg.ru_utime.tv_sec,(long int)usg.ru_utime.tv_usec,usg.ru_stime.tv_sec,(long int)usg.ru_stime.tv_usec,usg.ru_maxrss,usg.ru_ixrss,usg.ru_idrss,usg.ru_isrss,usg.ru_minflt,usg.ru_majflt,usg.ru_nswap);
 
