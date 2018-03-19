@@ -2,7 +2,7 @@
 
 /* Purpose: NCO wrappers for netCDF C library */
 
-/* Copyright (C) 1995--2017 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -84,20 +84,20 @@ nco_err_exit /* [fnc] Print netCDF error message, routine name, then exit */
   case NC_EIO: /* netcdf.h added NC_EIO in ~2012 */
     (void)fprintf(stdout,"ERROR NC_EIO Generic IO error\nHINT: NC_EIO errors can occur when NCO tries to read a file through a non-existant DAP location. Then NCO automatically tries to retrieve the file through another method, e.g., searching for a file of the same name in the current directory. This can trigger a subsequent error. When debugging the problem, first address the originating error (from NC_EIO).\n"); break;
   case NC_ELATEFILL: /* netcdf.h replaced NC_EFILLVALUE by NC_ELATEFILL after about netCDF ~4.2.1 */ 
-     (void)fprintf(stdout,"ERROR NC_ELATEFILL (formerly NC_EFILLVALUE) Attempt to define fill value when data already exists\nHINT: NC_ELATEFILL errors can occur when NCO attempts to create, modify, or overwrite a _FillValue attribute for an existing variable in a netCDF4 file. The netCDF4 format (unlike netCDF3) does not permit this. Does your output file need to be netCDF4 or netCDF4_classic format? One workaround is to change the output format to netCDF3 (e.g., ncks -3 in.nc out.nc), edit _FillValue attributes to your heart's content, and then convert back to netCDF4 (e.g., ncks -4 in.nc out.nc). Unfortunately, the netCDF library behavior in this regard changed (near version 4.4.0 with patch NCF-187) and it has proven difficult to workaround the netCDF4 limitaion in all cases with all netCDF4 library versions.\n"); break; 
+     (void)fprintf(stdout,"ERROR NC_ELATEFILL (formerly NC_EFILLVALUE) Attempt to define fill value when data already exists\nHINT: NC_ELATEFILL errors can occur when NCO attempts to create, modify, or overwrite a _FillValue attribute for an existing variable in a netCDF4 file. The netCDF4 format (unlike netCDF3) does not permit this. Does your output file need to be netCDF4 or netCDF4_classic format? One workaround is to change the output format to netCDF3 (e.g., ncks -3 in.nc out.nc), edit _FillValue attributes to your heart's content, and then convert back to netCDF4 (e.g., ncks -4 in.nc out.nc). Unfortunately, the netCDF library behavior in this regard changed (near version 4.4.0 with patch NCF-187) and it has proven difficult to workaround the netCDF4 limitation in all cases with all netCDF4 library versions.\n"); break; 
 #ifdef ENABLE_NETCDF4 
   case NC_ENOTBUILT: (void)fprintf(stdout,"ERROR NC_ENOTBUILT Attempt to use feature that was not turned on when netCDF was built\nHINT: NC_ENOTBUILT errors occur only, in our experience, when NCO attempts to access an HDF4 (including HDF-EOS2) file. It is only possible to access HDF4 files from NCO if NCO is first re-linked to a version of netCDF configured with the --enable-hdf4 option, which itself must be linked to a version of HDF4 configured with the --disable-netcdf option. These are non-standard build options! Full instructions are here: http://www.unidata.ucar.edu/software/netcdf/docs/build_hdf4.html\nFollow those instructions to rebuild HDF4 and netCDF, then rebuild NCO on top of that netCDF, and then your NCO command will likely work.\n"); break;
 #endif /* !ENABLE_NETCDF4 */
-  case NC_ENOTNC: (void)fprintf(stdout,"ERROR NC_ENOTNC Not a netCDF file\nHINT: NC_ENOTNC errors can occur for many reasons. If your use-case matches one of the four listed below, take the corrective action indicated:\n1. An NCO operator linked only to the classic netCDF3 library attempts to read netCDF4 (or HDF4 or HDF5) files. "); 
+  case NC_ENOTNC: (void)fprintf(stdout,"ERROR NC_ENOTNC Not a netCDF file\nHINT: NC_ENOTNC errors can occur for many reasons. If your use-case matches one of the four listed below, take the corrective action indicated:\n1. An NCO operator linked only to the classic netCDF3 library attempts to read netCDF4 (or HDF5) files. "); 
 #ifdef ENABLE_NETCDF4 
      (void)fprintf(stdout,"However, this executable seems to have been built with the capability to manipulate netCDF4 files, so it is unlikely that this command failed only because the input datasets are netCDF4 format. Something else is going wrong. \n"); 
 #else /* !ENABLE_NETCDF4 */ 
      (void)fprintf(stdout,"Are your input files netCDF4 format?  (http://nco.sf.net/nco.html#fmt_inq shows how to tell.) If so then installing or re-building a netCDF4-compatible version of NCO should solve this problem. First upgrade netCDF to version 4.x, then install NCO using those netCDF 4.x libraries.\n2. NC_ENOTNC can occur when users attempt to utilize diskless (i.e., RAM) files.  In this case remove the diskless switches (e.g., --ram or --diskless) and then re-issue the command. \n"); 
 #endif /* !ENABLE_NETCDF4 */ 
-     (void)fprintf(stdout,"2. NCO attempts to read other filetypes (HDF4, HDF-EOS2, pnetCDF/CDF5) for which support must be (but was not) enabled at netCDF build-time. NCO can access HDF4 files if NCO is first re-linked to a version of netCDF configured with the --enable-hdf4 option. This is a non-standard netCDF build option described here: http://www.unidata.ucar.edu/software/netcdf/docs/build_hdf4.html. NCO can access pnetCDF/CDF5 files if NCO is first re-linked to netCDF version 4.4.0 or later.\n3. NCO attempts to utilize diskless (i.e., RAM) files.  In this case remove the diskless switches (e.g., --ram or --diskless) and then re-issue the command.\n4. Access to a DAP URL fails, and the backup method of downloading the URL using wget obtains a data aggregation file (e.g., a .ncml file) instead of an actual netCDF file. In this case the problem is with the DAP server or URL.\n"); break; 
+     (void)fprintf(stdout,"2. NCO attempts to read other filetypes (HDF4, HDF-EOS2, PnetCDF/CDF5) for which support must be (but was not) enabled at netCDF build-time. NCO can access HDF4 files if NCO is first re-linked to a version of netCDF configured with the --enable-hdf4 option. This is a non-standard netCDF build option described here: http://www.unidata.ucar.edu/software/netcdf/docs/build_hdf4.html. NCO can access PnetCDF/CDF5 files if NCO is first re-linked to netCDF version 4.4.0 or later.\n3. NCO attempts to utilize diskless (i.e., RAM) files.  In this case remove the diskless switches (e.g., --ram or --diskless) and then re-issue the command.\n4. Access to a DAP URL fails, and the backup method of downloading the URL using wget obtains a data aggregation file (e.g., a .ncml file) instead of an actual netCDF file. In this case the problem is with the DAP server or URL.\n"); break; 
   case NC_ERANGE: (void)fprintf(stdout,"ERROR NC_ERANGE Result not representable in output file\nHINT: NC_ERANGE errors typically occur after an arithmetic operation results in a value not representible by the output variable type when NCO attempts to write those values to an output file.  Possible workaround: Promote the variable to higher precision before attempting arithmetic.  For example,\nncap2 -O -s \'foo=double(foo);\' in.nc in.nc\nFor more details, see http://nco.sf.net/nco.html#typ_cnv\n"); break; 
   case NC_EUNLIMIT: (void)fprintf(stdout,"ERROR NC_UNLIMIT NC_UNLIMITED size already in use\nHINT: NC_EUNLIMIT errors can occur when attempting to convert netCDF4 classic files that contain multiple record dimensions into a netCDF3 file that allows only one record dimension. In this case, try first fixing the excess record dimension(s) (with, e.g., ncks --fix_rec_dmn) and then convert to netCDF3. For more details, see http://nco.sf.net/nco.html#fix_rec_dmn\n"); break;
-  case NC_EVARSIZE: (void)fprintf(stdout,"ERROR NC_EVARSIZE One or more variable sizes violate format constraints\nHINT: NC_EVARSIZE errors occur when attempting to aggregate files together into outputs that exceed the capacity of the file format, and when trying to write individual variables that exceed the constraints of the file format. Relevant limits: netCDF3 NETCDF_CLASSIC format limits fixed variables to sizes smaller than 2^31 B = 2 GiB ~ 2.1 GB, and record variables to that size per record. netCDF3 NETCDF_64BIT_OFFSET format limits fixed variables to sizes smaller than 2^32 B = 4 GiB ~ 4.2 GB, and record variables to that size per record. The netCDF3 NETCDF_64BIT_SIZE and netCDF4 NETCDF4 formats have no variable size limitations of real-world import. If any variable in your dataset exceeds these limits, alter the output file to a format capacious enough, either netCDF3 classic with 64-bit offsets (with -6 or --64), to pnetCDF/CDF5 with 64-bit data (with -5), or to netCDF4 (with -4). For more details, see http://nco.sf.net/nco.html#fl_fmt\n"); break;
+  case NC_EVARSIZE: (void)fprintf(stdout,"ERROR NC_EVARSIZE One or more variable sizes violate format constraints\nHINT: NC_EVARSIZE errors occur when attempting to copy or aggregate input files together into an output file that exceeds the per-file capacity of the output file format, and when trying to copy, aggregate, or define individual variables that exceed the per-variable constraints of the output file format. The per-file limit of all netCDF formats is not less than 8 EiB on modern computers, so any NC_EVARSIZE error is almost certainly due to violating a per-variable limit. Relevant limits: netCDF3 NETCDF_CLASSIC format limits fixed variables to sizes smaller than 2^31 B = 2 GiB ~ 2.1 GB, and record variables to that size per record. A single variable may exceed this limit if and only if it is the last defined variable. netCDF3 NETCDF_64BIT_OFFSET format limits fixed variables to sizes smaller than 2^32 B = 4 GiB ~ 4.2 GB, and record variables to that size per record. Any number of variables may reach, though not exceed, this size for fixed variables, or this size per record for record variables. The netCDF3 NETCDF_64BIT_DATA and netCDF4 NETCDF4 formats have no variable size limitations of real-world import. If any variable in your dataset exceeds these limits, alter the output file to a format capacious enough, either netCDF3 classic with 64-bit offsets (with -6 or --64), to PnetCDF/CDF5 with 64-bit data (with -5), or to netCDF4 (with -4). For more details, see http://nco.sf.net/nco.html#fl_fmt\n"); break;
   } /* end switch */
 
   /* Print NCO-generated error message, if any */
@@ -501,63 +501,41 @@ nco_fmt_sng /* [fnc] Convert netCDF file format enum to string */
   return (char *)NULL;
 } /* end nco_fmt_sng() */
 
-const char * /* O [sng] String describing file format for hidden attributes */
-nco_fmt_hdn_sng /* [fnc] Convert netCDF file format enum to string for hidden attributes */
-(const int fl_fmt) /* I [enm] netCDF file format */
-{
-  /* Purpose: Convert netCDF file format enum to string for hidden attributes
-     20131229: String values obtained from ncgen man page */
-  switch(fl_fmt){
-  case NC_FORMAT_CLASSIC:
-    return "classic";
-  case NC_FORMAT_64BIT_OFFSET:
-    return "64-bit offset";
-  case NC_FORMAT_NETCDF4:
-    return "netCDF-4";
-  case NC_FORMAT_NETCDF4_CLASSIC:
-    return "netCDF-4 classic model";
-  case NC_FORMAT_CDF5:
-    return "64-bit data";
-  default: nco_dfl_case_nc_type_err(); break;
-  } /* end switch */
-
-  /* Some compilers, e.g., SGI cc, need return statement to end non-void functions */
-  return (char *)NULL;
-} /* end nco_fmt_hdn_sng() */
-
 const char * /* O [sng] String describing extended file format */
 nco_fmt_xtn_sng /* [fnc] Convert netCDF extended file format enum to string */
 (const int fl_fmt_xtn) /* I [enm] netCDF extended file format */
 {
   /* Purpose: Convert netCDF extended file format enum to string */
+  /* NB: nc_inq_format_extended() introduced in netCDF 4.3.1, but NC_LIB_VERSION does not work until netCDF 4.4.0 */
 #if NC_LIB_VERSION < 440
     switch(fl_fmt_xtn){
+      /* NB: netCDF < 4.3.1 unaware of NC_FORMATX_* tokens */
     case NC_FORMAT_NC3:
-      return "NC_FORMAT_NC3";
+      return "NC_FORMATX_NC3";
     case NC_FORMAT_NC_HDF5:
-      return "NC_FORMAT_HDF5";
+      return "NC_FORMATX_NC_HDF5";
     case NC_FORMAT_NC_HDF4:
-      return "NC_FORMAT_HDF4";
+      return "NC_FORMATX_NC_HDF4";
     case NC_FORMAT_PNETCDF:
-      return "NC_FORMAT_PNETCDF";
+      return "NC_FORMATX_PNETCDF";
     case NC_FORMAT_DAP2:
-      return "NC_FORMAT_DAP2";
+      return "NC_FORMATX_DAP2";
     case NC_FORMAT_DAP4:
-      return "NC_FORMAT_DAP4";
+      return "NC_FORMATX_DAP4";
     case NC_FORMAT_UNDEFINED:
-      return "NC_FORMAT_UNDEFINED";
+      return "NC_FORMATX_UNDEFINED";
     default: nco_dfl_case_nc_type_err(); break;
     } /* end switch */
 #else /* !NC_LIB_VERSION */
     switch(fl_fmt_xtn){
     case NC_FORMATX_NC3:
-      return "NC_FORMATX_NC3";
+      return "NC_FORMATX_NC3"; /* NB: CDF5 self-report NC_FORMATX_NC3 when files opened through netCDF serial API */
     case NC_FORMATX_NC_HDF5:
-      return "NC_FORMATX_HDF5";
+      return "NC_FORMATX_NC_HDF5";
     case NC_FORMATX_NC_HDF4:
-      return "NC_FORMATX_HDF4";
+      return "NC_FORMATX_NC_HDF4";
     case NC_FORMATX_PNETCDF:
-      return "NC_FORMATX_PNETCDF";
+      return "NC_FORMATX_PNETCDF"; /* CDF5 files report NC_FORMATX_PNETCDF when opened through PnetCDF parallel API */
     case NC_FORMATX_DAP2:
       return "NC_FORMATX_DAP2";
     case NC_FORMATX_DAP4:
@@ -571,6 +549,30 @@ nco_fmt_xtn_sng /* [fnc] Convert netCDF extended file format enum to string */
   /* Some compilers, e.g., SGI cc, need return statement to end non-void functions */
   return (char *)NULL;
 } /* end nco_fmt_xtn_sng() */
+
+const char * /* O [sng] String describing file format for hidden attributes */
+nco_fmt_hdn_sng /* [fnc] Convert netCDF file format enum to string for hidden attributes */
+(const int fl_fmt) /* I [enm] netCDF file format */
+{
+  /* Purpose: Convert netCDF file format enum to string for hidden attributes
+     20131229: String values obtained from ncgen man page */
+  switch(fl_fmt){
+  case NC_FORMAT_CLASSIC:
+    return "classic";
+  case NC_FORMAT_64BIT_OFFSET:
+    return "\"64-bit offset\"";
+  case NC_FORMAT_NETCDF4:
+    return "netCDF-4";
+  case NC_FORMAT_NETCDF4_CLASSIC:
+    return "\"netCDF-4 classic model\"";
+  case NC_FORMAT_CDF5:
+    return "\"64-bit data\"";
+  default: nco_dfl_case_nc_type_err(); break;
+  } /* end switch */
+
+  /* Some compilers, e.g., SGI cc, need return statement to end non-void functions */
+  return (char *)NULL;
+} /* end nco_fmt_hdn_sng() */
 
 const char * /* O [sng] String describing endianness for hidden attributes */
 nco_ndn_sng /* [fnc] Convert netCDF endianness enum to string for hidden attributes */
@@ -724,7 +726,8 @@ nco_open_flg(const char * const fl_nm,const int mode,int * const nc_id)
   return rcd;
 } /* end nco_open */
 
-#if NC_LIB_VERSION < 440
+/* #if NC_LIB_VERSION < 440 */
+#ifndef HAVE_NETCDF_MEM_H
 int
 nc_open_mem(const char * const fl_nm,const int mode,const size_t sz,void * const void_ptr,int * const nc_id)
 {
@@ -734,7 +737,7 @@ nc_open_mem(const char * const fl_nm,const int mode,const size_t sz,void * const
   int rcd;
   const char fnc_nm[]="nc_open_mem()";
   rcd=strlen(fl_nm)+mode+sz;
-  (void)fprintf(stdout,"ERROR: %s reports attempt to open file memory was foiled because libnetcdf.a does not contain nc_open_mem(). To obtain this functionality, please rebuild NCO against netCDF library version 4.4.0-rc1 (released ~20150610) or later.\nExiting...\n",fnc_nm);
+  (void)fprintf(stdout,"ERROR: %s reports attempt to open file memory was foiled because libnetcdf.a does not contain %s. To obtain this functionality, please rebuild NCO against netCDF library version 4.4.0-rc1 (released ~20150610) or later.\nExiting...\n",fnc_nm,fnc_nm);
   nco_err_exit(rcd,fnc_nm);
   *nc_id=*((int *)void_ptr);
   return rcd;
@@ -754,6 +757,35 @@ nco_open_mem(const char * const fl_nm,const int mode,const size_t sz,void * cons
   } /* endif */
   return rcd;
 } /* end nco_open_mem() */
+
+#if NC_LIB_VERSION < 460
+int nc_def_var_filter(const int nc_id,const int var_id,const unsigned int flt_id,const size_t prm_nbr,const unsigned int * const prm_lst)
+{
+  /* Purpose: Pseudo-library stub function to create a filter for a variable
+     This particular stub routine is only called by netCDF4-enabled code
+     when built against a netCDF library that it too old to have the nc_def_var_filter() function. */
+  int rcd;
+  const char fnc_nm[]="nc_def_var_filter()";
+  rcd=NC_NOERR+0*(nc_id+var_id+flt_id+prm_nbr+*prm_lst); /* CEWI */
+  (void)fprintf(stdout,"ERROR: %s reports define variable filter was foiled because libnetcdf.a does not contain %s. To obtain this functionality, please rebuild NCO against netCDF library version 4.6.0 (released ~20180125) or later.\nExiting...\n",fnc_nm,fnc_nm);
+  nco_err_exit(rcd,fnc_nm);
+  return rcd;
+} /* end nc_def_var_filter() */
+
+int nc_inq_var_filter(const int nc_id,const int var_id,unsigned int * const flt_id,size_t * const prm_nbr,unsigned int * const prm_lst)
+{
+  /* Purpose: Pseudo-library stub function to inquire a filter for a variable
+     This particular stub routine is only called by netCDF4-enabled code
+     when built against a netCDF library that it too old to have the nc_inq_var_filter() function. */
+  int rcd;
+  const char fnc_nm[]="nc_inq_var_filter()";
+  rcd=NC_NOERR+0*(nc_id+var_id);
+  *flt_id=*prm_nbr=*prm_lst=rcd; /* CEWI */
+  (void)fprintf(stdout,"ERROR: %s reports define variable filter was foiled because libnetcdf.a does not contain %s. To obtain this functionality, please rebuild NCO against netCDF library version 4.6.0 (released ~20180125) or later.\nExiting...\n",fnc_nm,fnc_nm);
+  nco_err_exit(rcd,fnc_nm);
+  return rcd;
+} /* end nc_inq_var_filter() */
+#endif /* 4.6.0 */
 
 #ifdef ENABLE_MPI
 # ifdef HAVE_NETCDF4_H
@@ -896,6 +928,71 @@ nco_close(const int nc_id)
   /* Purpose: Wrapper for nc_close() */
   const char fnc_nm[]="nco_close()";
   int rcd=NC_NOERR;
+  /* 20171108: Activate this check by building NCO with, e.g., CPPFLAGS='-DNCO_CDF5_BUG_CHK' ./configure ... */
+#ifdef NCO_CDF5_BUG_CHK
+# if NC_LIB_VERSION >= 440
+  /* 20170912 Diagnose whether file may be (for input files) or is (for output files) infected by CDF5 bug */
+  int fl_fmt; /* [enm] File format */
+  int fl_fmt_xtn; /* [enm] Extended file format */
+  int mode; /* [enm] Mode */
+  rcd=nc_inq_format(nc_id,&fl_fmt);
+  rcd=nc_inq_format_extended(nc_id,&fl_fmt_xtn,&mode);
+  if(fl_fmt == NC_FORMAT_CDF5){
+    char *path=NULL;
+    char var_nm[NC_MAX_NAME+1L];
+    int dmn_id[NC_MAX_VAR_DIMS];
+    int var_id[NC_MAX_VARS];
+    int bug_idx=-1;
+    int bug_nbr=0;
+    int dmn_idx;
+    int dmn_nbr;
+    int FIRST_WARNING=1;
+    int var_idx;
+    int var_nbr;
+    nc_type var_typ;
+    size_t dmn_sz[NC_MAX_VAR_DIMS];
+    size_t pathlen;
+    size_t var_sz;
+    rcd=nc_inq_path(nc_id,&pathlen,NULL);
+    path=(char *)malloc(pathlen*sizeof(char));
+    rcd=nc_inq_path(nc_id,NULL,path);
+    //(void)fprintf(stdout,"DEBUG: %s reports NC_LIB_VERSION = %d.\n",fnc_nm,NC_LIB_VERSION);
+    //(void)fprintf(stdout,"DEBUG: %s reports file format and extended format are %d = %s and %d = %s, respectively\n",fnc_nm,fl_fmt,nco_fmt_sng(fl_fmt),fl_fmt_xtn,nco_fmt_xtn_sng(fl_fmt_xtn));
+    //(void)fprintf(stdout,"DEBUG: %s reports file mode is %o (octal) = %d (decimal) = %04x (hex)\n",fnc_nm,mode,(unsigned)mode,(unsigned)mode);
+    rcd=nc_inq_varids(nc_id,&var_nbr,var_id);
+    for(var_idx=0;var_idx<var_nbr;var_idx++){
+      var_sz=1L;
+      rcd=nc_inq_varndims(nc_id,var_id[var_idx],&dmn_nbr);
+      rcd=nc_inq_vardimid(nc_id,var_id[var_idx],dmn_id);
+      for(dmn_idx=0;dmn_idx<dmn_nbr;dmn_idx++){
+	rcd=nc_inq_dimlen(nc_id,dmn_id[dmn_idx],dmn_sz+dmn_idx);
+	var_sz*=dmn_sz[dmn_idx];
+      } /* !dmn_idx */
+      rcd=nc_inq_vartype(nc_id,var_id[var_idx],&var_typ);
+      var_sz*=nco_typ_lng(var_typ);
+      if(var_sz > 4ULL*1073741824ULL){ /* 4 GiB */
+	if(FIRST_WARNING){
+	  (void)fprintf(stdout,"INFO: %s currently closing and sniffing-around for corruption in CDF5 file %s\n",fnc_nm,path);
+	  FIRST_WARNING=0;
+	} /* !FIRST_WARNING */
+	rcd=nc_inq_varname(nc_id,var_id[var_idx],var_nm);
+	(void)fprintf(stdout,"WARNING: %s reports variable %s is \"large\" (%lu B =~ %lu GiB > 4294967296 B = 4 GiB)\n",fnc_nm,var_nm,(unsigned long)var_sz,(unsigned long)(1.0*var_sz/1073741824UL));
+	bug_idx=var_idx;
+	bug_nbr++;
+      } /* !var_sz */
+    } /* !var_idx */
+    if(path) free((void *)path);
+    if(bug_nbr > 0){
+      (void)fprintf(stdout,"WARNING: %s reports total number of \"large\" (> 4 GiB) variables in this CDF5 file is %d\n",fnc_nm,bug_nbr);
+      if(bug_nbr > 1 || bug_idx != var_nbr-1){
+	(void)fprintf(stdout,"WARNING: %s reports at least one \"large\" (> 4 GiB) variable in this CDF5 file is not the last variable defined. Writing CDF5 files with large variables is buggy in netCDF library versions 4.4.0-4.5.0 unless there is only one such \"large\" variable and it is the last to be defined. Input datasets (that NCO reads) that were originally written by PnetCDF are likely fine (because PnetCDF writes CDF5 through a different mechanism than serial programs like NCO's writer). And CDF5 datasets originally written by any netCDF version 4.5.1 or greater may be fine (It depends whether/when Unidata patches, in a public release, the bug, see below, that we identified on 20170906). However, CDF5 input files written by any serial netCDF writer (like NCO) employing netCDF library 4.4.0-4.5.0 are likely corrupt and variables were silently truncated when writing it. An output file (that this NCO _writes_) will definitely be corrupt, as this NCO employs (i.e., is linked to) netCDF library version %d which is buggy (so please upgrade to netCDF 4.5.1+ ASAP).\nHINT: There are two potential solutions for data affected by this bug: 1. Re-write (using any netCDF version) original input files in netCDF4 format instead of CDF5, then process these as normal and write netCDF4 output (instead of CDF5); 2. Re-compile NCO with netCDF library 4.5.1 or later and use it to convert non-corrupt datasets to netCDF4 format, then process the data. This message should only appear if there is a possibility that you are reading or writing a corrupt dataset. Sorry to scare you if this is a false positive. For more information on this nasty bug, see https://github.com/Unidata/netcdf-c/issues/463\n",fnc_nm,NC_LIB_VERSION);
+      }else{
+	(void)fprintf(stdout,"WARNING: Congratulations! %s reports that the only \"large\" (> 4 GiB) variable in this CDF5 file appears to be the last variable defined. Writing CDF5 files with large variables is buggy in netCDF library versions 4.4.0-4.5.0 (this NCO is linked to netCDF library version %d) unless there is only one such \"large\" variable and it is the last to be defined. Therefore this file may be fine, i.e., not corrupted by this nasty netCDF CDF5 bug: https://github.com/Unidata/netcdf-c/issues/463. Sorry not to scare you if this is a false negative.\n",fnc_nm,NC_LIB_VERSION);
+      } /* !bug_idx */
+    } /* !bug_nbr */
+  } /* !CDF5 */
+# endif /* !NC_LIB_VERSION */
+#endif /* !NCO_CDF5_BUG_CHK */
   rcd=nc_close(nc_id);
   if(rcd != NC_NOERR) nco_err_exit(rcd,fnc_nm);
   return rcd;
@@ -911,15 +1008,36 @@ nco_inq(const int nc_id,int * const dmn_nbr_fl,int * const var_nbr_fl,int * cons
   return rcd;
 } /* end nco_inq() */
 
-#ifdef NEED_NC_INQ_FORMAT
-int nc_inq_format(int nc_id, int * const fl_fmt)
+/* NB: nc_inq_path() introduced in netCDF 4.3.2, but NC_LIB_VERSION does not work until netCDF 4.4.0 */
+#ifndef HAVE_NC_INQ_PATH
+int nc_inq_path(const int nc_id,size_t * const pathlen,char * const path)
 {
-  /* Purpose: Stub for nc_inq_format(), which appeared in netCDF 3.6.1 or 3.6.2
+  /* Purpose: 20170913: Stub for nc_inq_path(), introduced in netCDF 4.3.2
+     Forward compatibility prototype required for systems with netCDF < 4.3.2 */
+  *pathlen=0L;
+  *path=NULL;
+  return NC_NOERR+0*nc_id; /* CEWI */
+} /* !nc_inq_path() */
+#endif /* !HAVE_NC_INQ_PATH */
+int nco_inq_path(const int nc_id,size_t * const pathlen,char * const path)
+{
+  /* Purpose: Wrapper for nc_inq_path() */
+  int rcd;
+  rcd=nc_inq_path(nc_id,pathlen,path);
+  if(rcd != NC_NOERR) nco_err_exit(rcd,"nco_inq_format()");
+  return rcd;
+} /* !nco_inq_path() */
+
+  /* NB: nc_inq_format() introduced in netCDF 3.6.1, but NC_LIB_VERSION does not work until netCDF 4.4.0 */
+#ifndef HAVE_NC_INQ_FORMAT
+int nc_inq_format(int nc_id,int * const fl_fmt)
+{
+  /* Purpose: Stub for nc_inq_format(), introduced in netCDF 3.6.1 or 3.6.2
      20070901 Current OPeNDAP does not have nc_inq_format() and thus requires this stub */
   *fl_fmt=NC_FORMAT_CLASSIC; /* [enm] Output file format */
   return NC_NOERR+0*nc_id; /* CEWI */
 } /* end nc_inq_format() */
-#endif /* !NEED_NC_INQ_FORMAT */
+#endif /* !HAVE_NC_INQ_FORMAT */
 int
 nco_inq_format(const int nc_id,int * const fl_fmt)
 {
@@ -932,6 +1050,7 @@ nco_inq_format(const int nc_id,int * const fl_fmt)
   return rcd;
 } /* end nco_inq_format() */
 
+  /* NB: nc_inq_format_extended() introduced in netCDF 4.3.1, but NC_LIB_VERSION does not work until netCDF 4.4.0 */
 #ifndef NC_HAVE_INQ_FORMAT_EXTENDED
 int nc_inq_format_extended(const int nc_id,int * const fl_fmt,int * const mode)
 {
@@ -950,6 +1069,7 @@ nco_inq_format_extended(const int nc_id,int * const fl_fmt,int * const mode)
   int rcd=NC_NOERR;
   /* NB: 20131222: Function nc_inq_format_extended(int ncid,int *formatp,int *mode) appeared in netCDF 4.3.1-rc7
      Forward compatibility prototype required for systems with netCDF < 4.3.1 */
+  /* NUG: "netCDF API presents file as if it had the format specified by nc_inq_format(). The true file format, however, may not even be a netCDF file; it might be DAP, HDF4, or PNETCDF, for example. nc_inq_format_extended() returns that true file type. It also returns the effective mode for the file. */
   rcd=nc_inq_format_extended(nc_id,fl_fmt,mode);
   if(rcd != NC_NOERR) nco_err_exit(rcd,"nco_inq_format_extended()");
   return rcd;
@@ -1100,8 +1220,12 @@ int
 nco_rename_grp(int grp_id,const char * const grp_nm)
 {
   /* Purpose: Wrapper for nc_rename_grp() */
+  const char fnc_nm[]="nco_rename_grp()";
   int rcd;
   rcd=nc_rename_grp(grp_id,grp_nm);
+  if(rcd == NC_ENAMEINUSE){
+    (void)fprintf(stdout,"ERROR: %s cannot define group name \"%s\" which is already in use\n",fnc_nm,grp_nm);
+  } /* endif */
   if(rcd != NC_NOERR) nco_err_exit(rcd,"nco_rename_grp()");
   return rcd;
 } /* end nco_rename_grp() */
@@ -1306,7 +1430,10 @@ nco_inq_dim(const int nc_id,const int dmn_id,char *dmn_nm,long *dmn_sz)
   /* Purpose: Wrapper for nc_inq_dim() */
   const char fnc_nm[]="nco_inq_dim()";
   int rcd;
-  rcd=nc_inq_dim(nc_id,dmn_id,dmn_nm,(size_t *)dmn_sz);
+  size_t dmn_sz_t; /* 20171115: WIN64 workaround: sizeof(long) = 4 != 8 = sizeof(size_t) */
+  if(dmn_sz) dmn_sz_t=*dmn_sz;
+  rcd=nc_inq_dim(nc_id,dmn_id,dmn_nm,&dmn_sz_t);
+  if(dmn_sz) *dmn_sz=(long)dmn_sz_t;
   if(rcd == NC_EBADDIM){
     (void)fprintf(stdout,"ERROR: %s reports requested dimension \"%s\" is not in input file\n",fnc_nm,dmn_nm);
     nco_err_exit(rcd,fnc_nm);
@@ -1320,7 +1447,10 @@ nco_inq_dim_flg(const int nc_id,const int dmn_id,char *dmn_nm,long *dmn_sz)
 {
   /* Purpose: Error-tolerant wrapper for nc_inq_dim_flg(). Tolerates NC_EBADDIM. */
   int rcd;
-  rcd=nc_inq_dim(nc_id,dmn_id,dmn_nm,(size_t *)dmn_sz);
+  size_t dmn_sz_t; /* 20171115: WIN64 workaround: sizeof(long) = 4 != 8 = sizeof(size_t) */
+  if(dmn_sz) dmn_sz_t=*dmn_sz;
+  rcd=nc_inq_dim(nc_id,dmn_id,dmn_nm,&dmn_sz_t);
+  if(dmn_sz) *dmn_sz=(long)dmn_sz_t;
   if(rcd == NC_EBADDIM) return rcd;
   if(rcd != NC_NOERR) nco_err_exit(rcd,"nco_inq_dim_flg()");
   return rcd;
@@ -1341,7 +1471,10 @@ nco_inq_dimlen(const int nc_id,const int dmn_id,long *dmn_sz)
 {
   /* Purpose: Wrapper for nc_inq_dimlen() */
   int rcd;
-  rcd=nc_inq_dimlen(nc_id,dmn_id,(size_t *)dmn_sz);
+  size_t dmn_sz_t; /* 20171115: WIN64 workaround: sizeof(long) = 4 != 8 = sizeof(size_t) */
+  if(dmn_sz) dmn_sz_t=*dmn_sz;
+  rcd=nc_inq_dimlen(nc_id,dmn_id,&dmn_sz_t);
+  if(dmn_sz) *dmn_sz=(long)dmn_sz_t;
   if(rcd != NC_NOERR) nco_err_exit(rcd,"nco_inq_dimlen()");
   return rcd;
 } /* end nco_inq_dimlen */
@@ -1350,8 +1483,12 @@ int
 nco_rename_dim(const int nc_id,const int dmn_id,const char * const dmn_nm)
 {
   /* Purpose: Wrapper for nc_rename_dim() */
+  const char fnc_nm[]="nco_rename_dim()";
   int rcd;
   rcd=nc_rename_dim(nc_id,dmn_id,dmn_nm);
+  if(rcd == NC_ENAMEINUSE){
+    (void)fprintf(stdout,"ERROR: %s cannot define dimension name \"%s\" which is already in use\n",fnc_nm,dmn_nm);
+  } /* endif */
   if(rcd != NC_NOERR) nco_err_exit(rcd,"nco_rename_dim()");
   return rcd;
 }  /* end nco_inq_rename_dim */
@@ -1440,6 +1577,15 @@ int nco_def_var_deflate
   if(rcd != NC_NOERR) nco_err_exit(rcd,"nco_def_var_deflate()");
   return rcd;
 } /* end nco_def_var_deflate() */
+
+int nco_def_var_filter(const int nc_id,const int var_id,const unsigned int flt_id,const size_t prm_nbr,const unsigned int * const prm_lst)
+{
+  /* Purpose: Wrapper for nc_def_var_filter() */
+  int rcd;
+  rcd=nc_def_var_filter(nc_id,var_id,flt_id,prm_nbr,prm_lst);
+  if(rcd != NC_NOERR) nco_err_exit(rcd,"nco_def_var_filter()");
+  return rcd;
+} /* end nco_def_var_filter() */
 
 int
 nco_inq_var(const int nc_id,const int var_id,char * const var_nm,nc_type *var_typ,int * const dmn_nbr,int * const dmn_id,int * const att_nbr)
@@ -1544,6 +1690,15 @@ nco_inq_var_fill
   if(rcd != NC_NOERR) nco_err_exit(rcd,"nco_inq_var_fill()");
   return rcd;
 } /* end nco_inq_var_fill() */
+
+int nco_inq_var_filter(const int nc_id,const int var_id,unsigned int * const flt_id,size_t * const prm_nbr,unsigned int * const prm_lst)
+{
+  /* Purpose: Wrapper for nc_inq_var_filter() */
+  int rcd;
+  rcd=nc_inq_var_filter(nc_id,var_id,flt_id,prm_nbr,prm_lst);
+  if(rcd != NC_NOERR) nco_err_exit(rcd,"nco_inq_var_filter()");
+  return rcd;
+} /* end nco_inq_var_filter() */
 
 int
 nco_def_var_fletcher32
@@ -1728,8 +1883,12 @@ int
 nco_rename_var(const int nc_id,const int var_id,const char * const var_nm)
 {
   /* Purpose: Wrapper for nc_rename_var() */
+  const char fnc_nm[]="nco_rename_var()";
   int rcd;
   rcd=nc_rename_var(nc_id,var_id,var_nm);
+  if(rcd == NC_ENAMEINUSE){
+    (void)fprintf(stdout,"ERROR: %s cannot define variable name \"%s\" which is already in use\n",fnc_nm,var_nm);
+  } /* endif */
   if(rcd != NC_NOERR) nco_err_exit(rcd,"nco_rename_var()");
   return rcd;
 } /* end nco_rename_var */
@@ -1741,6 +1900,7 @@ int
 nco_get_var(const int nc_id,const int var_id,void * const vp,const nc_type type)
 {
   /* Purpose: Wrapper for nc_get_var_*() */
+  const char fnc_nm[]="nco_get_var()";
   int rcd=NC_NOERR;
   switch(type){
   case NC_FLOAT: rcd=nc_get_var_float(nc_id,var_id,(float *)vp); break;
@@ -1759,7 +1919,12 @@ nco_get_var(const int nc_id,const int var_id,void * const vp,const nc_type type)
 #endif /* !ENABLE_NETCDF4 */
   default: nco_dfl_case_nc_type_err(); break;
   } /* end switch */
-  if(rcd != NC_NOERR) nco_err_exit(rcd,"nco_get_var()");
+  if(rcd != NC_NOERR){
+    char var_nm[NC_MAX_NAME+1L];
+    (void)nco_inq_varname(nc_id,var_id,var_nm);
+    (void)fprintf(stdout,"ERROR: %s failed to nc_get_var() variable \"%s\"\n",fnc_nm,var_nm);
+  } /* endif */
+  if(rcd != NC_NOERR) nco_err_exit(rcd,fnc_nm);
   return rcd;
 } /* end nco_get_var */
 
@@ -1777,7 +1942,7 @@ nco_put_var(const int nc_id,const int var_id,const void * const vp,const nc_type
   case NC_SHORT: rcd=nc_put_var_short(nc_id,var_id,(const short *)vp); break;
   case NC_CHAR: rcd=NCO_PUT_VAR_CHAR(nc_id,var_id,(const nco_char *)vp); break;
   case NC_BYTE: rcd=NCO_PUT_VAR_BYTE(nc_id,var_id,(const nco_byte *)vp); break;
-#ifdef ENABLE_NETCDF4
+# ifdef ENABLE_NETCDF4
   case NC_UBYTE: rcd=NCO_PUT_VAR_UBYTE(nc_id,var_id,(const nco_ubyte *)vp); break;
   case NC_USHORT: rcd=NCO_PUT_VAR_USHORT(nc_id,var_id,(const nco_ushort *)vp); break;
   case NC_UINT: rcd=NCO_PUT_VAR_UINT(nc_id,var_id,(const nco_uint *)vp); break;
@@ -1785,7 +1950,7 @@ nco_put_var(const int nc_id,const int var_id,const void * const vp,const nc_type
   case NC_UINT64: rcd=NCO_PUT_VAR_UINT64(nc_id,var_id,(const nco_uint64 *)vp); break;
     /* NC_STRING prototype next causes same compiler warnings described in nco_put_var1() above */
   case NC_STRING: rcd=NCO_PUT_VAR_STRING(nc_id,var_id,(const char **)vp); break;
-#endif /* !ENABLE_NETCDF4 */
+# endif /* !ENABLE_NETCDF4 */
   default: nco_dfl_case_nc_type_err(); break;
   } /* end switch */
   if(rcd != NC_NOERR){
@@ -1801,25 +1966,35 @@ int
 nco_get_var1(const int nc_id,const int var_id,const long * const srt,void * const vp,const nc_type var_typ)
 {
   /* Purpose: Wrapper for nc_get_var1_*() */
+  const char fnc_nm[]="nco_get_var1()";
   int rcd=NC_NOERR;
+  int dmn_nbr; /* 20171115: WIN64 workaround: sizeof(long) = 4 != 8 = sizeof(size_t) */
+  size_t srt_sz_t[NC_MAX_VAR_DIMS];
+  rcd=nc_inq_varndims(nc_id,var_id,&dmn_nbr);
+  for(int dmn_idx=0;dmn_idx<dmn_nbr;dmn_idx++) srt_sz_t[dmn_idx]=srt[dmn_idx];
   switch(var_typ){
-  case NC_FLOAT: rcd=nc_get_var1_float(nc_id,var_id,(const size_t *)srt,(float *)vp); break;
-  case NC_DOUBLE: rcd=nc_get_var1_double(nc_id,var_id,(const size_t *)srt,(double *)vp); break;
-  case NC_INT: rcd=NCO_GET_VAR1_INT(nc_id,var_id,(const size_t *)srt,(nco_int *)vp); break;
-  case NC_SHORT: rcd=nc_get_var1_short(nc_id,var_id,(const size_t *)srt,(nco_short *)vp); break;
-  case NC_CHAR: rcd=NCO_GET_VAR1_CHAR(nc_id,var_id,(const size_t *)srt,(nco_char *)vp); break;
-  case NC_BYTE: rcd=NCO_GET_VAR1_BYTE(nc_id,var_id,(const size_t *)srt,(nco_byte *)vp); break;
+  case NC_FLOAT: rcd=nc_get_var1_float(nc_id,var_id,srt_sz_t,(float *)vp); break;
+  case NC_DOUBLE: rcd=nc_get_var1_double(nc_id,var_id,srt_sz_t,(double *)vp); break;
+  case NC_INT: rcd=NCO_GET_VAR1_INT(nc_id,var_id,srt_sz_t,(nco_int *)vp); break;
+  case NC_SHORT: rcd=nc_get_var1_short(nc_id,var_id,srt_sz_t,(nco_short *)vp); break;
+  case NC_CHAR: rcd=NCO_GET_VAR1_CHAR(nc_id,var_id,srt_sz_t,(nco_char *)vp); break;
+  case NC_BYTE: rcd=NCO_GET_VAR1_BYTE(nc_id,var_id,srt_sz_t,(nco_byte *)vp); break;
 #ifdef ENABLE_NETCDF4
-  case NC_UBYTE: rcd=NCO_GET_VAR1_UBYTE(nc_id,var_id,(const size_t *)srt,(nco_ubyte *)vp); break;
-  case NC_USHORT: rcd=NCO_GET_VAR1_USHORT(nc_id,var_id,(const size_t *)srt,(nco_ushort *)vp); break;
-  case NC_UINT: rcd=NCO_GET_VAR1_UINT(nc_id,var_id,(const size_t *)srt,(nco_uint *)vp); break;
-  case NC_INT64: rcd=NCO_GET_VAR1_INT64(nc_id,var_id,(const size_t *)srt,(nco_int64 *)vp); break;
-  case NC_UINT64: rcd=NCO_GET_VAR1_UINT64(nc_id,var_id,(const size_t *)srt,(nco_uint64 *)vp); break;
-  case NC_STRING: rcd=NCO_GET_VAR1_STRING(nc_id,var_id,(const size_t *)srt,(nco_string *)vp); break;
+  case NC_UBYTE: rcd=NCO_GET_VAR1_UBYTE(nc_id,var_id,srt_sz_t,(nco_ubyte *)vp); break;
+  case NC_USHORT: rcd=NCO_GET_VAR1_USHORT(nc_id,var_id,srt_sz_t,(nco_ushort *)vp); break;
+  case NC_UINT: rcd=NCO_GET_VAR1_UINT(nc_id,var_id,srt_sz_t,(nco_uint *)vp); break;
+  case NC_INT64: rcd=NCO_GET_VAR1_INT64(nc_id,var_id,srt_sz_t,(nco_int64 *)vp); break;
+  case NC_UINT64: rcd=NCO_GET_VAR1_UINT64(nc_id,var_id,srt_sz_t,(nco_uint64 *)vp); break;
+  case NC_STRING: rcd=NCO_GET_VAR1_STRING(nc_id,var_id,srt_sz_t,(nco_string *)vp); break;
 #endif /* !ENABLE_NETCDF4 */
   default: nco_dfl_case_nc_type_err(); break;
   } /* end switch */
-  if(rcd != NC_NOERR) nco_err_exit(rcd,"nco_get_var1()");
+  if(rcd != NC_NOERR){
+    char var_nm[NC_MAX_NAME+1L];
+    (void)nco_inq_varname(nc_id,var_id,var_nm);
+    (void)fprintf(stdout,"ERROR: %s failed to nc_get_var1() variable \"%s\"\n",fnc_nm,var_nm);
+  } /* endif */
+  if(rcd != NC_NOERR) nco_err_exit(rcd,fnc_nm);
   return rcd;
 } /* end nco_get_var1 */
 
@@ -1829,19 +2004,23 @@ nco_put_var1(const int nc_id,const int var_id,const long * const srt,const void 
   /* Purpose: Wrapper for nc_put_var1_*() */
   const char fnc_nm[]="nco_put_var1()";
   int rcd=NC_NOERR;
+  int dmn_nbr; /* 20171115: WIN64 workaround: sizeof(long) = 4 != 8 = sizeof(size_t) */
+  size_t srt_sz_t[NC_MAX_VAR_DIMS];
+  rcd=nc_inq_varndims(nc_id,var_id,&dmn_nbr);
+  for(int dmn_idx=0;dmn_idx<dmn_nbr;dmn_idx++) srt_sz_t[dmn_idx]=srt[dmn_idx];
   switch(type){
-  case NC_FLOAT: rcd=nc_put_var1_float(nc_id,var_id,(const size_t *)srt,(const float *)vp); break;
-  case NC_DOUBLE: rcd=nc_put_var1_double(nc_id,var_id,(const size_t *)srt,(const double *)vp); break;
-  case NC_INT: rcd=NCO_PUT_VAR1_INT(nc_id,var_id,(const size_t *)srt,(const nco_int *)vp); break;
-  case NC_SHORT: rcd=nc_put_var1_short(nc_id,var_id,(const size_t *)srt,(const short *)vp); break;
-  case NC_CHAR: rcd=NCO_PUT_VAR1_CHAR(nc_id,var_id,(const size_t *)srt,(const nco_char *)vp); break;
-  case NC_BYTE: rcd=NCO_PUT_VAR1_BYTE(nc_id,var_id,(const size_t *)srt,(const nco_byte *)vp); break;
+  case NC_FLOAT: rcd=nc_put_var1_float(nc_id,var_id,srt_sz_t,(const float *)vp); break;
+  case NC_DOUBLE: rcd=nc_put_var1_double(nc_id,var_id,srt_sz_t,(const double *)vp); break;
+  case NC_INT: rcd=NCO_PUT_VAR1_INT(nc_id,var_id,srt_sz_t,(const nco_int *)vp); break;
+  case NC_SHORT: rcd=nc_put_var1_short(nc_id,var_id,srt_sz_t,(const short *)vp); break;
+  case NC_CHAR: rcd=NCO_PUT_VAR1_CHAR(nc_id,var_id,srt_sz_t,(const nco_char *)vp); break;
+  case NC_BYTE: rcd=NCO_PUT_VAR1_BYTE(nc_id,var_id,srt_sz_t,(const nco_byte *)vp); break;
 #ifdef ENABLE_NETCDF4
-  case NC_UBYTE: rcd=NCO_PUT_VAR1_UBYTE(nc_id,var_id,(const size_t *)srt,(const nco_ubyte *)vp); break;
-  case NC_USHORT: rcd=NCO_PUT_VAR1_USHORT(nc_id,var_id,(const size_t *)srt,(const nco_ushort *)vp); break;
-  case NC_UINT: rcd=NCO_PUT_VAR1_UINT(nc_id,var_id,(const size_t *)srt,(const nco_uint *)vp); break;
-  case NC_INT64: rcd=NCO_PUT_VAR1_INT64(nc_id,var_id,(const size_t *)srt,(const nco_int64 *)vp); break;
-  case NC_UINT64: rcd=NCO_PUT_VAR1_UINT64(nc_id,var_id,(const size_t *)srt,(const nco_uint64 *)vp); break;
+  case NC_UBYTE: rcd=NCO_PUT_VAR1_UBYTE(nc_id,var_id,srt_sz_t,(const nco_ubyte *)vp); break;
+  case NC_USHORT: rcd=NCO_PUT_VAR1_USHORT(nc_id,var_id,srt_sz_t,(const nco_ushort *)vp); break;
+  case NC_UINT: rcd=NCO_PUT_VAR1_UINT(nc_id,var_id,srt_sz_t,(const nco_uint *)vp); break;
+  case NC_INT64: rcd=NCO_PUT_VAR1_INT64(nc_id,var_id,srt_sz_t,(const nco_int64 *)vp); break;
+  case NC_UINT64: rcd=NCO_PUT_VAR1_UINT64(nc_id,var_id,srt_sz_t,(const nco_uint64 *)vp); break;
     /* Next line produces GCC warning:
        attention : passing argument 4 of ‘nc_put_var1_string’ from incompatible pointer type 
        I think this warning occurs because this routine receives input vp 
@@ -1854,13 +2033,13 @@ nco_put_var1(const int nc_id,const int var_id,const long * const srt,const void 
        Choose solution that allows trouble-free g++ compilation */
     /* Next line produces gcc and g++ warning:
        attention : le transtypage annule des qualificateurs du type pointeur ciblé */
-  case NC_STRING: rcd=NCO_PUT_VAR1_STRING(nc_id,var_id,(const size_t *)srt,(const char **)vp); break;
+  case NC_STRING: rcd=NCO_PUT_VAR1_STRING(nc_id,var_id,srt_sz_t,(const char **)vp); break;
       /* Next line produces g++ warning:
        erreur: invalid conversion from ‘char* const* const’ to ‘const char** */
-    /* case NC_STRING: rcd=NCO_PUT_VAR1_STRING(nc_id,var_id,(const size_t *)srt,(const nco_string * const)vp); break;*/
+    /* case NC_STRING: rcd=NCO_PUT_VAR1_STRING(nc_id,var_id,srt_sz_t,(const nco_string * const)vp); break;*/
     /* Next line produces g++ warning:
         erreur: invalid conversion from ‘char* const*’ to ‘const char** */
-    /*  case NC_STRING: rcd=NCO_PUT_VAR1_STRING(nc_id,var_id,(const size_t *)srt,(const nco_string *)vp); break;*/
+    /*  case NC_STRING: rcd=NCO_PUT_VAR1_STRING(nc_id,var_id,srt_sz_t,(const nco_string *)vp); break;*/
 #endif /* !ENABLE_NETCDF4 */
   default: nco_dfl_case_nc_type_err(); break;
   } /* end switch */
@@ -1869,7 +2048,7 @@ nco_put_var1(const int nc_id,const int var_id,const long * const srt,const void 
     (void)nco_inq_varname(nc_id,var_id,var_nm);
     (void)fprintf(stdout,"ERROR: %s failed to nc_put_var1() variable \"%s\"\n",fnc_nm,var_nm);
   } /* endif */
-  if(rcd != NC_NOERR) nco_err_exit(rcd,"nco_put_var1()");
+  if(rcd != NC_NOERR) nco_err_exit(rcd,fnc_nm);
   return rcd;
 } /* end nco_put_var1 */
 
@@ -1877,7 +2056,34 @@ int
 nco_get_vara(const int nc_id,const int var_id,const long * const srt,const long * const cnt,void * const vp,const nc_type type)
 {
   /* Purpose: Wrapper for nc_get_vara_*() */
+  const char fnc_nm[]="nco_get_vara()";
   int rcd=NC_NOERR;
+  int dmn_nbr; /* 20171115: WIN64 workaround: sizeof(long) = 4 != 8 = sizeof(size_t) */
+  size_t cnt_sz_t[NC_MAX_VAR_DIMS];
+  size_t srt_sz_t[NC_MAX_VAR_DIMS];
+  rcd=nc_inq_varndims(nc_id,var_id,&dmn_nbr);
+  for(int dmn_idx=0;dmn_idx<dmn_nbr;dmn_idx++){
+    cnt_sz_t[dmn_idx]=cnt[dmn_idx];
+    srt_sz_t[dmn_idx]=srt[dmn_idx];
+  } /* !dmn_idx */
+  switch(type){
+  case NC_FLOAT: rcd=nc_get_vara_float(nc_id,var_id,srt_sz_t,cnt_sz_t,(float *)vp); break;
+  case NC_DOUBLE: rcd=nc_get_vara_double(nc_id,var_id,srt_sz_t,cnt_sz_t,(double *)vp); break;
+  case NC_INT: rcd=NCO_GET_VARA_INT(nc_id,var_id,srt_sz_t,cnt_sz_t,(nco_int *)vp); break;
+  case NC_SHORT: rcd=nc_get_vara_short(nc_id,var_id,srt_sz_t,cnt_sz_t,(nco_short *)vp); break;
+  case NC_CHAR: rcd=NCO_GET_VARA_CHAR(nc_id,var_id,srt_sz_t,cnt_sz_t,(nco_char *)vp); break;
+  case NC_BYTE: rcd=NCO_GET_VARA_BYTE(nc_id,var_id,srt_sz_t,cnt_sz_t,(nco_byte *)vp); break;
+#ifdef ENABLE_NETCDF4
+  case NC_UBYTE: rcd=NCO_GET_VARA_UBYTE(nc_id,var_id,srt_sz_t,cnt_sz_t,(nco_ubyte *)vp); break;
+  case NC_USHORT: rcd=NCO_GET_VARA_USHORT(nc_id,var_id,srt_sz_t,cnt_sz_t,(nco_ushort *)vp); break;
+  case NC_UINT: rcd=NCO_GET_VARA_UINT(nc_id,var_id,srt_sz_t,cnt_sz_t,(nco_uint *)vp); break;
+  case NC_INT64: rcd=NCO_GET_VARA_INT64(nc_id,var_id,srt_sz_t,cnt_sz_t,(nco_int64 *)vp); break;
+  case NC_UINT64: rcd=NCO_GET_VARA_UINT64(nc_id,var_id,srt_sz_t,cnt_sz_t,(nco_uint64 *)vp); break;
+  case NC_STRING: rcd=NCO_GET_VARA_STRING(nc_id,var_id,srt_sz_t,cnt_sz_t,(nco_string *)vp); break;
+#endif /* !ENABLE_NETCDF4 */
+  default: nco_dfl_case_nc_type_err(); break;
+  } /* end switch */
+#if 0
   switch(type){
   case NC_FLOAT: rcd=nc_get_vara_float(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(float *)vp); break;
   case NC_DOUBLE: rcd=nc_get_vara_double(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(double *)vp); break;
@@ -1895,7 +2101,13 @@ nco_get_vara(const int nc_id,const int var_id,const long * const srt,const long 
 #endif /* !ENABLE_NETCDF4 */
   default: nco_dfl_case_nc_type_err(); break;
   } /* end switch */
-  if(rcd != NC_NOERR) nco_err_exit(rcd,"nco_get_vara()");
+#endif /* !0 */
+  if(rcd != NC_NOERR){
+    char var_nm[NC_MAX_NAME+1L];
+    (void)nco_inq_varname(nc_id,var_id,var_nm);
+    (void)fprintf(stdout,"ERROR: %s failed to nc_get_vara() variable \"%s\"\n",fnc_nm,var_nm);
+  } /* endif */
+  if(rcd != NC_NOERR) nco_err_exit(rcd,fnc_nm);
   return rcd;
 } /* end nco_get_vara */
 
@@ -1905,21 +2117,29 @@ nco_put_vara(const int nc_id,const int var_id,const long * const srt,const long 
   /* Purpose: Wrapper for nc_put_vara_*() */
   const char fnc_nm[]="nco_put_vara()";
   int rcd=NC_NOERR;
+  int dmn_nbr; /* 20171115: WIN64 workaround: sizeof(long) = 4 != 8 = sizeof(size_t) */
+  size_t cnt_sz_t[NC_MAX_VAR_DIMS];
+  size_t srt_sz_t[NC_MAX_VAR_DIMS];
+  rcd=nc_inq_varndims(nc_id,var_id,&dmn_nbr);
+  for(int dmn_idx=0;dmn_idx<dmn_nbr;dmn_idx++){
+    cnt_sz_t[dmn_idx]=cnt[dmn_idx];
+    srt_sz_t[dmn_idx]=srt[dmn_idx];
+  } /* !dmn_idx */
   switch(type){
-  case NC_FLOAT: rcd=nc_put_vara_float(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const float *)vp); break;
-  case NC_DOUBLE: rcd=nc_put_vara_double(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const double *)vp); break;
-  case NC_INT: rcd=NCO_PUT_VARA_INT(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const nco_int *)vp); break;
-  case NC_SHORT: rcd=nc_put_vara_short(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const short *)vp); break;
-  case NC_CHAR: rcd=NCO_PUT_VARA_CHAR(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const nco_char *)vp); break;
-  case NC_BYTE: rcd=NCO_PUT_VARA_BYTE(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const nco_byte *)vp); break;
+  case NC_FLOAT: rcd=nc_put_vara_float(nc_id,var_id,srt_sz_t,cnt_sz_t,(const float *)vp); break;
+  case NC_DOUBLE: rcd=nc_put_vara_double(nc_id,var_id,srt_sz_t,cnt_sz_t,(const double *)vp); break;
+  case NC_INT: rcd=NCO_PUT_VARA_INT(nc_id,var_id,srt_sz_t,cnt_sz_t,(const nco_int *)vp); break;
+  case NC_SHORT: rcd=nc_put_vara_short(nc_id,var_id,srt_sz_t,cnt_sz_t,(const short *)vp); break;
+  case NC_CHAR: rcd=NCO_PUT_VARA_CHAR(nc_id,var_id,srt_sz_t,cnt_sz_t,(const nco_char *)vp); break;
+  case NC_BYTE: rcd=NCO_PUT_VARA_BYTE(nc_id,var_id,srt_sz_t,cnt_sz_t,(const nco_byte *)vp); break;
 #ifdef ENABLE_NETCDF4
-  case NC_UBYTE: rcd=NCO_PUT_VARA_UBYTE(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const nco_ubyte *)vp); break;
-  case NC_USHORT: rcd=NCO_PUT_VARA_USHORT(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const nco_ushort *)vp); break;
-  case NC_UINT: rcd=NCO_PUT_VARA_UINT(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const nco_uint *)vp); break;
-  case NC_INT64: rcd=NCO_PUT_VARA_INT64(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const nco_int64 *)vp); break;
-  case NC_UINT64: rcd=NCO_PUT_VARA_UINT64(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const nco_uint64 *)vp); break;
+  case NC_UBYTE: rcd=NCO_PUT_VARA_UBYTE(nc_id,var_id,srt_sz_t,cnt_sz_t,(const nco_ubyte *)vp); break;
+  case NC_USHORT: rcd=NCO_PUT_VARA_USHORT(nc_id,var_id,srt_sz_t,cnt_sz_t,(const nco_ushort *)vp); break;
+  case NC_UINT: rcd=NCO_PUT_VARA_UINT(nc_id,var_id,srt_sz_t,cnt_sz_t,(const nco_uint *)vp); break;
+  case NC_INT64: rcd=NCO_PUT_VARA_INT64(nc_id,var_id,srt_sz_t,cnt_sz_t,(const nco_int64 *)vp); break;
+  case NC_UINT64: rcd=NCO_PUT_VARA_UINT64(nc_id,var_id,srt_sz_t,cnt_sz_t,(const nco_uint64 *)vp); break;
     /* NC_STRING prototype next causes same compiler warnings described in nco_put_var1() above */
-  case NC_STRING: rcd=NCO_PUT_VARA_STRING(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const char **)vp); break;
+  case NC_STRING: rcd=NCO_PUT_VARA_STRING(nc_id,var_id,srt_sz_t,cnt_sz_t,(const char **)vp); break;
 #endif /* !ENABLE_NETCDF4 */
   default: nco_dfl_case_nc_type_err(); break;
   } /* end switch */
@@ -1936,25 +2156,41 @@ int
 nco_get_vars(const int nc_id,const int var_id,const long * const srt,const long * const cnt,const long * const srd,void * const vp,const nc_type type)
 {
   /* Purpose: Wrapper for nc_get_vars_*() */
+  const char fnc_nm[]="nco_get_vars()";
   int rcd=NC_NOERR;
+  int dmn_nbr; /* 20171115: WIN64 workaround: sizeof(long) = 4 != 8 = sizeof(size_t) */
+  ptrdiff_t srd_pd_t[NC_MAX_VAR_DIMS];
+  size_t cnt_sz_t[NC_MAX_VAR_DIMS];
+  size_t srt_sz_t[NC_MAX_VAR_DIMS];
+  rcd=nc_inq_varndims(nc_id,var_id,&dmn_nbr);
+  for(int dmn_idx=0;dmn_idx<dmn_nbr;dmn_idx++){
+    cnt_sz_t[dmn_idx]=cnt[dmn_idx];
+    srd_pd_t[dmn_idx]=srd[dmn_idx];
+    srt_sz_t[dmn_idx]=srt[dmn_idx];
+  } /* !dmn_idx */
   switch(type){
-  case NC_FLOAT: rcd=nc_get_vars_float(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(float *)vp); break;
-  case NC_DOUBLE: rcd=nc_get_vars_double(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(double *)vp); break;
-  case NC_INT: rcd=NCO_GET_VARS_INT(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(nco_int *)vp); break;
-  case NC_SHORT: rcd=nc_get_vars_short(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(nco_short *)vp); break;
-  case NC_CHAR: rcd=NCO_GET_VARS_CHAR(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(nco_char *)vp); break;
-  case NC_BYTE: rcd=NCO_GET_VARS_BYTE(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(nco_byte *)vp); break;
+  case NC_FLOAT: rcd=nc_get_vars_float(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,(float *)vp); break;
+  case NC_DOUBLE: rcd=nc_get_vars_double(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,(double *)vp); break;
+  case NC_INT: rcd=NCO_GET_VARS_INT(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,(nco_int *)vp); break;
+  case NC_SHORT: rcd=nc_get_vars_short(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,(nco_short *)vp); break;
+  case NC_CHAR: rcd=NCO_GET_VARS_CHAR(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,(nco_char *)vp); break;
+  case NC_BYTE: rcd=NCO_GET_VARS_BYTE(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,(nco_byte *)vp); break;
 #ifdef ENABLE_NETCDF4
-  case NC_UBYTE: rcd=NCO_GET_VARS_UBYTE(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(nco_ubyte *)vp); break;
-  case NC_USHORT: rcd=NCO_GET_VARS_USHORT(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(nco_ushort *)vp); break;
-  case NC_UINT: rcd=NCO_GET_VARS_UINT(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(nco_uint *)vp); break;
-  case NC_INT64: rcd=NCO_GET_VARS_INT64(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(nco_int64 *)vp); break;
-  case NC_UINT64: rcd=NCO_GET_VARS_UINT64(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(nco_uint64 *)vp); break;
-  case NC_STRING: rcd=NCO_GET_VARS_STRING(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(nco_string *)vp); break;
+  case NC_UBYTE: rcd=NCO_GET_VARS_UBYTE(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,(nco_ubyte *)vp); break;
+  case NC_USHORT: rcd=NCO_GET_VARS_USHORT(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,(nco_ushort *)vp); break;
+  case NC_UINT: rcd=NCO_GET_VARS_UINT(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,(nco_uint *)vp); break;
+  case NC_INT64: rcd=NCO_GET_VARS_INT64(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,(nco_int64 *)vp); break;
+  case NC_UINT64: rcd=NCO_GET_VARS_UINT64(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,(nco_uint64 *)vp); break;
+  case NC_STRING: rcd=NCO_GET_VARS_STRING(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,(nco_string *)vp); break;
 #endif /* !ENABLE_NETCDF4 */
   default: nco_dfl_case_nc_type_err(); break;
   } /* end switch */
-  if(rcd != NC_NOERR) nco_err_exit(rcd,"nco_get_vars()");
+  if(rcd != NC_NOERR){
+    char var_nm[NC_MAX_NAME+1L];
+    (void)nco_inq_varname(nc_id,var_id,var_nm);
+    (void)fprintf(stdout,"ERROR: %s failed to nc_get_vars() variable \"%s\"\n",fnc_nm,var_nm);
+  } /* endif */
+  if(rcd != NC_NOERR) nco_err_exit(rcd,fnc_nm);
   return rcd;
 } /* end nco_get_vars */
 
@@ -1962,26 +2198,42 @@ int
 nco_put_vars(const int nc_id,const int var_id,const long * const srt,const long * const cnt,const long * const srd,const void * const vp,const nc_type type)
 {
   /* Purpose: Wrapper for nc_put_vars_*() */
+  const char fnc_nm[]="nco_put_vars()";
   int rcd=NC_NOERR;
+  int dmn_nbr; /* 20171115: WIN64 workaround: sizeof(long) = 4 != 8 = sizeof(size_t) */
+  ptrdiff_t srd_pd_t[NC_MAX_VAR_DIMS];
+  size_t cnt_sz_t[NC_MAX_VAR_DIMS];
+  size_t srt_sz_t[NC_MAX_VAR_DIMS];
+  rcd=nc_inq_varndims(nc_id,var_id,&dmn_nbr);
+  for(int dmn_idx=0;dmn_idx<dmn_nbr;dmn_idx++){
+    cnt_sz_t[dmn_idx]=cnt[dmn_idx];
+    srd_pd_t[dmn_idx]=srd[dmn_idx];
+    srt_sz_t[dmn_idx]=srt[dmn_idx];
+  } /* !dmn_idx */
   switch(type){
-  case NC_FLOAT: rcd=nc_put_vars_float(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd, (const float *)vp); break;
-  case NC_DOUBLE: rcd=nc_put_vars_double(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const double *)vp); break;
-  case NC_INT: rcd=NCO_PUT_VARS_INT(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const nco_int *)vp); break;
-  case NC_SHORT: rcd=nc_put_vars_short(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd, (const short *)vp); break;
-  case NC_CHAR: rcd=NCO_PUT_VARS_CHAR(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const nco_char *)vp); break;
-  case NC_BYTE: rcd=NCO_PUT_VARS_BYTE(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd, (const nco_byte *)vp); break;
+  case NC_FLOAT: rcd=nc_put_vars_float(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t, (const float *)vp); break;
+  case NC_DOUBLE: rcd=nc_put_vars_double(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,(const double *)vp); break;
+  case NC_INT: rcd=NCO_PUT_VARS_INT(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,(const nco_int *)vp); break;
+  case NC_SHORT: rcd=nc_put_vars_short(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t, (const short *)vp); break;
+  case NC_CHAR: rcd=NCO_PUT_VARS_CHAR(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,(const nco_char *)vp); break;
+  case NC_BYTE: rcd=NCO_PUT_VARS_BYTE(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t, (const nco_byte *)vp); break;
 #ifdef ENABLE_NETCDF4
-  case NC_UBYTE: rcd=NCO_PUT_VARS_UBYTE(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const nco_ubyte *)vp); break;
-  case NC_USHORT: rcd=NCO_PUT_VARS_USHORT(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd, (const nco_ushort *)vp); break;
-  case NC_UINT: rcd=NCO_PUT_VARS_UINT(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd, (const nco_uint *)vp); break;
-  case NC_INT64: rcd=NCO_PUT_VARS_INT64(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd, (const nco_int64 *)vp); break;
-  case NC_UINT64: rcd=NCO_PUT_VARS_UINT64(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const nco_uint64 *)vp); break;
+  case NC_UBYTE: rcd=NCO_PUT_VARS_UBYTE(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,(const nco_ubyte *)vp); break;
+  case NC_USHORT: rcd=NCO_PUT_VARS_USHORT(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t, (const nco_ushort *)vp); break;
+  case NC_UINT: rcd=NCO_PUT_VARS_UINT(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t, (const nco_uint *)vp); break;
+  case NC_INT64: rcd=NCO_PUT_VARS_INT64(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t, (const nco_int64 *)vp); break;
+  case NC_UINT64: rcd=NCO_PUT_VARS_UINT64(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,(const nco_uint64 *)vp); break;
     /* NC_STRING prototype next causes same compiler warnings described in nco_put_var1() above */
-  case NC_STRING: rcd=NCO_PUT_VARS_STRING(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const char **)vp); break;
+  case NC_STRING: rcd=NCO_PUT_VARS_STRING(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,(const char **)vp); break;
 #endif /* !ENABLE_NETCDF4 */
   default: nco_dfl_case_nc_type_err(); break;
   } /* end switch */
-  if(rcd != NC_NOERR) nco_err_exit(rcd,"nco_put_vars()");
+  if(rcd != NC_NOERR){
+    char var_nm[NC_MAX_NAME+1L];
+    (void)nco_inq_varname(nc_id,var_id,var_nm);
+    (void)fprintf(stdout,"ERROR: %s failed to nc_put_vars() variable \"%s\"\n",fnc_nm,var_nm);
+  } /* endif */
+  if(rcd != NC_NOERR) nco_err_exit(rcd,fnc_nm);
   return rcd;
 } /* end nco_put_vars */
 
@@ -1990,21 +2242,32 @@ nco_get_varm(const int nc_id,const int var_id,const long * const srt,const long 
 {
   /* Purpose: Wrapper for nc_get_varm_*() */
   int rcd=NC_NOERR;
-
+  int dmn_nbr; /* 20171115: WIN64 workaround: sizeof(long) = 4 != 8 = sizeof(size_t) */
+  ptrdiff_t map_pd_t[NC_MAX_VAR_DIMS];
+  ptrdiff_t srd_pd_t[NC_MAX_VAR_DIMS];
+  size_t cnt_sz_t[NC_MAX_VAR_DIMS];
+  size_t srt_sz_t[NC_MAX_VAR_DIMS];
+  rcd=nc_inq_varndims(nc_id,var_id,&dmn_nbr);
+  for(int dmn_idx=0;dmn_idx<dmn_nbr;dmn_idx++){
+    cnt_sz_t[dmn_idx]=cnt[dmn_idx];
+    map_pd_t[dmn_idx]=map[dmn_idx];
+    srd_pd_t[dmn_idx]=srd[dmn_idx];
+    srt_sz_t[dmn_idx]=srt[dmn_idx];
+  } /* !dmn_idx */
   switch(type){
-  case NC_FLOAT: rcd=nc_get_varm_float(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const ptrdiff_t *)map,(float *)vp); break;
-  case NC_DOUBLE: rcd=nc_get_varm_double(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const ptrdiff_t *)map,(double *)vp); break;
-  case NC_INT: rcd=NCO_GET_VARM_INT(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const ptrdiff_t *)map,(nco_int *)vp); break;
-  case NC_SHORT: rcd=nc_get_varm_short(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const ptrdiff_t *)map,(nco_short *)vp); break;
-  case NC_CHAR: rcd=NCO_GET_VARM_CHAR(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const ptrdiff_t *)map,(nco_char *)vp); break;
-  case NC_BYTE: rcd=NCO_GET_VARM_BYTE(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const ptrdiff_t *)map,(nco_byte *)vp); break;
+  case NC_FLOAT: rcd=nc_get_varm_float(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,map_pd_t,(float *)vp); break;
+  case NC_DOUBLE: rcd=nc_get_varm_double(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,map_pd_t,(double *)vp); break;
+  case NC_INT: rcd=NCO_GET_VARM_INT(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,map_pd_t,(nco_int *)vp); break;
+  case NC_SHORT: rcd=nc_get_varm_short(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,map_pd_t,(nco_short *)vp); break;
+  case NC_CHAR: rcd=NCO_GET_VARM_CHAR(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,map_pd_t,(nco_char *)vp); break;
+  case NC_BYTE: rcd=NCO_GET_VARM_BYTE(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,map_pd_t,(nco_byte *)vp); break;
 #ifdef ENABLE_NETCDF4
-  case NC_UBYTE: rcd=NCO_GET_VARM_UBYTE(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const ptrdiff_t *)map,(nco_ubyte *)vp); break;
-  case NC_USHORT: rcd=NCO_GET_VARM_USHORT(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const ptrdiff_t *)map,(nco_ushort *)vp); break;
-  case NC_UINT: rcd=NCO_GET_VARM_UINT(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const ptrdiff_t *)map,(nco_uint *)vp); break;
-  case NC_INT64: rcd=NCO_GET_VARM_INT64(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const ptrdiff_t *)map,(nco_int64 *)vp); break;
-  case NC_UINT64: rcd=NCO_GET_VARM_UINT64(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const ptrdiff_t *)map,(nco_uint64 *)vp); break;
-  case NC_STRING: rcd=NCO_GET_VARM_STRING(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const ptrdiff_t *)map,(nco_string *)vp); break;
+  case NC_UBYTE: rcd=NCO_GET_VARM_UBYTE(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,map_pd_t,(nco_ubyte *)vp); break;
+  case NC_USHORT: rcd=NCO_GET_VARM_USHORT(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,map_pd_t,(nco_ushort *)vp); break;
+  case NC_UINT: rcd=NCO_GET_VARM_UINT(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,map_pd_t,(nco_uint *)vp); break;
+  case NC_INT64: rcd=NCO_GET_VARM_INT64(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,map_pd_t,(nco_int64 *)vp); break;
+  case NC_UINT64: rcd=NCO_GET_VARM_UINT64(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,map_pd_t,(nco_uint64 *)vp); break;
+  case NC_STRING: rcd=NCO_GET_VARM_STRING(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,map_pd_t,(nco_string *)vp); break;
 #endif /* !ENABLE_NETCDF4 */
   default: nco_dfl_case_nc_type_err(); break;
   } /* end switch */
@@ -2017,21 +2280,33 @@ nco_put_varm(const int nc_id,const int var_id,const long * const srt,const long 
 {
   /* Purpose: Wrapper for nc_put_varm_*() */
   int rcd=NC_NOERR;
+  int dmn_nbr; /* 20171115: WIN64 workaround: sizeof(long) = 4 != 8 = sizeof(size_t) */
+  ptrdiff_t map_pd_t[NC_MAX_VAR_DIMS];
+  ptrdiff_t srd_pd_t[NC_MAX_VAR_DIMS];
+  size_t cnt_sz_t[NC_MAX_VAR_DIMS];
+  size_t srt_sz_t[NC_MAX_VAR_DIMS];
+  rcd=nc_inq_varndims(nc_id,var_id,&dmn_nbr);
+  for(int dmn_idx=0;dmn_idx<dmn_nbr;dmn_idx++){
+    cnt_sz_t[dmn_idx]=cnt[dmn_idx];
+    map_pd_t[dmn_idx]=map[dmn_idx];
+    srd_pd_t[dmn_idx]=srd[dmn_idx];
+    srt_sz_t[dmn_idx]=srt[dmn_idx];
+  } /* !dmn_idx */
   switch(type){
-  case NC_FLOAT: rcd=nc_put_varm_float(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const ptrdiff_t *)map,(const float *)vp); break;
-  case NC_DOUBLE: rcd=nc_put_varm_double(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const ptrdiff_t *)map,(const double *)vp); break;
-  case NC_INT: rcd=NCO_PUT_VARM_INT(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const ptrdiff_t *)map,(const nco_int *)vp); break;
-  case NC_SHORT: rcd=nc_put_varm_short(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const ptrdiff_t *)map,(const short *)vp); break;
-  case NC_CHAR: rcd=NCO_PUT_VARM_CHAR(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const ptrdiff_t *)map,(const nco_char *)vp); break;
-  case NC_BYTE: rcd=NCO_PUT_VARM_BYTE(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const ptrdiff_t *)map,(const nco_byte *)vp); break;
+  case NC_FLOAT: rcd=nc_put_varm_float(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,map_pd_t,(const float *)vp); break;
+  case NC_DOUBLE: rcd=nc_put_varm_double(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,map_pd_t,(const double *)vp); break;
+  case NC_INT: rcd=NCO_PUT_VARM_INT(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,map_pd_t,(const nco_int *)vp); break;
+  case NC_SHORT: rcd=nc_put_varm_short(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,map_pd_t,(const short *)vp); break;
+  case NC_CHAR: rcd=NCO_PUT_VARM_CHAR(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,map_pd_t,(const nco_char *)vp); break;
+  case NC_BYTE: rcd=NCO_PUT_VARM_BYTE(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,map_pd_t,(const nco_byte *)vp); break;
 #ifdef ENABLE_NETCDF4
-  case NC_UBYTE: rcd=NCO_PUT_VARM_UBYTE(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const ptrdiff_t *)map,(const nco_ubyte *)vp); break;
-  case NC_USHORT: rcd=NCO_PUT_VARM_USHORT(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const ptrdiff_t *)map,(const nco_ushort *)vp); break;
-  case NC_UINT: rcd=NCO_PUT_VARM_UINT(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const ptrdiff_t *)map,(const nco_uint *)vp); break;
-  case NC_INT64: rcd=NCO_PUT_VARM_INT64(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const ptrdiff_t *)map,(const nco_int64 *)vp); break;
-  case NC_UINT64: rcd=NCO_PUT_VARM_UINT64(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const ptrdiff_t *)map,(const nco_uint64 *)vp); break;
+  case NC_UBYTE: rcd=NCO_PUT_VARM_UBYTE(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,map_pd_t,(const nco_ubyte *)vp); break;
+  case NC_USHORT: rcd=NCO_PUT_VARM_USHORT(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,map_pd_t,(const nco_ushort *)vp); break;
+  case NC_UINT: rcd=NCO_PUT_VARM_UINT(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,map_pd_t,(const nco_uint *)vp); break;
+  case NC_INT64: rcd=NCO_PUT_VARM_INT64(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,map_pd_t,(const nco_int64 *)vp); break;
+  case NC_UINT64: rcd=NCO_PUT_VARM_UINT64(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,map_pd_t,(const nco_uint64 *)vp); break;
     /* NC_STRING prototype next causes same compiler warnings described in nco_put_var1() above */
-  case NC_STRING: rcd=NCO_PUT_VARM_STRING(nc_id,var_id,(const size_t *)srt,(const size_t *)cnt,(const ptrdiff_t *)srd,(const ptrdiff_t *)map,(const char **)vp); break;
+  case NC_STRING: rcd=NCO_PUT_VARM_STRING(nc_id,var_id,srt_sz_t,cnt_sz_t,srd_pd_t,map_pd_t,(const char **)vp); break;
 #endif /* !ENABLE_NETCDF4 */
   default: nco_dfl_case_nc_type_err(); break;
   } /* end switch */
@@ -2047,7 +2322,10 @@ nco_inq_att(const int nc_id,const int var_id,const char * const att_nm,nc_type *
   /* Purpose: Wrapper for nc_inq_att() */
   const char fnc_nm[]="nco_inq_att()";
   int rcd;
-  rcd=nc_inq_att(nc_id,var_id,att_nm,att_typ,(size_t *)att_sz);
+  size_t att_sz_t; /* 20171115: WIN64 workaround: sizeof(long) = 4 != 8 = sizeof(size_t) */
+  if(att_sz) att_sz_t=*att_sz;
+  rcd=nc_inq_att(nc_id,var_id,att_nm,att_typ,&att_sz_t);
+  if(att_sz) *att_sz=(long)att_sz_t;
   if(rcd != NC_NOERR){
     (void)fprintf(stderr,"ERROR: %s unable to inquire attribute var_id: %d, att_nm: %s\n",fnc_nm,var_id,att_nm);
     nco_err_exit(rcd,fnc_nm);
@@ -2061,7 +2339,10 @@ nco_inq_att_flg(const int nc_id,const int var_id,const char * const att_nm,nc_ty
   /* Purpose: Error-tolerant wrapper for nc_inq_att(). Tolerates ENOTATT. */
   const char fnc_nm[]="nco_inq_att_flg()";
   int rcd;
-  rcd=nc_inq_att(nc_id,var_id,att_nm,att_typ,(size_t *)att_sz);
+  size_t att_sz_t; /* 20171115: WIN64 workaround: sizeof(long) = 4 != 8 = sizeof(size_t) */
+  if(att_sz) att_sz_t=*att_sz;
+  rcd=nc_inq_att(nc_id,var_id,att_nm,att_typ,&att_sz_t);
+  if(att_sz) *att_sz=(long)att_sz_t;
   if(rcd == NC_ENOTATT) return rcd;
   if(rcd != NC_NOERR){
     (void)fprintf(stderr,"ERROR: %s unable to inquire attribute var_id: %d, att_nm: %s\n",fnc_nm,var_id,att_nm);
@@ -2110,7 +2391,10 @@ nco_inq_attlen(const int nc_id,const int var_id,const char * const att_nm,long *
 {
   /* Purpose: Wrapper for nc_inq_attlen() */
   int rcd;
-  rcd=nc_inq_attlen(nc_id,var_id,att_nm,(size_t *)att_sz);
+  size_t att_sz_t; /* 20171115: WIN64 workaround: sizeof(long) = 4 != 8 = sizeof(size_t) */
+  if(att_sz) att_sz_t=*att_sz;
+  rcd=nc_inq_attlen(nc_id,var_id,att_nm,&att_sz_t);
+  if(att_sz) *att_sz=(long)att_sz_t;
   if(rcd != NC_NOERR) nco_err_exit(rcd,"nco_inq_attlen()");
   return rcd;
 } /* end nco_inq_attlen */
@@ -2121,7 +2405,10 @@ nco_inq_attlen_flg(const int nc_id,const int var_id,const char * const att_nm,lo
   /* Purpose: Error-tolerant wrapper for nc_inq_attlen(). Tolerates NC_ENOTATT. */
   const char fnc_nm[]="nco_inq_attlen_flg()";
   int rcd;
-  rcd=nc_inq_attlen(nc_id,var_id,att_nm,(size_t *)att_sz);
+  size_t att_sz_t; /* 20171115: WIN64 workaround: sizeof(long) = 4 != 8 = sizeof(size_t) */
+  if(att_sz) att_sz_t=*att_sz;
+  rcd=nc_inq_attlen(nc_id,var_id,att_nm,&att_sz_t);
+  if(att_sz) *att_sz=(long)att_sz_t;
   if(rcd == NC_ENOTATT) return rcd;
   if(rcd != NC_NOERR) nco_err_exit(rcd,fnc_nm);
   return rcd;
@@ -2204,11 +2491,11 @@ nco_put_att(const int nc_id,const int var_id,const char * const att_nm,const nc_
 #endif /* !ENABLE_NETCDF4 */
   default: nco_dfl_case_nc_type_err(); break;
   } /* end switch */
-  /* 20170811: netCDF 4.5.x enforces rule attempting to add _FillValue to root/group (NC_GLOBAL) returns NC_EGLOBAL */
+  /* 20170811: netCDF 4.5.0-development enforced rule attempting to add _FillValue to root/group (NC_GLOBAL) returns NC_EGLOBAL */
   if(rcd == NC_EGLOBAL && !strcmp(att_nm,"_FillValue")){
     char grp_nm[NC_MAX_NAME+1L];
     (void)nco_inq_grpname(nc_id,grp_nm);
-    (void)fprintf(stdout,"WARNING: %s received NC_EGLOBAL error writing attribute \"%s\" to metadata for group \"%s\". netCDF 4.5.x forbids this with the _FillValue attribute, though earlier versions allow it. Proceeding normally without writing %s attribute...\n",fnc_nm,att_nm,grp_nm,att_nm);
+    (void)fprintf(stdout,"WARNING: %s received NC_EGLOBAL error writing attribute \"%s\" to metadata for group \"%s\". netCDF 4.5.0-development forbids writing the _FillValue attribute to global or group metadata, though earlier versions allow it. Proceeding normally without writing %s attribute...\n",fnc_nm,att_nm,grp_nm,att_nm);
     rcd=NC_NOERR;
   } /* !rcd */
   if(rcd != NC_NOERR) nco_err_exit(rcd,"nco_put_att()");

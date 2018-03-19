@@ -4,7 +4,7 @@
 
 /* Purpose: Rename dimensions, variables, and attributes of a netCDF file */
 
-/* Copyright (C) 1995--2017 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3.
@@ -166,10 +166,9 @@ main(int argc,char **argv)
   int prc_nbr=0; /* [nbr] Number of MPI processes */
 #endif /* !ENABLE_MPI */
   
-  static struct option opt_lng[] =
-  { /* Structure ordered by short option key if possible */
+  static struct option opt_lng[]={ /* Structure ordered by short option key if possible */
     /* Long options with no argument, no short option counterpart */
-        {"clean",no_argument,0,0}, /* [flg] Clean memory prior to exit */
+    {"clean",no_argument,0,0}, /* [flg] Clean memory prior to exit */
     {"mmr_cln",no_argument,0,0}, /* [flg] Clean memory prior to exit */
     {"drt",no_argument,0,0}, /* [flg] Allow dirty memory on exit */
     {"dirty",no_argument,0,0}, /* [flg] Allow dirty memory on exit */
@@ -188,6 +187,8 @@ main(int argc,char **argv)
     {"glb_att_add",required_argument,0,0}, /* [sng] Global attribute add */
     {"hdr_pad",required_argument,0,0},
     {"header_pad",required_argument,0,0},
+    {"log_lvl",required_argument,0,0}, /* [enm] netCDF library debugging verbosity [0..5] */
+    {"log_level",required_argument,0,0}, /* [enm] netCDF library debugging verbosity [0..5] */
     /* Long options with short counterparts */
     {"attribute",required_argument,0,'a'},
     {"debug",required_argument,0,'D'},
@@ -212,7 +213,7 @@ main(int argc,char **argv)
     {0,0,0,0}
   };
   int opt_idx=0;  /* Index of current long option into opt_lng array */
-
+  
   /* Start timer and save command line */ 
   ddra_info.tmr_flg=nco_tmr_srt;
   rcd+=nco_ddra((char *)NULL,(char *)NULL,&ddra_info);
@@ -255,6 +256,7 @@ main(int argc,char **argv)
         hdr_pad=strtoul(optarg,&sng_cnv_rcd,NCO_SNG_CNV_BASE10);
         if(*sng_cnv_rcd) nco_sng_cnv_err(optarg,"strtoul",sng_cnv_rcd);
       } /* endif "hdr_pad" */
+      if(!strcmp(opt_crr,"log_lvl") || !strcmp(opt_crr,"log_level")){nc_set_log_level(optarg);} /* [enm] netCDF library debugging verbosity [0..5] */
       if(!strcmp(opt_crr,"ram_all") || !strcmp(opt_crr,"open_ram") || !strcmp(opt_crr,"diskless_all")) RAM_OPEN=True; /* [flg] Create file in RAM */
       if(!strcmp(opt_crr,"vrs") || !strcmp(opt_crr,"version")){
         (void)nco_vrs_prn(CVS_Id,CVS_Revision);
@@ -275,7 +277,6 @@ main(int argc,char **argv)
     case 'D': /* Debugging level. Default is 0. */
       nco_dbg_lvl=(unsigned short int)strtoul(optarg,&sng_cnv_rcd,NCO_SNG_CNV_BASE10);
       if(*sng_cnv_rcd) nco_sng_cnv_err(optarg,"strtoul",sng_cnv_rcd);
-      nc_set_log_level(nco_dbg_lvl);
       break;
     case 'd': /* Copy argument for later processing */
       dmn_rnm_arg[nbr_dmn_rnm]=(char *)strdup(optarg);
@@ -330,7 +331,7 @@ main(int argc,char **argv)
     if(opt_crr) opt_crr=(char *)nco_free(opt_crr);
   } /* end while loop */
 
-  /* Process positional arguments and fill in filenames */
+  /* Process positional arguments and fill-in filenames */
   fl_lst_in=nco_fl_lst_mk(argv,argc,optind,&fl_nbr,&fl_out,&FL_LST_IN_FROM_STDIN);
   if(fl_out) FL_OUT_NEW=True; else fl_out=(char *)strdup(fl_lst_in[0]);
 
@@ -413,7 +414,7 @@ main(int argc,char **argv)
     }else if(mch_nbr == 0 && is_opt){
       (void)fprintf(stdout,"%s: INFO Optional variable \'%s\' not present in %s, skipping it\n",nco_prg_nm,var_rnm_lst[idx_var].old_nm+1L,fl_in);
     }else{
-      if(nco_dbg_lvl >= nco_dbg_std) (void)fprintf(stdout,"%s: Renamed %d variable%s from \'%s\' to \'%s\'\n",nco_prg_nm,mch_nbr,mch_nbr != 1 ? "s" : "",var_rnm_lst[idx_var].old_nm,var_rnm_lst[idx_var].new_nm);
+      if(nco_dbg_lvl >= nco_dbg_fl) (void)fprintf(stdout,"%s: Renamed %d variable%s from \'%s\' to \'%s\'\n",nco_prg_nm,mch_nbr,mch_nbr != 1 ? "s" : "",var_rnm_lst[idx_var].old_nm,var_rnm_lst[idx_var].new_nm);
     } /* end else */
 
     mch_nbr_var+=mch_nbr;
@@ -448,7 +449,7 @@ main(int argc,char **argv)
     }else if(mch_nbr == 0 && is_opt){
       (void)fprintf(stdout,"%s: INFO Optional group \'%s\' not present in %s, skipping it\n",nco_prg_nm,grp_rnm_lst[idx_grp].old_nm+1L,fl_in);
     }else{
-      if(nco_dbg_lvl >= nco_dbg_std) (void)fprintf(stdout,"%s: Renamed %d group%s from \'%s\' to \'%s\'\n",nco_prg_nm,mch_nbr,mch_nbr != 1 ? "s" : "",grp_rnm_lst[idx_grp].old_nm,grp_rnm_lst[idx_grp].new_nm);
+      if(nco_dbg_lvl >= nco_dbg_fl) (void)fprintf(stdout,"%s: Renamed %d group%s from \'%s\' to \'%s\'\n",nco_prg_nm,mch_nbr,mch_nbr != 1 ? "s" : "",grp_rnm_lst[idx_grp].old_nm,grp_rnm_lst[idx_grp].new_nm);
     } /* end else */
 
     mch_nbr_grp+=mch_nbr;
@@ -473,6 +474,7 @@ main(int argc,char **argv)
 	mch_nbr++;
 	(void)nco_inq_grp_full_ncid(nc_id,trv_tbl->lst_dmn[tbl_idx].grp_nm_fll,&grp_id);
 	rcd=nco_inq_dimid(grp_id,trv_tbl->lst_dmn[tbl_idx].nm,&dmn_rnm_lst[idx_dmn].id);
+	if(nco_dbg_lvl >= nco_dbg_fl) (void)fprintf(stdout,"%s: grp_nm_fll= \'%s\', grp_id=%d, dmn_id = %d\n",nco_prg_nm,trv_tbl->lst_dmn[tbl_idx].grp_nm_fll,grp_id,dmn_rnm_lst[idx_dmn].id);
 	(void)nco_rename_dim(grp_id,dmn_rnm_lst[idx_dmn].id,dmn_rnm_lst[idx_dmn].new_nm);
 	if(nco_dbg_lvl >= nco_dbg_fl) (void)fprintf(stdout,"%s: Renamed dimension \'%s\' to \'%s\'\n",nco_prg_nm,trv_tbl->lst_dmn[tbl_idx].nm_fll,dmn_rnm_lst[idx_dmn].new_nm);
       } /* endif */
@@ -483,7 +485,7 @@ main(int argc,char **argv)
     }else if(mch_nbr == 0 && is_opt){
       (void)fprintf(stdout,"%s: INFO Optional dimension \'%s\' not present in %s, skipping it\n",nco_prg_nm,dmn_rnm_lst[idx_dmn].old_nm+1L,fl_in);
     }else{
-      if(nco_dbg_lvl >= nco_dbg_std) (void)fprintf(stdout,"%s: Renamed %d dimension%s from \'%s\' to \'%s\'\n",nco_prg_nm,mch_nbr,mch_nbr != 1 ? "s" : "",dmn_rnm_lst[idx_dmn].old_nm,dmn_rnm_lst[idx_dmn].new_nm);
+      if(nco_dbg_lvl >= nco_dbg_fl) (void)fprintf(stdout,"%s: Renamed %d dimension%s from \'%s\' to \'%s\'\n",nco_prg_nm,mch_nbr,mch_nbr != 1 ? "s" : "",dmn_rnm_lst[idx_dmn].old_nm,dmn_rnm_lst[idx_dmn].new_nm);
     } /* end else */
 
     mch_nbr_dmn+=mch_nbr;
@@ -602,7 +604,7 @@ main(int argc,char **argv)
       } /* !obj_is_opt */
     } /* endif specified object not found */
 
-    if(nco_dbg_lvl >= nco_dbg_std) (void)fprintf(stdout,"%s: Renamed %d attribute%s from \'%s\' to \'%s\'\n",nco_prg_nm,mch_nbr,mch_nbr != 1 ? "s" : "",att_rnm_lst[idx_att].old_nm,att_rnm_lst[idx_att].new_nm);
+    if(nco_dbg_lvl >= nco_dbg_fl) (void)fprintf(stdout,"%s: Renamed %d attribute%s from \'%s\' to \'%s\'\n",nco_prg_nm,mch_nbr,mch_nbr != 1 ? "s" : "",att_rnm_lst[idx_att].old_nm,att_rnm_lst[idx_att].new_nm);
 
     mch_nbr_att+=mch_nbr;
 
@@ -611,12 +613,14 @@ main(int argc,char **argv)
   /* Reset error return code */
   rcd=NC_NOERR;
 
-  (void)fprintf(stdout,"%s: In total renamed ",nco_prg_nm);
-  (void)fprintf(stdout,"%d attribute%s",mch_nbr_att,mch_nbr_att != 1 ? "s" : "");
-  (void)fprintf(stdout,", %d dimension%s",mch_nbr_dmn,mch_nbr_dmn != 1 ? "s" : "");
-  (void)fprintf(stdout,", %d group%s",mch_nbr_grp,mch_nbr_grp != 1 ? "s" : "");
-  (void)fprintf(stdout,", and %d variable%s\n",mch_nbr_var,mch_nbr_var != 1 ? "s" : "");
-
+  if(nco_dbg_lvl >= nco_dbg_std){
+    (void)fprintf(stdout,"%s: In total renamed ",nco_prg_nm);
+    (void)fprintf(stdout,"%d attribute%s",mch_nbr_att,mch_nbr_att != 1 ? "s" : "");
+    (void)fprintf(stdout,", %d dimension%s",mch_nbr_dmn,mch_nbr_dmn != 1 ? "s" : "");
+    (void)fprintf(stdout,", %d group%s",mch_nbr_grp,mch_nbr_grp != 1 ? "s" : "");
+    (void)fprintf(stdout,", and %d variable%s\n",mch_nbr_var,mch_nbr_var != 1 ? "s" : "");
+  } /* !nco_dbg_lvl */
+    
   /* Catenate time-stamped command line to "history" global attribute */
   if(HISTORY_APPEND) (void)nco_hst_att_cat(nc_id,cmd_ln);
   if(gaa_nbr > 0) (void)nco_glb_att_add(nc_id,gaa_arg,gaa_nbr);

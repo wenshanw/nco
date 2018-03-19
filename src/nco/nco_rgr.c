@@ -2,7 +2,7 @@
 
 /* Purpose: NCO regridding utilities */
 
-/* Copyright (C) 2015--2017 Charlie Zender
+/* Copyright (C) 2015--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -19,33 +19,35 @@ nco_rgr_ctl /* [fnc] Control regridding logic */
   const char fnc_nm[]="nco_rgr_ctl()";
 
   nco_bool flg_grd=False; /* [flg] Create SCRIP-format grid file */
+  nco_bool flg_map=False; /* [flg] Create ESMF-format mapfile */
   nco_bool flg_nfr=False; /* [flg] Infer SCRIP-format grid file */
-  nco_bool flg_map=False; /* [flg] Regrid with external weights */
-  nco_bool flg_smf=False; /* [flg] ESMF regridding */
-  nco_bool flg_tps=False; /* [flg] Tempest regridding */
+  nco_bool flg_smf=False; /* [flg] ESMF regridding (unused) */
+  nco_bool flg_tps=False; /* [flg] Tempest regridding (unused) */
+  nco_bool flg_wgt=False; /* [flg] Regrid with external weights */
 
   /* Main control branching occurs here
      Branching complexity and utility will increase as regridding features are added */
   if(rgr->flg_grd) flg_grd=True;
-
+  if(rgr->flg_grd_src && rgr->flg_grd_dst && rgr->flg_wgt) flg_map=True;
   if(rgr->flg_nfr) flg_nfr=True;
-  if(rgr->flg_map) flg_map=True;
-  if(rgr->flg_grd_src && rgr->flg_grd_dst) flg_smf=True;
-  if(rgr->drc_tps && !flg_map) flg_tps=True;
-  assert(!(flg_smf && flg_map));
-  assert(!(flg_smf && flg_tps));
-  assert(!(flg_map && flg_tps));
+  if(rgr->flg_wgt && !(rgr->flg_grd_src && rgr->flg_grd_dst)) flg_wgt=True;
+  assert(!flg_smf);
+  assert(!flg_tps);
   
   /* Create SCRIP-format grid file */
   if(flg_grd) rcd=nco_grd_mk(rgr);
 
-  /* Infer SCRIP-format grid file */
+  /* Create ESMF-format map file */
+  if(flg_map) rcd=nco_map_mk(rgr);
+
+  /* Infer SCRIP-format grid file from data file */
   if(flg_nfr) rcd=nco_grd_nfr(rgr);
 
-  /* Regrid using external mapping weights */
-  if(flg_map) rcd=nco_rgr_map(rgr,trv_tbl);
+  /* Regrid data file using weights from mapping file */
+  if(flg_wgt) rcd=nco_rgr_wgt(rgr,trv_tbl);
 
-  /* Regrid using ESMF library */
+  /* Regrid using ESMF library
+     20150701: On-line weight generation with ESMF never worked well and was abandoned */
   if(flg_smf){
 #ifdef ENABLE_ESMF
     (void)fprintf(stderr,"%s: %s calling nco_rgr_esmf() to generate and apply regridding map\n",nco_prg_nm_get(),fnc_nm);
@@ -56,9 +58,11 @@ nco_rgr_ctl /* [fnc] Control regridding logic */
     (void)fprintf(stderr,"%s: ERROR %s reports attempt to use ESMF regridding without built-in support. Re-configure with --enable_esmf.\n",nco_prg_nm_get(),fnc_nm);
     nco_exit(EXIT_FAILURE);
 #endif /* !ENABLE_ESMF */
-} /* !flg_smf */
+  } /* !flg_smf */
   
-  /* Regrid using Tempest regridding */
+  /* Regrid using TempestRemap regridding
+     20180314: Weight generation with Tempest is implemented off-line via ncremap, not internally on-line
+     However, do not deprecate this since TempestRemap2 has a library that could be accessed on-line */
   if(flg_tps) rcd=nco_rgr_tps(rgr);
 
   return rcd;
@@ -167,7 +171,7 @@ nco_rgr_ini /* [fnc] Initialize regridding structure */
   rgr->fl_out=rgr_out; /* [sng] File containing regridded fields */
   rgr->fl_out_tmp=NULL_CEWI; /* [sng] Temporary file containing regridded fields */
 
-  rgr->flg_map= rgr_map ? True : False; /* [flg] User-specified mapping weights */
+  rgr->flg_wgt= rgr_map ? True : False; /* [flg] User-specified mapping weights */
   rgr->fl_map=rgr_map; /* [sng] File containing mapping weights from source to destination grid */
 
   rgr->var_nm=rgr_var; /* [sng] Variable for special regridding treatment */
@@ -577,7 +581,7 @@ nco_rgr_ini /* [fnc] Initialize regridding structure */
 } /* end nco_rgr_ini() */
   
 int /* O [enm] Return code */
-nco_rgr_map /* [fnc] Regrid with external weights */
+nco_rgr_wgt /* [fnc] Regrid with external weights */
 (rgr_sct * const rgr, /* I/O [sct] Regridding structure */
  trv_tbl_sct * const trv_tbl) /* I/O [sct] Traversal Table */
 {
@@ -649,7 +653,7 @@ nco_rgr_map /* [fnc] Regrid with external weights */
      Sample regrid T42->POP43, SCRIP:
      ncks -O --map=${DATA}/scrip/rmp_T42_to_POP43_conserv.nc ${DATA}/rgr/essgcm14_clm.nc ~/foo.nc */
 
-  const char fnc_nm[]="nco_rgr_map()"; /* [sng] Function name */
+  const char fnc_nm[]="nco_rgr_wgt()"; /* [sng] Function name */
 
   char *fl_in;
   char *fl_pth_lcl=NULL;
@@ -657,20 +661,22 @@ nco_rgr_map /* [fnc] Regrid with external weights */
   const double rdn2dgr=180.0/M_PI;
   const double dgr2rdn=M_PI/180.0;
   const double eps_rlt=1.0e-14; /* [frc] Round-off error tolerance */
+
   double lat_wgt_ttl=0.0; /* [frc] Actual sum of quadrature weights */
   double area_out_ttl=0.0; /* [frc] Exact sum of area */
 
+  int dfl_lvl=NCO_DFL_LVL_UNDEFINED; /* [enm] Deflate level */
+  int fl_out_fmt=NCO_FORMAT_UNDEFINED; /* [enm] Output file format */
+  int fll_md_old; /* [enm] Old fill mode */
   int in_id; /* I [id] Input netCDF file ID */
-  int out_id; /* I [id] Output netCDF file ID */
   int md_open; /* [enm] Mode flag for nc_open() call */
+  int out_id; /* I [id] Output netCDF file ID */
   int rcd=NC_NOERR;
 
-  int dfl_lvl=NCO_DFL_LVL_UNDEFINED; /* [enm] Deflate level */
+  int dmn_idx; /* [idx] Dimension index */
   int dst_grid_corners_id; /* [id] Destination grid corners dimension ID */
   int dst_grid_rank_id; /* [id] Destination grid rank dimension ID */
   int dst_grid_size_id; /* [id] Destination grid size dimension ID */
-  int fl_out_fmt=NCO_FORMAT_UNDEFINED; /* [enm] Output file format */
-  int fll_md_old; /* [enm] Old fill mode */
   int num_links_id; /* [id] Number of links dimension ID */
   int num_wgts_id; /* [id] Number of weights dimension ID */
   int src_grid_corners_id; /* [id] Source grid corners dimension ID */
@@ -693,7 +699,7 @@ nco_rgr_map /* [fnc] Regrid with external weights */
   nco_grd_lat_typ_enm nco_grd_lat_typ=nco_grd_lat_nil; /* [enm] Latitude grid-type enum */
   nco_grd_lon_typ_enm nco_grd_lon_typ=nco_grd_lon_nil; /* [enm] Longitude grid-type enum */
 
-  nco_mpf_sct rgr_map;
+  nco_mpf_sct mpf;
 
   size_t bfr_sz_hnt=NC_SIZEHINT_DEFAULT; /* [B] Buffer size hint */
   
@@ -799,25 +805,25 @@ nco_rgr_map /* [fnc] Regrid with external weights */
   } /* end switch */
 
   /* Use dimension IDs to get dimension sizes */
-  rcd+=nco_inq_dimlen(in_id,num_links_id,&rgr_map.num_links);
+  rcd+=nco_inq_dimlen(in_id,num_links_id,&mpf.num_links);
   if(nco_rgr_mpf_typ != nco_rgr_mpf_ESMF_weight_only){
-    rcd+=nco_inq_dimlen(in_id,src_grid_size_id,&rgr_map.src_grid_size);
-    rcd+=nco_inq_dimlen(in_id,dst_grid_size_id,&rgr_map.dst_grid_size);
-    rcd+=nco_inq_dimlen(in_id,src_grid_corners_id,&rgr_map.src_grid_corners);
-    rcd+=nco_inq_dimlen(in_id,dst_grid_corners_id,&rgr_map.dst_grid_corners);
-    rcd+=nco_inq_dimlen(in_id,src_grid_rank_id,&rgr_map.src_grid_rank);
-    rcd+=nco_inq_dimlen(in_id,dst_grid_rank_id,&rgr_map.dst_grid_rank);
+    rcd+=nco_inq_dimlen(in_id,src_grid_size_id,&mpf.src_grid_size);
+    rcd+=nco_inq_dimlen(in_id,dst_grid_size_id,&mpf.dst_grid_size);
+    rcd+=nco_inq_dimlen(in_id,src_grid_corners_id,&mpf.src_grid_corners);
+    rcd+=nco_inq_dimlen(in_id,dst_grid_corners_id,&mpf.dst_grid_corners);
+    rcd+=nco_inq_dimlen(in_id,src_grid_rank_id,&mpf.src_grid_rank);
+    rcd+=nco_inq_dimlen(in_id,dst_grid_rank_id,&mpf.dst_grid_rank);
     /* TempestRemap does not generate num_wgts */
-    if(nco_rgr_mpf_typ == nco_rgr_mpf_Tempest) rgr_map.num_wgts=int_CEWI; else rcd+=nco_inq_dimlen(in_id,num_wgts_id,&rgr_map.num_wgts); 
-    assert(rgr_map.src_grid_size < INT_MAX && rgr_map.dst_grid_size < INT_MAX);
+    if(nco_rgr_mpf_typ == nco_rgr_mpf_Tempest) mpf.num_wgts=int_CEWI; else rcd+=nco_inq_dimlen(in_id,num_wgts_id,&mpf.num_wgts); 
+    assert(mpf.src_grid_size < INT_MAX && mpf.dst_grid_size < INT_MAX);
   }else{
-    rgr_map.src_grid_size=long_CEWI;
-    rgr_map.dst_grid_size=long_CEWI;
-    rgr_map.src_grid_corners=long_CEWI;
-    rgr_map.dst_grid_corners=long_CEWI;
-    rgr_map.src_grid_rank=long_CEWI;
-    rgr_map.dst_grid_rank=long_CEWI;
-    rgr_map.num_wgts=int_CEWI;
+    mpf.src_grid_size=long_CEWI;
+    mpf.dst_grid_size=long_CEWI;
+    mpf.src_grid_corners=long_CEWI;
+    mpf.dst_grid_corners=long_CEWI;
+    mpf.src_grid_rank=long_CEWI;
+    mpf.dst_grid_rank=long_CEWI;
+    mpf.num_wgts=int_CEWI;
   } /* !ESMF_weight_only */
   
   cnv_sng=strdup("normalization");
@@ -863,7 +869,7 @@ nco_rgr_map /* [fnc] Regrid with external weights */
 
   if(nco_dbg_lvl_get() >= nco_dbg_scl){
     (void)fprintf(stderr,"%s: INFO %s regridding input metadata and grid sizes: ",nco_prg_nm_get(),fnc_nm);
-    (void)fprintf(stderr,"mapfile_generator = %s, map_method = %s, normalization = %s, src_grid_size = n_a = %li, dst_grid_size = n_b = %li, src_grid_corners = nv_a = %li, dst_grid_corners = nv_b = %li, src_grid_rank = %li, dst_grid_rank = %li, num_links = n_s = %li, num_wgts = %li\n",nco_rgr_mpf_sng(nco_rgr_mpf_typ),nco_rgr_mth_sng(nco_rgr_mth_typ),nco_rgr_nrm_sng(nco_rgr_nrm_typ),rgr_map.src_grid_size,rgr_map.dst_grid_size,rgr_map.src_grid_corners,rgr_map.dst_grid_corners,rgr_map.src_grid_rank,rgr_map.dst_grid_rank,rgr_map.num_links,rgr_map.num_wgts);
+    (void)fprintf(stderr,"mapfile_generator = %s, map_method = %s, normalization = %s, src_grid_size = n_a = %li, dst_grid_size = n_b = %li, src_grid_corners = nv_a = %li, dst_grid_corners = nv_b = %li, src_grid_rank = %li, dst_grid_rank = %li, num_links = n_s = %li, num_wgts = %li\n",nco_rgr_mpf_sng(nco_rgr_mpf_typ),nco_rgr_mth_sng(nco_rgr_mth_typ),nco_rgr_nrm_sng(nco_rgr_nrm_typ),mpf.src_grid_size,mpf.dst_grid_size,mpf.src_grid_corners,mpf.dst_grid_corners,mpf.src_grid_rank,mpf.dst_grid_rank,mpf.num_links,mpf.num_wgts);
   } /* endif dbg */
   if(nco_rgr_nrm_typ == nco_rgr_nrm_none){
     (void)fprintf(stdout,"%s: ERROR %s reports requested normalization type = %s is not yet supported. Specifically, masks specified by a mask variable (dst_grid_imask,mask_b) are ignored. More specifically, any destination mask information is assumed to be built into the weight array so that no source points will contribute to masked locations. Talk to Charlie if you want this changed.\n",nco_prg_nm_get(),fnc_nm,nco_rgr_nrm_sng(nco_rgr_nrm_typ));
@@ -875,10 +881,10 @@ nco_rgr_map /* [fnc] Regrid with external weights */
   assert(nco_rgr_mpf_typ != nco_rgr_mpf_ESMF_weight_only);
  
   /* Set type of grid conversion */
-  if(rgr_map.src_grid_rank == 1 && rgr_map.dst_grid_rank == 1) nco_rgr_typ=nco_rgr_grd_1D_to_1D;
-  if(rgr_map.src_grid_rank == 1 && rgr_map.dst_grid_rank == 2) nco_rgr_typ=nco_rgr_grd_1D_to_2D;
-  if(rgr_map.src_grid_rank == 2 && rgr_map.dst_grid_rank == 1) nco_rgr_typ=nco_rgr_grd_2D_to_1D;
-  if(rgr_map.src_grid_rank == 2 && rgr_map.dst_grid_rank == 2) nco_rgr_typ=nco_rgr_grd_2D_to_2D;
+  if(mpf.src_grid_rank == 1 && mpf.dst_grid_rank == 1) nco_rgr_typ=nco_rgr_grd_1D_to_1D;
+  if(mpf.src_grid_rank == 1 && mpf.dst_grid_rank == 2) nco_rgr_typ=nco_rgr_grd_1D_to_2D;
+  if(mpf.src_grid_rank == 2 && mpf.dst_grid_rank == 1) nco_rgr_typ=nco_rgr_grd_2D_to_1D;
+  if(mpf.src_grid_rank == 2 && mpf.dst_grid_rank == 2) nco_rgr_typ=nco_rgr_grd_2D_to_2D;
   assert(nco_rgr_typ != nco_rgr_grd_nil);
   /* Save typing later */
   nco_bool flg_grd_in_1D=False;
@@ -1036,35 +1042,35 @@ nco_rgr_map /* [fnc] Regrid with external weights */
   long *dmn_srd=NULL;
   long idx; /* [idx] Counting index for unrolled grids */
     
-  /* Allocate space to hold dimension metadata for rectangular destination grid */
+  /* Allocate space to hold dimension metadata for destination grid */
   dmn_srt=(long *)nco_malloc(dmn_nbr_grd_max*sizeof(long));
   dmn_cnt=(long *)nco_malloc(dmn_nbr_grd_max*sizeof(long));
   dmn_srd=(long *)nco_malloc(dmn_nbr_grd_max*sizeof(long));
 
   dmn_srt[0]=0L;
-  dmn_cnt[0]=rgr_map.src_grid_rank;
-  dmn_sz_in_int=(int *)nco_malloc(rgr_map.src_grid_rank*nco_typ_lng((nc_type)NC_INT));
+  dmn_cnt[0]=mpf.src_grid_rank;
+  dmn_sz_in_int=(int *)nco_malloc(mpf.src_grid_rank*nco_typ_lng((nc_type)NC_INT));
   rcd=nco_get_vara(in_id,dmn_sz_in_int_id,dmn_srt,dmn_cnt,dmn_sz_in_int,(nc_type)NC_INT);
   dmn_srt[0]=0L;
-  dmn_cnt[0]=rgr_map.dst_grid_rank;
-  dmn_sz_out_int=(int *)nco_malloc(rgr_map.dst_grid_rank*nco_typ_lng((nc_type)NC_INT));
+  dmn_cnt[0]=mpf.dst_grid_rank;
+  dmn_sz_out_int=(int *)nco_malloc(mpf.dst_grid_rank*nco_typ_lng((nc_type)NC_INT));
   rcd=nco_get_vara(in_id,dmn_sz_out_int_id,dmn_srt,dmn_cnt,dmn_sz_out_int,(nc_type)NC_INT);
 
   /* Check-for and workaround faulty Tempest and MPAS-O/I grid sizes */
-  if(flg_grd_in_1D && (rgr_map.src_grid_size != dmn_sz_in_int[0])){
-    (void)fprintf(stdout,"%s: INFO %s reports input grid dimension sizes disagree: rgr_map.src_grid_size = %ld != %d = dmn_sz_in[0]. Problem may be caused by incorrect src_grid_dims variable. This is a known issue with some TempestRemap mapfiles generated prior to ~20150901, and in some ESMF mapfiles for MPAS-O/I. This problem can be safely ignored if workaround succeeds. Attempting workaround ...\n",nco_prg_nm_get(),fnc_nm,rgr_map.src_grid_size,dmn_sz_in_int[0]);
-      dmn_sz_in_int[0]=rgr_map.src_grid_size;
+  if(flg_grd_in_1D && (mpf.src_grid_size != dmn_sz_in_int[0])){
+    (void)fprintf(stdout,"%s: INFO %s reports input grid dimension sizes disagree: mpf.src_grid_size = %ld != %d = dmn_sz_in[0]. Problem may be caused by incorrect src_grid_dims variable. This is a known issue with some TempestRemap mapfiles generated prior to ~20150901, and in some ESMF mapfiles for MPAS-O/I. This problem can be safely ignored if workaround succeeds. Attempting workaround ...\n",nco_prg_nm_get(),fnc_nm,mpf.src_grid_size,dmn_sz_in_int[0]);
+      dmn_sz_in_int[0]=mpf.src_grid_size;
   } /* !bug */
-  if(flg_grd_out_1D && (rgr_map.dst_grid_size != dmn_sz_out_int[0])){
-    (void)fprintf(stdout,"%s: INFO %s reports output grid dimension sizes disagree: rgr_map.dst_grid_size = %ld != %d = dmn_sz_out[0]. Problem may be caused by incorrect dst_grid_dims variable. This is a known issue with some TempestRemap mapfiles generated prior to ~20150901, and in some ESMF mapfiles for MPAS-O/I. This problem can be safely ignored if workaround succeeds. Attempting workaround ...\n",nco_prg_nm_get(),fnc_nm,rgr_map.dst_grid_size,dmn_sz_out_int[0]);
-    dmn_sz_out_int[0]=rgr_map.dst_grid_size;
+  if(flg_grd_out_1D && (mpf.dst_grid_size != dmn_sz_out_int[0])){
+    (void)fprintf(stdout,"%s: INFO %s reports output grid dimension sizes disagree: mpf.dst_grid_size = %ld != %d = dmn_sz_out[0]. Problem may be caused by incorrect dst_grid_dims variable. This is a known issue with some TempestRemap mapfiles generated prior to ~20150901, and in some ESMF mapfiles for MPAS-O/I. This problem can be safely ignored if workaround succeeds. Attempting workaround ...\n",nco_prg_nm_get(),fnc_nm,mpf.dst_grid_size,dmn_sz_out_int[0]);
+    dmn_sz_out_int[0]=mpf.dst_grid_size;
   } /* !bug */
  
   long col_nbr_in; /* [idx] Number of columns in source grid */
   long lon_nbr_in; /* [idx] Number of longitudes in rectangular source grid */
   long lat_nbr_in; /* [idx] Number of latitudes  in rectangular source grid */
-  const size_t grd_sz_in=rgr_map.src_grid_size; /* [nbr] Number of elements in single layer of input grid */
-  const size_t grd_sz_out=rgr_map.dst_grid_size; /* [nbr] Number of elements in single layer of output grid */
+  const size_t grd_sz_in=mpf.src_grid_size; /* [nbr] Number of elements in single layer of input grid */
+  const size_t grd_sz_out=mpf.dst_grid_size; /* [nbr] Number of elements in single layer of output grid */
   if(flg_grd_in_1D){
     col_nbr_in=dmn_sz_in_int[0];
     lon_nbr_in=dmn_sz_in_int[0];
@@ -1085,7 +1091,7 @@ nco_rgr_map /* [fnc] Regrid with external weights */
   long slat_nbr_out=long_CEWI; /* [nbr] Number of latitudes in staggered FV grid destination grid */
   long slon_nbr_out=long_CEWI; /* [nbr] Number of longitudes in staggered FV grid destination grid */
   if(flg_grd_out_1D){
-    bnd_nbr_out=rgr_map.dst_grid_corners;
+    bnd_nbr_out=mpf.dst_grid_corners;
     col_nbr_out=dmn_sz_out_int[0];
     lat_nbr_out=dmn_sz_out_int[0];
     lon_nbr_out=dmn_sz_out_int[0];
@@ -1122,8 +1128,8 @@ nco_rgr_map /* [fnc] Regrid with external weights */
   if(flg_grd_out_2D){
     lon_ctr_out=(double *)nco_malloc(grd_sz_out*nco_typ_lng(crd_typ_out));
     lat_ctr_out=(double *)nco_malloc(grd_sz_out*nco_typ_lng(crd_typ_out));
-    lon_crn_out=(double *)nco_malloc(rgr_map.dst_grid_corners*grd_sz_out*nco_typ_lng(crd_typ_out));
-    lat_crn_out=(double *)nco_malloc(rgr_map.dst_grid_corners*grd_sz_out*nco_typ_lng(crd_typ_out));
+    lon_crn_out=(double *)nco_malloc(mpf.dst_grid_corners*grd_sz_out*nco_typ_lng(crd_typ_out));
+    lat_crn_out=(double *)nco_malloc(mpf.dst_grid_corners*grd_sz_out*nco_typ_lng(crd_typ_out));
 
     dmn_srt[0]=0L;
     dmn_cnt[0]=grd_sz_out;
@@ -1131,11 +1137,11 @@ nco_rgr_map /* [fnc] Regrid with external weights */
     rcd=nco_get_vara(in_id,dst_grd_ctr_lat_id,dmn_srt,dmn_cnt,lat_ctr_out,crd_typ_out);
     dmn_srt[0]=dmn_srt[1]=0L;
     dmn_cnt[0]=grd_sz_out;
-    dmn_cnt[1]=rgr_map.dst_grid_corners;
+    dmn_cnt[1]=mpf.dst_grid_corners;
     rcd=nco_get_vara(in_id,dst_grd_crn_lon_id,dmn_srt,dmn_cnt,lon_crn_out,crd_typ_out);
     rcd=nco_get_vara(in_id,dst_grd_crn_lat_id,dmn_srt,dmn_cnt,lat_crn_out,crd_typ_out);
 
-    /* User may specify curvilinear grid (with --rgr crv). If not specified, manually test output grid for curvilinearity... */
+    /* User may specify curvilinear grid (with --rgr crv). Otherwise, manually test for curvilinear source grid. */
     flg_grd_out_crv=rgr->flg_crv; /* [flg] Curvilinear coordinates */
     if(flg_grd_out_crv){
       if(nco_dbg_lvl_get() >= nco_dbg_std) (void)fprintf(stdout,"%s: INFO Output grid specified to be %s\n",nco_prg_nm_get(),flg_grd_out_crv ? "Curvilinear" : "Rectangular");
@@ -1151,7 +1157,7 @@ nco_rgr_map /* [fnc] Regrid with external weights */
       if(nco_dbg_lvl_get() >= nco_dbg_std) (void)fprintf(stdout,"%s: INFO Output grid detected to be %s\n",nco_prg_nm_get(),flg_grd_out_crv ? "Curvilinear" : "Rectangular");
     } /* !flg_grd_out_crv */
 
-    if(flg_grd_out_crv) bnd_nbr_out=rgr_map.dst_grid_corners;
+    if(flg_grd_out_crv) bnd_nbr_out=mpf.dst_grid_corners;
     if(flg_grd_out_rct) bnd_nbr_out=2; /* NB: Assumes rectangular latitude and longitude and is invalid for other quadrilaterals */
   } /* !flg_grd_out_2D */
 
@@ -1175,8 +1181,8 @@ nco_rgr_map /* [fnc] Regrid with external weights */
     if(lon_crn_out) lon_crn_out=(double *)nco_free(lon_crn_out);
     lon_ctr_out=(double *)nco_malloc(lon_nbr_out*nco_typ_lng(crd_typ_out));
     lat_ctr_out=(double *)nco_malloc(lat_nbr_out*nco_typ_lng(crd_typ_out));
-    lon_crn_out=(double *)nco_malloc(rgr_map.dst_grid_corners*lon_nbr_out*nco_typ_lng(crd_typ_out));
-    lat_crn_out=(double *)nco_malloc(rgr_map.dst_grid_corners*lat_nbr_out*nco_typ_lng(crd_typ_out));
+    lon_crn_out=(double *)nco_malloc(mpf.dst_grid_corners*lon_nbr_out*nco_typ_lng(crd_typ_out));
+    lat_crn_out=(double *)nco_malloc(mpf.dst_grid_corners*lat_nbr_out*nco_typ_lng(crd_typ_out));
     lat_wgt_out=(double *)nco_malloc(lat_nbr_out*nco_typ_lng(crd_typ_out));
     lon_ntf_out=(double *)nco_malloc((lon_nbr_out+1L)*nco_typ_lng(crd_typ_out));
     lat_ntf_out=(double *)nco_malloc((lat_nbr_out+1L)*nco_typ_lng(crd_typ_out));
@@ -1250,20 +1256,20 @@ nco_rgr_map /* [fnc] Regrid with external weights */
     rcd=nco_get_vars(in_id,dst_grd_ctr_lat_id,dmn_srt,dmn_cnt,dmn_srd,lat_ctr_out,crd_typ_out);
     dmn_srt[0]=dmn_srt[1]=0L;
     dmn_cnt[0]=lon_nbr_out;
-    dmn_cnt[1]=rgr_map.dst_grid_corners;
+    dmn_cnt[1]=mpf.dst_grid_corners;
     rcd=nco_get_vara(in_id,dst_grd_crn_lon_id,dmn_srt,dmn_cnt,lon_crn_out,crd_typ_out);
     dmn_srt[0]=0L;
     dmn_cnt[0]=lat_nbr_out;
     dmn_srd[0]=lon_nbr_out;
     dmn_srt[1]=0L;
-    dmn_cnt[1]=rgr_map.dst_grid_corners;
+    dmn_cnt[1]=mpf.dst_grid_corners;
     dmn_srd[1]=1L;
     rcd=nco_get_vars(in_id,dst_grd_crn_lat_id,dmn_srt,dmn_cnt,dmn_srd,lat_crn_out,crd_typ_out);
     if(flg_crd_rdn){
       for(idx=0;idx<lon_nbr_out;idx++) lon_ctr_out[idx]*=rdn2dgr;
       for(idx=0;idx<lat_nbr_out;idx++) lat_ctr_out[idx]*=rdn2dgr;
-      for(idx=0;idx<lon_nbr_out*rgr_map.dst_grid_corners;idx++) lon_crn_out[idx]*=rdn2dgr;
-      for(idx=0;idx<lat_nbr_out*rgr_map.dst_grid_corners;idx++) lat_crn_out[idx]*=rdn2dgr;
+      for(idx=0;idx<lon_nbr_out*mpf.dst_grid_corners;idx++) lon_crn_out[idx]*=rdn2dgr;
+      for(idx=0;idx<lat_nbr_out*mpf.dst_grid_corners;idx++) lat_crn_out[idx]*=rdn2dgr;
     } /* !rdn */
   } /* !flg_grd_out_rct */
     
@@ -1271,8 +1277,8 @@ nco_rgr_map /* [fnc] Regrid with external weights */
     if(flg_crd_rdn){
       for(idx=0;idx<(long)grd_sz_out;idx++) lon_ctr_out[idx]*=rdn2dgr;
       for(idx=0;idx<(long)grd_sz_out;idx++) lat_ctr_out[idx]*=rdn2dgr;
-      for(idx=0;idx<(long)grd_sz_out*rgr_map.dst_grid_corners;idx++) lon_crn_out[idx]*=rdn2dgr;
-      for(idx=0;idx<(long)grd_sz_out*rgr_map.dst_grid_corners;idx++) lat_crn_out[idx]*=rdn2dgr;
+      for(idx=0;idx<(long)grd_sz_out*mpf.dst_grid_corners;idx++) lon_crn_out[idx]*=rdn2dgr;
+      for(idx=0;idx<(long)grd_sz_out*mpf.dst_grid_corners;idx++) lat_crn_out[idx]*=rdn2dgr;
     } /* !rdn */
   } /* !flg_grd_out_crv */
 
@@ -1291,7 +1297,7 @@ nco_rgr_map /* [fnc] Regrid with external weights */
     msk_out=(int *)nco_malloc(grd_sz_out*nco_typ_lng(NC_INT));
     dmn_srt[0]=0L;
     dmn_cnt[0]=grd_sz_out;
-    rcd=nco_get_vara(in_id,msk_dst_id,dmn_srt,dmn_cnt,msk_out,NC_INT);
+    rcd=nco_get_vara(in_id,msk_dst_id,dmn_srt,dmn_cnt,msk_out,(nc_type)NC_INT);
   } /* !msk */
   
   /* Derive 2D interface boundaries from lat and lon grid-center values
@@ -1322,11 +1328,11 @@ nco_rgr_map /* [fnc] Regrid with external weights */
     double lat_spn; /* [dgr] Latitude span */
 
     /* Obtain 1-D rectangular interfaces from unrolled 1-D vertice arrays */
-    for(idx=0;idx<lon_nbr_out;idx++) lon_ntf_out[idx]=lon_crn_out[rgr_map.dst_grid_corners*idx];
-    lon_ntf_out[lon_nbr_out]=lon_crn_out[rgr_map.dst_grid_corners*lon_nbr_out-(rgr_map.dst_grid_corners-1L)];
+    for(idx=0;idx<lon_nbr_out;idx++) lon_ntf_out[idx]=lon_crn_out[mpf.dst_grid_corners*idx];
+    lon_ntf_out[lon_nbr_out]=lon_crn_out[mpf.dst_grid_corners*lon_nbr_out-(mpf.dst_grid_corners-1L)];
     lon_spn=lon_ntf_out[lon_nbr_out]-lon_ntf_out[0];
-    for(idx=0;idx<lat_nbr_out;idx++) lat_ntf_out[idx]=lat_crn_out[rgr_map.dst_grid_corners*idx];
-    lat_ntf_out[lat_nbr_out]=lat_crn_out[rgr_map.dst_grid_corners*lat_nbr_out-1L];
+    for(idx=0;idx<lat_nbr_out;idx++) lat_ntf_out[idx]=lat_crn_out[mpf.dst_grid_corners*idx];
+    lat_ntf_out[lat_nbr_out]=lat_crn_out[mpf.dst_grid_corners*lat_nbr_out-1L];
     lat_spn=lat_ntf_out[lat_nbr_out]-lat_ntf_out[0];
 
     /* Place 1-D rectangular interfaces into 2-D coordinate boundaries */
@@ -1582,17 +1588,17 @@ nco_rgr_map /* [fnc] Regrid with external weights */
   } /* endif dbg */
 
   /* Allocate space for and obtain weights and addresses */
-  wgt_raw=(double *)nco_malloc_dbg(rgr_map.num_links*nco_typ_lng(NC_DOUBLE),fnc_nm,"Unable to malloc() value buffer for remapping weights");
-  col_src_adr=(int *)nco_malloc_dbg(rgr_map.num_links*nco_typ_lng(NC_INT),fnc_nm,"Unable to malloc() value buffer for remapping addresses");
-  row_dst_adr=(int *)nco_malloc_dbg(rgr_map.num_links*nco_typ_lng(NC_INT),fnc_nm,"Unable to malloc() value buffer for remapping addresses");
+  wgt_raw=(double *)nco_malloc_dbg(mpf.num_links*nco_typ_lng(NC_DOUBLE),fnc_nm,"Unable to malloc() value buffer for remapping weights");
+  col_src_adr=(int *)nco_malloc_dbg(mpf.num_links*nco_typ_lng(NC_INT),fnc_nm,"Unable to malloc() value buffer for remapping addresses");
+  row_dst_adr=(int *)nco_malloc_dbg(mpf.num_links*nco_typ_lng(NC_INT),fnc_nm,"Unable to malloc() value buffer for remapping addresses");
 
   /* Obtain remap matrix addresses and weights from map file */
   dmn_srt[0]=0L;
-  dmn_cnt[0]=rgr_map.num_links;
+  dmn_cnt[0]=mpf.num_links;
   rcd=nco_get_vara(in_id,col_src_adr_id,dmn_srt,dmn_cnt,col_src_adr,NC_INT);
   rcd=nco_get_vara(in_id,row_dst_adr_id,dmn_srt,dmn_cnt,row_dst_adr,NC_INT);
   dmn_srt[0]=0L;
-  dmn_cnt[0]=rgr_map.num_links;
+  dmn_cnt[0]=mpf.num_links;
   if(nco_rgr_mpf_typ != nco_rgr_mpf_SCRIP){
     rcd=nco_get_vara(in_id,wgt_raw_id,dmn_srt,dmn_cnt,wgt_raw,NC_DOUBLE);
   }else if(nco_rgr_mpf_typ == nco_rgr_mpf_SCRIP){
@@ -1602,14 +1608,14 @@ nco_rgr_map /* [fnc] Regrid with external weights */
     dmn_srd[0]=1L;
     dmn_srt[1]=0L;
     dmn_cnt[1]=1L;
-    dmn_srd[1]=rgr_map.num_wgts;
+    dmn_srd[1]=mpf.num_wgts;
     rcd=nco_get_vars(in_id,wgt_raw_id,dmn_srt,dmn_cnt,dmn_srd,wgt_raw,NC_DOUBLE);
   } /* !SCRIP */
 
   /* Pre-subtract one from row/column addresses (stored, by convention, as Fortran indices) to optimize access with C indices */
   size_t lnk_nbr; /* [nbr] Number of links */
   size_t lnk_idx; /* [idx] Link index */
-  lnk_nbr=rgr_map.num_links;
+  lnk_nbr=mpf.num_links;
   for(lnk_idx=0;lnk_idx<lnk_nbr;lnk_idx++) row_dst_adr[lnk_idx]--;
   for(lnk_idx=0;lnk_idx<lnk_nbr;lnk_idx++) col_src_adr[lnk_idx]--;
   if(nco_dbg_lvl_get() >= nco_dbg_io){
@@ -1656,7 +1662,7 @@ nco_rgr_map /* [fnc] Regrid with external weights */
        ncks --cdl -m ${DATA}/hdf/narrmon-a_221_20100101_0000_000.nc | grep coordinates
        4LFTX_221_SPDY_S113:coordinates = "gridlat_221 gridlon_221" ;
        Usage:
-       ncks -O -D 3 --rgr infer --rgr_var=ALBDO_221_SFC_S113 --rgr grid=~/grd_narr.nc ${DATA}/hdf/narrmon-a_221_20100101_0000_000.nc ~/foo.nc */
+       ncks -O -D 3 --rgr infer --rgr_var=ALBDO_221_SFC_S113 --rgr grid=${HOME}/grd_narr.nc ${DATA}/hdf/narrmon-a_221_20100101_0000_000.nc ~/foo.nc */
     char crd_sng[]="coordinates"; /* CF-standard coordinates attribute name */
     
     cf=(cf_crd_sct *)nco_malloc(sizeof(cf_crd_sct));
@@ -1816,12 +1822,12 @@ nco_rgr_map /* [fnc] Regrid with external weights */
        Internally we label LRV as "lat" and MRV as "lon" so that code looks similar for curvilinear and rectangular grids */
     dmn_id_lat=cf->dmn_id[0];
     dmn_id_lon=cf->dmn_id[1];
-    /* Subtlety: lat_nm_in is coordinate (variable+dimension) name when specified from command-line (as in nco_grd_nfr()), dimension name when found through CF-method (as in nco_rgr_map()). This confusing distinction could be avoided by passing command-line dimension names through-to nco_rgr_map(). However, that route would require complex priorities for what to do when passing command-line coordinate names not dimension names and visa-versa. */
+    /* Subtlety: lat_nm_in is coordinate (variable+dimension) name when specified from command-line (as in nco_grd_nfr()), dimension name when found through CF-method (as in nco_rgr_wgt()). This confusing distinction could be avoided by passing command-line dimension names through-to nco_rgr_wgt(). However, that route would require complex priorities for what to do when passing command-line coordinate names not dimension names and visa-versa. */
     lat_nm_in=strdup(cf->dmn_nm[0]);
     lon_nm_in=strdup(cf->dmn_nm[1]);
     //lat_nm_in=strdup(cf->crd_nm[idx_lat]);
     //lon_nm_in=strdup(cf->crd_nm[idx_lon]);
-    /* Next four lines unnecessary in nco_rgr_map() which only needs dimension names (it reads input coordinates from map- not data-file) */
+    /* Next four lines unnecessary in nco_rgr_wgt() which only needs dimension names (it reads input coordinates from map- not data-file) */
     //lat_ctr_id=cf->crd_id[idx_lat];
     //lon_ctr_id=cf->crd_id[idx_lon];
     //lat_dmn_nm=strdup(cf->dmn_nm[0]);
@@ -1850,15 +1856,42 @@ nco_rgr_map /* [fnc] Regrid with external weights */
 
   if(flg_grd_in_1D){
     long col_nbr_in_dat; /* [nbr] Number of columns in input datafile */
-    /* Check default or command-line option first, then search usual suspects */
+    /* Check default or command-line option first, then search usual suspects, and if that fails then guess
+       unstructured dimension is dimension in input file with size n_a expected by input map file, suggested by PJCS
+       Using internal database names first ensures users can pick between multiple dimensions of size n_a 
+       20180313: fxm New PJCS algorithm is superior, should eliminate internal database for unstructured grids? 
+       Database is necessary for 2D grids because otherwise no good way to disambiguate latitude from longitude */
     if(col_nm_in && (rcd=nco_inq_dimid_flg(in_id,col_nm_in,&dmn_id_col)) == NC_NOERR) /* do nothing */; 
+    else if((rcd=nco_inq_dimid_flg(in_id,"gridcell",&dmn_id_col)) == NC_NOERR) col_nm_in=strdup("gridcell"); /* surfdata */
     else if((rcd=nco_inq_dimid_flg(in_id,"lndgrid",&dmn_id_col)) == NC_NOERR) col_nm_in=strdup("lndgrid"); /* CLM */
     else if((rcd=nco_inq_dimid_flg(in_id,"nCells",&dmn_id_col)) == NC_NOERR) col_nm_in=strdup("nCells"); /* MPAS-O/I */
     else if((rcd=nco_inq_dimid_flg(in_id,"nEdges",&dmn_id_col)) == NC_NOERR) col_nm_in=strdup("nEdges"); /* MPAS-O/I */
     else if((rcd=nco_inq_dimid_flg(in_id,"sounding_id",&dmn_id_col)) == NC_NOERR) col_nm_in=strdup("sounding_id"); /* OCO2 */
     else{
-      (void)fprintf(stdout,"%s: ERROR %s reports datafile does not contain unstructured dimension name that matches a usual suspect (ncol, lndgrid, nCells, nEdges, sounding_id). HINT: Provide horizontal dimension name with \"-r col_nm=foo\"\n",nco_prg_nm_get(),fnc_nm);
-      nco_exit(EXIT_FAILURE);
+      if(nco_dbg_lvl_get() >= nco_dbg_std) (void)fprintf(stdout,"%s: WARNING %s expects data on an unstructured grid but cannot find a dimension name that matches the usual suspects for unstructured dimensions (ncol, gridcell, lndgrid, nCells, nEdges, sounding_id). Consider specifying horizontal dimension name to ncks with \"--rgr col_nm=foo\" or to ncremap with \"ncremap -R '--rgr col_nm=foo'\", and consider requesting the NCO project to add this horizontal dimension name to its internal database. Proceeding with fallback algorithm that guesses unstructured dimension by searching for first dimension in data file of equal size to that expected by supplied map-file...\n",nco_prg_nm_get(),fnc_nm);
+      /* 20180312: Unstructured dimension must have same size as input map file, suggested by PJCS */
+      int *dmn_ids_in; /* [nbr] Input file dimension IDs */
+      int dmn_nbr_in; /* [nbr] Number of dimensions in input file */
+      const int flg_prn=0; /* [enm] Parent flag */
+      rcd=nco_inq_dimids(in_id,&dmn_nbr_in,NULL,flg_prn);
+      dmn_ids_in=(int *)nco_malloc(dmn_nbr_in*sizeof(int));
+      rcd=nco_inq_dimids(in_id,NULL,dmn_ids_in,flg_prn);
+      /* Find dimension, if any, with same size as map "a" src_grid_dims[0] = n_a dimension */
+      for(dmn_idx=0;dmn_idx<dmn_nbr_in;dmn_idx++){
+	dmn_id_col=dmn_ids_in[dmn_idx];
+	rcd=nco_inq_dimlen(in_id,dmn_id_col,&col_nbr_in_dat);
+	if(col_nbr_in == col_nbr_in_dat){
+	  rcd=nco_inq_dimname(in_id,dmn_id_col,col_nm_in);
+	  if(nco_dbg_lvl_get() >= nco_dbg_std) (void)fprintf(stdout,"%s: INFO %s found that dimension %s in datafile has same size (n_a = %ld) expected by map-file. Assuming %s is the unstructured dimension.\n",nco_prg_nm_get(),fnc_nm,col_nm_in,col_nbr_in,col_nm_in);
+	  break;
+	} /* !col_nbr_in */
+      } /* !dmn_idx */
+      if(dmn_ids_in) dmn_ids_in=(int *)nco_free(dmn_ids_in);
+      if(dmn_idx == dmn_nbr_in){
+	dmn_id_col=NC_MIN_INT;
+	(void)fprintf(stdout,"%s: ERROR %s expects data on an unstructured grid but cannot find a dimension in the input file that matches the size of the unstructured dimension in the supplied map-file = src_grd_dims[0] = n_a = %ld. HINT: \n",nco_prg_nm_get(),fnc_nm,col_nbr_in);
+	nco_exit(EXIT_FAILURE);
+      } /* !dmn_idx */
     } /* !col_nm_in */
     rcd=nco_inq_dimlen(in_id,dmn_id_col,&col_nbr_in_dat);
     if(col_nbr_in != col_nbr_in_dat){
@@ -1882,6 +1915,7 @@ nco_rgr_map /* [fnc] Regrid with external weights */
     else if((rcd=nco_inq_dimid_flg(in_id,"nlat",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("nlat"); /* POP */
     else if((rcd=nco_inq_dimid_flg(in_id,"nscan",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("nscan"); /* AMSR, TRMM */
     else if((rcd=nco_inq_dimid_flg(in_id,"nTimes",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("nTimes"); /* OMI L2 */
+    else if((rcd=nco_inq_dimid_flg(in_id,"number_of_lines",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("number_of_lines"); /* DSCOVR L2 */
     else if((rcd=nco_inq_dimid_flg(in_id,"GeoTrack",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("GeoTrack"); /* AIRS L2 DAP NC */
     else if((rcd=nco_inq_dimid_flg(in_id,"GeoTrack:L2_Standard_atmospheric&surface_product",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("GeoTrack:L2_Standard_atmospheric&surface_product"); /* AIRS L2 HDF */
     else if((rcd=nco_inq_dimid_flg(in_id,"Cell_Along_Swath:mod04",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("Cell_Along_Swath:mod04"); /* MODIS MOD04 L2 */
@@ -1892,7 +1926,7 @@ nco_rgr_map /* [fnc] Regrid with external weights */
     else if((rcd=nco_inq_dimid_flg(in_id,"y",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("y"); /* NEMO */
     else if((rcd=nco_inq_dimid_flg(in_id,"x",&dmn_id_lat)) == NC_NOERR) lat_nm_in=strdup("x"); /* NSIDC polar stereographic (NB: unfortunate incompatible conflict between NEMO & NSIDC names) */
     else{
-      (void)fprintf(stdout,"%s: ERROR %s reports unable to find latitude dimension in input file. Tried the usual suspects. HINT: Inform regridder of input latitude dimension name with --rgr lat_nm_in=name\n",nco_prg_nm_get(),fnc_nm);
+      (void)fprintf(stdout,"%s: ERROR %s reports unable to find latitude dimension in input file. Tried the usual suspects. HINT: Inform regridder of input latitude dimension name with \"ncks --rgr lat_nm_in=name\" or \"ncremap -R '--rgr lat_nm_in=name'\"\n",nco_prg_nm_get(),fnc_nm);
       nco_exit(EXIT_FAILURE);
     } /* !lat */
     rcd=nco_inq_dimlen(in_id,dmn_id_lat,&lat_nbr_in_dat);
@@ -1916,6 +1950,7 @@ nco_rgr_map /* [fnc] Regrid with external weights */
     else if((rcd=nco_inq_dimid_flg(in_id,"npixel",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("npixel"); /* TRMM */
     else if((rcd=nco_inq_dimid_flg(in_id,"nxtrack",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("nxtrack"); /* MODIS DeepBlue SeaWiFS L2 */
     else if((rcd=nco_inq_dimid_flg(in_id,"nXtrack",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("nXtrack"); /* OMI L2 */
+    else if((rcd=nco_inq_dimid_flg(in_id,"number_of_pixels",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("number_of_pixels"); /* DSCOVR L2 */
     else if((rcd=nco_inq_dimid_flg(in_id,"GeoXTrack",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("GeoXTrack"); /* AIRS L2 DAP NC */
     else if((rcd=nco_inq_dimid_flg(in_id,"GeoXTrack:L2_Standard_atmospheric&surface_product",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("GeoXTrack:L2_Standard_atmospheric&surface_product"); /* AIRS L2 HDF */
     else if((rcd=nco_inq_dimid_flg(in_id,"Cell_Across_Swath:mod04",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("Cell_Across_Swath:mod04"); /* MODIS MOD04 L2 */
@@ -1925,7 +1960,7 @@ nco_rgr_map /* [fnc] Regrid with external weights */
     else if((rcd=nco_inq_dimid_flg(in_id,"x",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("x"); /* NEMO */
     else if((rcd=nco_inq_dimid_flg(in_id,"y",&dmn_id_lon)) == NC_NOERR) lon_nm_in=strdup("y"); /* NSIDC polar stereographic (NB: unfortunate incompatible conflict between NEMO & NSIDC names) */
     else{
-      (void)fprintf(stdout,"%s: ERROR %s reports unable to find longitude dimension in input file. Tried the usual suspects. HINT: Inform regridder of input longitude dimension name with --rgr lon_nm_in=name\n",nco_prg_nm_get(),fnc_nm);
+      (void)fprintf(stdout,"%s: ERROR %s reports unable to find longitude dimension in input file. Tried the usual suspects. HINT: Inform regridder of input longitude dimension name with \"ncks --rgr lon_nm_in=name\" or \"ncremap -R '--rgr lon_nm_in=name'\"\n",nco_prg_nm_get(),fnc_nm);
       nco_exit(EXIT_FAILURE);
     } /* !lat */
     rcd=nco_inq_dimlen(in_id,dmn_id_lon,&lon_nbr_in_dat);
@@ -1946,12 +1981,13 @@ nco_rgr_map /* [fnc] Regrid with external weights */
      CAM-FV: slon, slat, w_stag (w_stag is weights for slat grid, analagous to gw for lat grid)
      CAM-SE: area
      CICE: latt_bounds, lont_bounds, latu_bounds, lonu_bounds, TLAT, TLON, ULAT, ULON (NB: CICE uses ?LON and POP uses ?LONG) (aice is ice area, tmask is state-variable mask, both not currently excluded, although all binary masks like tmask should be recomputed on new grid)
+     DSCOVR L2: latitude, longitude
      ESMF: gridcell_area
      GPM: S1_Latitude, S1_Longitude
      HIRDLS: Latitude
      MAR/RACMO: LAT, LON
      MLS: CO_Latitude
-     MPAS-O/I: areaCell, latCell, lonCell
+     MPAS-O/I/LI: areaCell, latCell, lonCell
      NCO: lat_vertices, lon_vertices
      NEMO: nav_lat, nav_lon
      OCO2: latitude_bnds, longitude_bnds
@@ -1985,8 +2021,9 @@ nco_rgr_map /* [fnc] Regrid with external weights */
 
   if(False){
     /* 20160228: MPAS has a host of mysterious grid and extensive variables that should probably not be regridded */
-    const int mpas_xcl_lst_nbr=18;
-    const char *mpas_xcl_lst[]={"cellMask,cellsOnCell,cellsOnEdge,cellsOnVertex,edgeMask,edgesOnCell,edgesOnEdge,edgesOnVertex,indexToCellID,indexToEdgeID,indexToVertexID,maxLevelCell,maxLevelEdgeTop,nEdgesOnCell,nEdgesOnEdge,vertexMask,verticesOnCell,verticesOnEdge"};
+    /* 20180206: Add from MPAS-LI xCell, yCell, zCell, and [xyz]Edge, and [xyz]Vertex */
+    const int mpas_xcl_lst_nbr=27;
+    const char *mpas_xcl_lst[]={"cellMask,cellsOnCell,cellsOnEdge,cellsOnVertex,edgeMask,edgesOnCell,edgesOnEdge,edgesOnVertex,indexToCellID,indexToEdgeID,indexToVertexID,maxLevelCell,maxLevelEdgeTop,nEdgesOnCell,nEdgesOnEdge,vertexMask,verticesOnCell,verticesOnEdge,xCell,yCell,zCell,xEdge,yEdge,zEdge,xVertex,yVertex,zVertex"};
     for(idx=0;idx<mpas_xcl_lst_nbr;idx++){
       for(idx_tbl=0;idx_tbl<trv_nbr;idx_tbl++)
 	if(!strcmp(trv_tbl->lst[idx_tbl].nm_fll,mpas_xcl_lst[idx])) break;
@@ -2001,7 +2038,6 @@ nco_rgr_map /* [fnc] Regrid with external weights */
   } /* !False */
   
   char *dmn_nm_cp; /* [sng] Dimension name as char * to reduce indirection */
-  int dmn_idx; /* [idx] Dimension index */
   int dmn_nbr_in; /* [nbr] Number of dimensions in input variable */
   int dmn_nbr_out; /* [nbr] Number of dimensions in output variable */
   nco_bool has_lon; /* [flg] Contains longitude dimension */
@@ -2047,7 +2083,7 @@ nco_rgr_map /* [fnc] Regrid with external weights */
       } /* endif not regridded */
     } /* end nco_obj_typ_var */
   } /* end idx_tbl */
-  if(!var_rgr_nbr) (void)fprintf(stdout,"%s: WARNING %s reports no variables fit regridding criteria. The regridder expects something to regrid, and variables not regridded are copied straight to output. HINT: If the name(s) of the input horizontal spatial dimensions to be regridded (e.g., latitude and longitude or column) do not match NCO's preset defaults (case-insensitive unambiguous forms and abbreviations of \"latitude\", \"longitude\", and \"ncol\", respectively) then change the dimension names that NCO looks for. Instructions are at http://nco.sf.net/nco.html#regrid, e.g., \"ncks --rgr col=lndgrid --rgr lat=north ...\".\n",nco_prg_nm_get(),fnc_nm);
+  if(!var_rgr_nbr) (void)fprintf(stdout,"%s: WARNING %s reports no variables fit regridding criteria. The regridder expects something to regrid, and variables not regridded are copied straight to output. HINT: If the name(s) of the input horizontal spatial dimensions to be regridded (e.g., latitude and longitude or column) do not match NCO's preset defaults (case-insensitive unambiguous forms and abbreviations of \"latitude\", \"longitude\", and \"ncol\", respectively) then change the dimension names that NCO looks for. Instructions are at http://nco.sf.net/nco.html#regrid, e.g., \"ncks --rgr col=lndgrid --rgr lat=north\" or \"ncremap -R '--rgr col=lndgrid --rgr lat=north'\".\n",nco_prg_nm_get(),fnc_nm);
   
   for(idx_tbl=0;idx_tbl<trv_nbr;idx_tbl++){
     trv=trv_tbl->lst[idx_tbl];
@@ -2145,7 +2181,7 @@ nco_rgr_map /* [fnc] Regrid with external weights */
   /* Ensure temporal bounds dimension name is distinct from spatial bounds when their sizes differ */
   if(bnd_nbr_out != bnd_tm_nbr_out){
     if(!strcmp(bnd_nm_out,bnd_tm_nm_out)){
-      (void)fprintf(stdout,"%s: INFO %s reports spatial and temporal output bounds dimensions are identical (and named \"%s\") by default for rectangular output grids because both can be stored as 2D arrays. That cannot work for this mapping because temporal and spatial bounds dimensions sizes differ (bnd_nbr_out = %d, bnd_tm_nbr_out = %d). Using fall-back spatial bounds name \"%s\" instead. HINT: You may change one or both manually with --rgr bnd_nm=name or --rgr bnd_tm_nm=name.\n",nco_prg_nm_get(),fnc_nm,bnd_tm_nm_out,bnd_nbr_out,bnd_tm_nbr_out,bnd_nm_out);
+      (void)fprintf(stdout,"%s: INFO %s reports spatial and temporal output bounds dimensions are identical (and named \"%s\") by default for rectangular output grids because both can be stored as 2D arrays. That cannot work for this mapping because temporal and spatial bounds dimensions sizes differ (bnd_nbr_out = %d, bnd_tm_nbr_out = %d). Using fall-back spatial bounds name \"%s\" instead. HINT: You may change one or both manually with \"ncks --rgr bnd_nm=name\" or \"ncks --rgr bnd_tm_nm=name\", or, using ncremap, with \"ncremap -R '--rgr bnd_nm=name'\" or \"ncremap -R '--rgr bnd_tm_nm=name'\"\n",nco_prg_nm_get(),fnc_nm,bnd_tm_nm_out,bnd_nbr_out,bnd_tm_nbr_out,bnd_nm_out);
     } /* !strcmp() */
   } /* !bnd_nbr_out */
 
@@ -3110,12 +3146,12 @@ nco_rgr_map /* [fnc] Regrid with external weights */
   double *wgt_vld_out=NULL;
   double var_val_crr;
   int *tally=NULL; /* [nbr] Number of valid (non-missing) values */
-  size_t idx_in; /* [idx] Input grid index */
-  size_t idx_out; /* [idx] Output grid index */
   int lvl_idx; /* [idx] Level index */
   int lvl_nbr; /* [nbr] Number of levels */
   int thr_idx; /* [idx] Thread index */
   size_t dst_idx; 
+  size_t idx_in; /* [idx] Input grid index */
+  size_t idx_out; /* [idx] Output grid index */
   size_t var_sz_in; /* [nbr] Number of elements in variable (will be self-multiplied) */
   size_t var_sz_out; /* [nbr] Number of elements in variable (will be self-multiplied) */
   size_t val_in_fst; /* [nbr] Number of elements by which current N-D slab input values are offset from origin */
@@ -3124,7 +3160,7 @@ nco_rgr_map /* [fnc] Regrid with external weights */
   if(nco_dbg_lvl_get() >= nco_dbg_var) (void)fprintf(stdout,"Regridding progress: # means regridded, ~ means copied\n");
 
   /* Using naked stdin/stdout/stderr in parallel region generates warning
-     Copy appropriate filehandle to variable scoped shared in parallel clause */
+     Copy appropriate filehandle to variable scoped as shared in parallel clause */
   FILE * const fp_stdout=stdout; /* [fl] stdout filehandle CEWI */
 
   /* OpenMP notes:
@@ -3137,7 +3173,7 @@ nco_rgr_map /* [fnc] Regrid with external weights */
      3. flg_rnr,fnc_nm,wgt_vld_thr must be explicit shared for icc 13.1.3 (rhea) */
 #ifdef __GNUG__
 # define GCC_LIB_VERSION ( __GNUC__ * 100 + __GNUC_MINOR__ * 10 + __GNUC_PATCHLEVEL__ )
-# if GCC_LIB_VERSION < 480
+# if GCC_LIB_VERSION < 490
 #  define GXX_OLD_OPENMP_SHARED_TREATMENT 1
 # endif /* 480 */
 #endif /* !__GNUC__ */
@@ -3525,7 +3561,7 @@ nco_rgr_map /* [fnc] Regrid with external weights */
   } /* !flg_grd_out_crv */
 
   return rcd;
-} /* end nco_rgr_map() */
+} /* end nco_rgr_wgt() */
 
 void
 nco_bsl_zro /* Return Bessel function zeros */
@@ -3830,7 +3866,7 @@ nco_sph_plg_area /* [fnc] Compute area of spherical polygon */
   area_ltr_ttl=0.0;
   area_crc_ttl=0.0;
   area_crc_abs_ttl=0.0;
-  for(unsigned int col_idx=0;col_idx<col_nbr;col_idx++){
+  for(long col_idx=0;col_idx<col_nbr;col_idx++){
     flg_ltr_cll=False;
     ngl_c=double_CEWI; /* Otherwise compiler unsure ngl_c is initialized first use */
     area[col_idx]=0.0;
@@ -3917,7 +3953,7 @@ nco_sph_plg_area /* [fnc] Compute area of spherical polygon */
       if(((float)ngl_a == (float)ngl_b && (float)ngl_a == (float)(0.5*ngl_c)) || /* c is half a and b */
 	 ((float)ngl_b == (float)ngl_c && (float)ngl_b == (float)(0.5*ngl_a)) || /* a is half b and c */
 	 ((float)ngl_c == (float)ngl_a && (float)ngl_c == (float)(0.5*ngl_b))){  /* b is half c and a */
-	(void)fprintf(stdout,"%s: WARNING %s reports col_idx = %u triangle %d is ill-conditioned. Spherical excess and thus cell area are likely inaccurate. Ask Charlie to implement SAS formula...\n",nco_prg_nm_get(),fnc_nm,col_idx,tri_nbr);
+	(void)fprintf(stdout,"%s: WARNING %s reports col_idx = %li triangle %d is ill-conditioned. Spherical excess and thus cell area are likely inaccurate. Ask Charlie to implement SAS formula...\n",nco_prg_nm_get(),fnc_nm,col_idx,tri_nbr);
       } /* !ill */
       /* Semi-perimeter */
       prm_smi=0.5*(ngl_a+ngl_b+ngl_c);
@@ -4019,7 +4055,7 @@ nco_sph_plg_area /* [fnc] Compute area of spherical polygon */
 	  (void)fprintf(stdout,"%s: Latitude-triangle area using series approximation...not implemented yet\n",nco_prg_nm_get());
 	} /* !0 */
 	if(nco_dbg_lvl_get() >= nco_dbg_scl){
-	  (void)fprintf(stdout,"%s: INFO %s col_idx = %u triangle %d spherical area, latitude-triangle area, %% difference: %g, %g, %g\n",nco_prg_nm_get(),fnc_nm,col_idx,tri_nbr,xcs_sph,xcs_sph+area_crc,100.0*area_crc/xcs_sph);
+	  (void)fprintf(stdout,"%s: INFO %s col_idx = %li triangle %d spherical area, latitude-triangle area, %% difference: %g, %g, %g\n",nco_prg_nm_get(),fnc_nm,col_idx,tri_nbr,xcs_sph,xcs_sph+area_crc,100.0*area_crc/xcs_sph);
 	  if(fabs(area_crc/xcs_sph) > 0.1){
 	    (void)fprintf(stdout,"%s: DBG Non-spherical correction exceeds 10%% for current triangle with ABC vertices at lat,lon [dgr] = %g, %g\n%g, %g\n%g, %g\n",nco_prg_nm_get(),lat_bnd[idx_ltr_a],lon_bnd[idx_ltr_a],lat_bnd[idx_ltr_b],lon_bnd[idx_ltr_b],lat_bnd[idx_ltr_c],lon_bnd[idx_ltr_c]);
 	  } /* !fabs */
@@ -4028,7 +4064,7 @@ nco_sph_plg_area /* [fnc] Compute area of spherical polygon */
     } /* !tri_idx */
     if(flg_ltr_cll){
       /* Current gridcell contained at least one latitude-triangle */
-      if(nco_dbg_lvl_get() >= nco_dbg_scl) (void)fprintf(stdout,"%s: INFO %s col_idx = %u spherical area, latitude-gridcell area, %% difference: %g, %g, %g\n",nco_prg_nm_get(),fnc_nm,col_idx,area[col_idx],area_ltr,100.0*(area_ltr-area[col_idx])/area[col_idx]);
+      if(nco_dbg_lvl_get() >= nco_dbg_scl) (void)fprintf(stdout,"%s: INFO %s col_idx = %li spherical area, latitude-gridcell area, %% difference: %g, %g, %g\n",nco_prg_nm_get(),fnc_nm,col_idx,area[col_idx],area_ltr,100.0*(area_ltr-area[col_idx])/area[col_idx]);
     } /* !flg_ltr_cll */    
   } /* !col_idx */
   if(nco_dbg_lvl_get() >= nco_dbg_scl) (void)fprintf(stdout,"%s: INFO %s total spherical area, latitude-gridcell area, %% difference, crc_ttl, crc_abs_ttl: %g, %g, %g, %g, %g\n",nco_prg_nm_get(),fnc_nm,area_ttl,area_ltr_ttl,100.0*(area_ltr_ttl-area_ttl)/area_ttl,area_crc_ttl,area_crc_abs_ttl);
@@ -4045,6 +4081,10 @@ nco_rgr_tps /* [fnc] Regrid using TempestRemap library */
 (rgr_sct * const rgr) /* I/O [sct] Regridding structure */
 {
   /* Purpose: Regrid fields using TempestRemap "library" (more precisely, executables)
+     Routine was originally written to call Tempest executables
+     However, that functionality was all placed into the ncremap shell script
+     Thus this C-interface is currently unused
+     TempestRemap2 has a library that may be accessed on-line
 
      Test Tempest library: no way to activate yet
      export DATA_TEMPEST='/data/zender/rgr';ncks -O --rgr=Y ${DATA}/rgr/essgcm14_clm.nc ~/foo.nc */
@@ -4059,7 +4099,7 @@ nco_rgr_tps /* [fnc] Regrid using TempestRemap library */
   int rcd_sys;
   int lat_nbr_rqs=180;
   int lon_nbr_rqs=360;
-  nco_rgr_cmd_typ nco_rgr_cmd; /* [enm] TempestRemap command enum */
+  nco_rgr_tps_cmd nco_tps_cmd; /* [enm] TempestRemap command enum */
 
   char *nvr_DATA_TEMPEST; /* [sng] Directory where Tempest grids, meshes, and weights are stored */
   nvr_DATA_TEMPEST=getenv("DATA_TEMPEST");
@@ -4076,8 +4116,8 @@ nco_rgr_tps /* [fnc] Regrid using TempestRemap library */
   fl_grd_dst_cdl=nm2sng_fl(fl_grd_dst);
 
   /* Construct and execute regridding command */
-  nco_rgr_cmd=nco_rgr_GenerateRLLMesh;
-  cmd_rgr_fmt=nco_tps_cmd_fmt_sng(nco_rgr_cmd);
+  nco_tps_cmd=nco_rgr_GenerateRLLMesh;
+  cmd_rgr_fmt=nco_tps_cmd_fmt_sng(nco_tps_cmd);
   cmd_rgr=(char *)nco_malloc((strlen(cmd_rgr_fmt)+strlen(fl_grd_dst_cdl)-fmt_chr_nbr+1UL)*sizeof(char));
   if(nco_dbg_lvl_get() >= nco_dbg_fl) (void)fprintf(stderr,"%s: %s reports generating %d by %d RLL mesh in %s...\n",nco_prg_nm_get(),fnc_nm,lat_nbr_rqs,lon_nbr_rqs,fl_grd_dst);
   (void)sprintf(cmd_rgr,cmd_rgr_fmt,lat_nbr_rqs,lon_nbr_rqs,fl_grd_dst_cdl);
@@ -4234,10 +4274,10 @@ nco_rgr_nrm_sng /* [fnc] Convert regridding normalization enum to string */
 
 const char * /* O [sng] String containing regridding command and format */
 nco_tps_cmd_fmt_sng /* [fnc] Convert TempestRemap command enum to command string */
-(const nco_rgr_cmd_typ nco_rgr_cmd) /* I [enm] TempestRemap command enum */
+(const nco_rgr_tps_cmd nco_tps_cmd) /* I [enm] TempestRemap command enum */
 {
   /* Purpose: Convert TempestRemap command enum to command string and format */
-  switch(nco_rgr_cmd){
+  switch(nco_tps_cmd){
   case nco_rgr_ApplyOfflineMap:
     return "ApplyOfflineMap";
   case nco_rgr_CalculateDiffNorms:
@@ -4271,10 +4311,10 @@ nco_tps_cmd_fmt_sng /* [fnc] Convert TempestRemap command enum to command string
 
 const char * /* O [sng] String containing regridding command name */
 nco_tps_cmd_sng /* [fnc] Convert TempestRemap command enum to command name */
-(const nco_rgr_cmd_typ nco_rgr_cmd) /* I [enm] TempestRemap command enum */
+(const nco_rgr_tps_cmd nco_tps_cmd) /* I [enm] TempestRemap command enum */
 {
   /* Purpose: Convert TempestRemap command enum to command string */
-  switch(nco_rgr_cmd){
+  switch(nco_tps_cmd){
   case nco_rgr_ApplyOfflineMap: return "ApplyOfflineMap";
   case nco_rgr_CalculateDiffNorms: return "CalculateDiffNorms";
   case nco_rgr_GenerateCSMesh: return "GenerateCSMesh";
@@ -4902,7 +4942,7 @@ nco_grd_mk /* [fnc] Create SCRIP-format grid file */
   (void)nco_def_var(out_id,grd_crn_lon_nm,crd_typ,dmn_nbr_2D,dmn_ids,&grd_crn_lon_id);
   if(dfl_lvl > 0) (void)nco_def_var_deflate(out_id,grd_crn_lon_id,shuffle,deflate,dfl_lvl);
 
-  /* Define "units" attributes */
+  /* Define global and "units" attributes */
   aed_sct aed_mtd;
   char *att_nm;
   char *att_val;
@@ -5902,12 +5942,12 @@ nco_grd_nfr /* [fnc] Infer SCRIP-format grid file from input data file */
        Internally we label LRV as "lat" and MRV as "lon" so that code looks similar for curvilinear and rectangular grids */
     dmn_id_lat=cf->dmn_id[0];
     dmn_id_lon=cf->dmn_id[1];
-    /* Subtlety: lat_nm_in is coordinate (variable+dimension) name when specified from command-line (as in nco_grd_nfr()), dimension name when found through CF-method (as in nco_rgr_map()). This confusing distinction could be avoided by passing command-line dimension names through-to nco_rgr_map(). However, that route would require complex priorities for what to do when passing command-line coordinate names not dimension names and visa-versa. */
+    /* Subtlety: lat_nm_in is coordinate (variable+dimension) name when specified from command-line (as in nco_grd_nfr()), dimension name when found through CF-method (as in nco_rgr_wgt()). This confusing distinction could be avoided by passing command-line dimension names through-to nco_rgr_wgt(). However, that route would require complex priorities for what to do when passing command-line coordinate names not dimension names and visa-versa. */
     //lat_nm_in=strdup(cf->dmn_nm[0]);
     //lon_nm_in=strdup(cf->dmn_nm[1]);
     lat_nm_in=strdup(cf->crd_nm[idx_lat]);
     lon_nm_in=strdup(cf->crd_nm[idx_lon]);
-    /* Next four lines unnecessary in nco_rgr_map() which only needs dimension names (it reads input coordinates from map- not data-file) */
+    /* Next four lines unnecessary in nco_rgr_wgt() which only needs dimension names (it reads input coordinates from map- not data-file) */
     lat_ctr_id=cf->crd_id[idx_lat];
     lon_ctr_id=cf->crd_id[idx_lon];
     lat_dmn_nm=strdup(cf->dmn_nm[0]);
@@ -6443,7 +6483,7 @@ nco_grd_nfr /* [fnc] Infer SCRIP-format grid file from input data file */
   fl_out=rgr->fl_grd;
   fl_out_fmt=rgr->fl_out_fmt;
   if(!fl_out){
-    (void)fprintf(stdout,"%s: ERROR %s filename for inferred SCRIP grid-file is uninitialized, supply it with --rgr grid=filename.nc\n",nco_prg_nm_get(),fnc_nm);
+    (void)fprintf(stdout,"%s: ERROR %s filename for inferred SCRIP grid-file is uninitialized, supply it with \"ncks --rgr grid=filename.nc\" or \"ncremap -R '--rgr grid=filename.nc'\"\n",nco_prg_nm_get(),fnc_nm);
     (void)fprintf(stdout,"%s: HINT ncremap supplies an automatically generated default name for any output SCRIP grid-file. Users of the standalone regridder (ncks) must explicitly specify a name for the inferred SCRIP grid-file.\n",nco_prg_nm_get());
     nco_exit(EXIT_FAILURE);
   } /* !fl_out */
@@ -7661,10 +7701,10 @@ nco_grd_nfr /* [fnc] Infer SCRIP-format grid file from input data file */
     const long npf_nbr=grd_crn_nbr; /* [nbr] Number of nodes per face */
 
     long dg_idx; /* [idx] Counting index for edges */
-    long dg_nbr=NC_MIN_INT64; /* [nbr] Number of edges in mesh */
+    long dg_nbr=(long)NC_MIN_INT64; /* [nbr] Number of edges in mesh */
     long fc_idx; /* [idx] Counting index for faces */
     long nd_idx; /* [idx] Counting index for nodes */
-    long nd_nbr=NC_MIN_INT64; /* [nbr] Number of nodes in mesh */
+    long nd_nbr=(long)NC_MIN_INT64; /* [nbr] Number of nodes in mesh */
     long srt_idx=0; /* [idx] start_index (C/Fortran) for edge_nodes, face_nodes */
 
     if(!dgx_nm) dgx_nm=(char *)strdup("mesh_edge_x");

@@ -2,7 +2,7 @@
 
 /* Purpose: String utilities */
 
-/* Copyright (C) 1995--2017 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -26,13 +26,12 @@
 
 #ifdef _MSC_VER
 # define NEED_STRSEP
-# define NEED_STRCASECMP
 # define NEED_STRCASESTR
 #endif /* !_MSC_VER */
 
-#if defined(NEED_STRCASECMP) || defined(NEED_STRCASESTR)
+#if (defined NEED_STRCASECMP) || (defined NEED_STRNCASECMP) || (defined NEED_STRDUP)
 # include <ctype.h> /* isalnum(), isdigit(), tolower() */
-#endif /* !NEED_STRCASECMP || !NEED_STRCASESTR */
+#endif /* NEED_STRCASECMP || NEED_STRNCASECMP || NEED_STRDUP */
 
 /* 3rd party vendors */
 
@@ -61,13 +60,15 @@ extern "C" {
   strcasecmp /* [fnc] Lexicographical case-insensitive string comparison */
   (const char * const sng_1, /* I [sng] First string */
    const char * const sng_2); /* I [sng] Second string */
+#endif /* !NEED_STRCASECMP */
   
+#ifdef NEED_STRNCASECMP
   int /* O [enm] [-1,0,1] sng_1 [<,=,>] sng_2 */
   strncasecmp /* [fnc] Lexicographical case-insensitive string comparison */
   (const char * const sng_1, /* I [sng] First string */
    const char * const sng_2, /* I [sng] Second string */
    const size_t chr_nbr); /* I [nbr] Compare at most chr_nbr characters */
-#endif /* !NEED_STRCASECMP */
+#endif /* !NEED_STRNCASECMP */
   
   /* 20161205 GNU since gcc 4.7.3 provides strcasestr() as non-standard extension iff _GNU_SOURCE is defined */
 #if 0
@@ -113,7 +114,6 @@ extern "C" {
   char * /* O [sng] JSON -compatible name */
   nm2sng_jsn /* [fnc] Turn variable/dimension/attribute name into legal JSON */
   (const char * const nm_sng); /* I [sng] Name to CDL-ize */
-
   
   char * /* O [sng] CDL-compatible name */
   nm2sng_fl /* [fnc] Turn file name into legal string for shell commands */
@@ -150,6 +150,10 @@ extern "C" {
   nc_type /* O [enm] netCDF type */
   nco_sng2typ /* [fnc] Convert user-supplied string to netCDF type enum */
   (const char * const typ_sng); /* I [sng] String indicating type */
+
+  char * /* O [sng] Sanitized string */
+  nco_sng_sntz /* [fnc] Ensure input string contains only white-listed innocuous characters */
+  (char * const sng_drt); /* I/O [sng] String to sanitize */
 
 #ifdef __cplusplus
 } /* end extern "C" */

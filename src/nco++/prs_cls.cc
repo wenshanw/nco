@@ -3,7 +3,7 @@
 /* Purpose: netCDF arithmetic processor */
 /* prs_cls -- symbol table - class methods */
 
-/* Copyright (C) 1995--2017 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -312,8 +312,8 @@ prs_cls::ncap_var_write_omp(
   const char scl_fct_sng[]="scale_factor"; /* [sng] Unidata standard string for scale factor */
   const char fnc_nm[]="prs_cls::ncap_var_write";
 
-  int idx;
-  int rcd; /* [rcd] Return code */
+
+
   int var_out_id;
   
   bool bdef=false;
@@ -467,7 +467,7 @@ prs_cls::ncap_var_write_omp(
       (void)nco_inq_format(out_id,&fl_fmt);
       if( (fl_fmt == NC_FORMAT_NETCDF4 || fl_fmt == NC_FORMAT_NETCDF4_CLASSIC) && var->nbr_dim > 0)
       {
-        dmn_cmn_sct cmn[NC_MAX_DIMS];
+        dmn_cmn_sct cmn[NC_MAX_VAR_DIMS];
         ncap_pop_dmn_cmn();
         ncap_pop_var_dmn_cmn(var, cmn);
         (void)nco_cnk_sz_set_trv(in_id,out_id,cnk_in, var->nm,cmn);
@@ -552,11 +552,11 @@ prs_cls::ncap_var_write_omp(
 
 void prs_cls::ncap_def_ntl_scn(void) {
   int idx;
-  int jdx;
+
   int sz;
   int var_id;
-  int rcd;
-  size_t cnks[NC_MAX_VAR_DIMS] = {0};
+
+  // size_t cnks[NC_MAX_VAR_DIMS] = {0};
   NcapVar *Nvar;
   NcapVar *Cvar;
   var_sct *var1;
@@ -747,11 +747,11 @@ int prs_cls::ncap_get_cnk_sz(var_sct *var){
   sz=dmn_in_vtr.size();
   for(idx=0;idx<dmn_var_nbr;idx++){
     for(jdx=0;jdx< sz;jdx++  )
-      if (dmn_in_vtr[jdx]->id == dim_id[idx])
-        break;
-        cnt[idx]= ( jdx<sz ?   dmn_in_vtr[jdx]->cnt: 0);
+      if (dmn_in_vtr[jdx]->id == dim_id[idx]) break;
+    
+    cnt[idx]= ( jdx<sz ?   dmn_in_vtr[jdx]->cnt: 0);
 
-    }
+  }
 
 
   // compare disc var cnt with var->cnt

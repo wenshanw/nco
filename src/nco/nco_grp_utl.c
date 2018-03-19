@@ -2,7 +2,7 @@
 
 /* Purpose: Group utilities */
 
-/* Copyright (C) 1995--2017 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -1039,6 +1039,59 @@ nco_xtr_crd_add                       /* [fnc] Add all coordinates to extraction
 } /* end nco_xtr_crd_add() */
 
 void
+nco_xtr_lst /* [fnc] Print extraction list and exit */
+(trv_tbl_sct * const trv_tbl) /* I [sct] GTT (Group Traversal Table) */
+{
+  /* Purpose: Print extraction list and exit
+     ncclimo and ncremap invoke this ncks function to process regular expressions in variable lists
+     Usage:
+     ncks -v three.? --lst_xtr ~/nco/data/in.nc
+     ncks -v FSNT,TREFHT --lst_xtr ~/data/ne30/raw/famipc5_ne30_v0.3_00003.cam.h0.1979-01.nc
+     ncks -v ^[a-bA-B].? --lst_xtr ~/data/ne30/raw/famipc5_ne30_v0.3_00003.cam.h0.1979-01.nc */
+
+  const char fnc_nm[]="nco_xtr_lst()"; /* [sng] Function name */
+
+  int xtr_nbr_crr=0; /* [nbr] Number of N>=D variables found so far */
+
+  int grp_id; /* [id] Group ID */
+  int nc_id; /* [id] File ID */
+  int var_id; /* [id] Variable ID */
+
+  trv_sct var_trv;
+
+  nc_id=trv_tbl->in_id_arr[0];
+
+  /* If variable is on extraction list, print it to stdout */
+  for(unsigned idx_var=0;idx_var<trv_tbl->nbr;idx_var++){
+    var_trv=trv_tbl->lst[idx_var];
+    if(var_trv.nco_typ == nco_obj_typ_var && var_trv.flg_xtr){
+      (void)nco_inq_grp_full_ncid(nc_id,var_trv.grp_nm_fll,&grp_id);
+      (void)nco_inq_varid(grp_id,var_trv.nm,&var_id);
+      /* 20170829: Eliminate bounds variables from stdout list
+	 Intended to keep time bounds variables from reaching ncclimo 
+	 Variables like time_bnds may be replaced by, e.g., climatology_bounds in seasonal files
+	 Hence time bounds variables should not be specifically requested because they may not exist
+	 NCO's associated coordinate feature will extract them anyway
+	 So best not to explicitly request them in ncclimo */
+      if(!nco_is_spc_in_cf_att(grp_id,"bounds",var_id,NULL)){
+	(void)fprintf(stdout,"%s%s",(xtr_nbr_crr > 0) ? "," : "",var_trv.nm);
+	xtr_nbr_crr++;
+      } /* !bounds */
+    } /* !flg_xtr */
+  } /* !idx_var */
+  
+  if(xtr_nbr_crr > 0){
+    (void)fprintf(stdout,"\n");
+    nco_exit(EXIT_SUCCESS);
+  }else{
+    (void)fprintf(stdout,"%s: ERROR %s reports empty extraction list\n",nco_prg_nm_get(),fnc_nm);
+    nco_exit(EXIT_FAILURE);
+  } /* !xtr_nbr_crr */
+  
+  return;
+} /* end nco_xtr_lst() */
+
+void
 nco_xtr_ND_lst /* [fnc] Print extraction list of N>=D variables and exit */
 (trv_tbl_sct * const trv_tbl) /* I [sct] GTT (Group Traversal Table) */
 {
@@ -1052,16 +1105,21 @@ nco_xtr_ND_lst /* [fnc] Print extraction list of N>=D variables and exit */
 
   const char fnc_nm[]="nco_xtr_ND_lst()"; /* [sng] Function name */
 
+  const int rnk_xtr=2; /* [nbr] Minimum rank to extract */
+
   int xtr_nbr_crr=0; /* [nbr] Number of N>=D variables found so far */
-  int rnk_xtr=2; /* [nbr] Minimum rank to extract */
+
+  int grp_id; /* [id] Group ID */
+  int nc_id; /* [id] File ID */
+  int var_id; /* [id] Variable ID */
+
+  trv_sct var_trv;
+
+  nc_id=trv_tbl->in_id_arr[0];
 
   /* 20170414: csz add new definitions is_crd_lk_var and is_rec_lk_var, avoid PVN definitions for sanity */
   for(unsigned idx_var=0;idx_var<trv_tbl->nbr;idx_var++){
-    trv_sct var_trv=trv_tbl->lst[idx_var];
-    int nc_id; /* [id] File ID */
-    int var_id; /* [id] Variable ID */
-    int grp_id; /* [id] Group ID */
-    nc_id=trv_tbl->in_id_arr[0];
+    var_trv=trv_tbl->lst[idx_var];
     if(var_trv.nco_typ == nco_obj_typ_var){
       (void)nco_inq_grp_full_ncid(nc_id,var_trv.grp_nm_fll,&grp_id);
       (void)nco_inq_varid(grp_id,var_trv.nm,&var_id);
@@ -1076,8 +1134,8 @@ nco_xtr_ND_lst /* [fnc] Print extraction list of N>=D variables and exit */
   } /* !idx_var */
 
   /* If variable has N>=D dimensions, add it to list */
-  for(unsigned idx_var=0;idx_var<trv_tbl->nbr;idx_var++)
-    if(trv_tbl->lst[idx_var].nco_typ == nco_obj_typ_var)
+  for(unsigned idx_var=0;idx_var<trv_tbl->nbr;idx_var++){
+    if(trv_tbl->lst[idx_var].nco_typ == nco_obj_typ_var){
       if((trv_tbl->lst[idx_var].nbr_dmn >= rnk_xtr) && /* Rank at least 2 */
 	 (!trv_tbl->lst[idx_var].is_crd_lk_var) && /* Not a coordinate-like variable */
 	 (trv_tbl->lst[idx_var].is_rec_lk_var) && /* Is a record variable */
@@ -1086,12 +1144,13 @@ nco_xtr_ND_lst /* [fnc] Print extraction list of N>=D variables and exit */
 	(void)fprintf(stdout,"%s%s",(xtr_nbr_crr > 0) ? "," : "",trv_tbl->lst[idx_var].nm);
 	xtr_nbr_crr++;
       } /* !N>=D */
-
+    } /* !nco_typ */
+  } /* !idx_var */
   if(xtr_nbr_crr > 0){
     (void)fprintf(stdout,"\n");
     nco_exit(EXIT_SUCCESS);
   }else{
-    (void)fprintf(stdout,"%s: ERROR %s reports no variables found with rank >= 2\n",nco_prg_nm_get(),fnc_nm);
+    (void)fprintf(stdout,"%s: ERROR %s reports no variables found with rank >= %d\n",nco_prg_nm_get(),fnc_nm,rnk_xtr);
     nco_exit(EXIT_FAILURE);
   } /* !xtr_nbr_crr */
     
@@ -1165,7 +1224,7 @@ nco_xtr_cf_var_add /* [fnc] Add variables associated (via CF) with specified var
       /* Yes, get list of specified attributes */
       (void)nco_inq_att(grp_id,var_id,att_nm,&att_typ,&att_sz);
       if(att_typ != NC_CHAR){
-        (void)fprintf(stderr,"%s: WARNING \"%s\" attribute for variable %s is type %s, not %s. This violates the CF convention for specifying additional attributes. Therefore %s will skip this attribute. If you want CF to support NC_STRING attributes, please tell them and CC: NCO.\n",nco_prg_nm_get(),att_nm,var_trv->nm_fll,nco_typ_sng(att_typ),nco_typ_sng(NC_CHAR),fnc_nm);
+        (void)fprintf(stderr,"%s: WARNING \"%s\" attribute for variable %s is type %s, not %s. This violates the CF convention for allowed datatypes (http://cfconventions.org/cf-conventions/cf-conventions.html#_data_types). Therefore %s will skip this attribute. If you want CF to support NC_STRING attributes, please tell CF and CC: NCO.\n",nco_prg_nm_get(),att_nm,var_trv->nm_fll,nco_typ_sng(att_typ),nco_typ_sng(NC_CHAR),fnc_nm);
         return;
       } /* end if */
       att_val=(char *)nco_malloc((att_sz+1L)*sizeof(char));
@@ -1208,18 +1267,70 @@ nco_xtr_cf_var_add /* [fnc] Add variables associated (via CF) with specified var
         char *cf_lst_var=cf_lst[idx_cf];
         if(!cf_lst_var) continue;
 
-        char *cf_lst_var_nm_fll;  /* [sng] Built full name of 'CF' variable to find */
-        const char sls_chr='/';   /* [chr] Slash character */
-        const char sls_sng[]="/"; /* [sng] Slash string */
-        char *ptr_chr;            /* [sng] Pointer to character '/' in full name */
-        int psn_chr;              /* [nbr] Position of character '/' in in full name */
+        char *cf_lst_var_nm_fll;       /* [sng] Built full name of 'CF' variable to find */
+        const char sls_chr='/';        /* [chr] Slash character */
+        const char sls_sng[]="/";      /* [sng] Slash string */
+	const char cur_dir_sng[]="./"; /* [sng] current dir */  
+	const char up_dir_sng[]="../"; /* [sng] current dir */  					 
+        char *ptr_chr;                 /* [sng] Pointer to character '/' in full name */
+        int psn_chr;                   /* [nbr] Position of character '/' in in full name */
 
-        /* Construct full name of CF variable */
+	
+
+	/* create memory for full name of CF variable */
         cf_lst_var_nm_fll=(char *)nco_malloc(strlen(var_trv->grp_nm_fll)+strlen(cf_lst_var)+2L);
-        strcpy(cf_lst_var_nm_fll,var_trv->grp_nm_fll);
-        if(strcmp(var_trv->grp_nm_fll,sls_sng)) strcat(cf_lst_var_nm_fll,sls_sng);
-        strcat(cf_lst_var_nm_fll,cf_lst_var);
+        cf_lst_var_nm_fll[0]='\0'; 
+	
+        /* does cf_lst_var have a  path of some kind */
+	ptr_chr=strchr(cf_lst_var,sls_chr);
+        if(ptr_chr){
 
+          /* does cf_lst start with '/' an absolute path */      
+	  if(cf_lst_var[0]=='/') {
+	    strcpy(cf_lst_var_nm_fll, cf_lst_var);
+	  }  
+          /* does cf_lst_var start with './' */
+	  else if(strncmp(cf_lst_var, cur_dir_sng, strlen(cur_dir_sng) )==0){
+            if(strcmp(var_trv->grp_nm_fll,sls_sng))    
+                strcpy(cf_lst_var_nm_fll,var_trv->grp_nm_fll);
+
+	    strcat(cf_lst_var_nm_fll, cf_lst_var+(size_t)1);
+	  }
+	  /* does cf_lst_var start with '../' */
+          else if(strncmp(cf_lst_var, up_dir_sng, strlen(up_dir_sng) )==0){
+	      /* remove last dirname from var_trv->grp_nm_fll */
+	      strcpy(cf_lst_var_nm_fll,var_trv->grp_nm_fll);
+	      /* search for final '/' */
+              ptr_chr=strrchr(cf_lst_var_nm_fll,sls_chr);      
+	      if(ptr_chr) *ptr_chr='\0';
+              strcat(cf_lst_var_nm_fll, cf_lst_var+(size_t)2);     
+	  }
+	  /* '/' some-where in middle of string */
+          else
+	  {    
+              strcpy(cf_lst_var_nm_fll,var_trv->grp_nm_fll);
+              if(strcmp(var_trv->grp_nm_fll,sls_sng))
+		  strcat(cf_lst_var_nm_fll,sls_sng);
+              strcat(cf_lst_var_nm_fll,cf_lst_var);
+          } 	  
+          /* If variable is on list */
+          if(trv_tbl_fnd_var_nm_fll(cf_lst_var_nm_fll,trv_tbl))
+            /* Mark it for extraction */
+            (void)trv_tbl_mrk_xtr(cf_lst_var_nm_fll,True,trv_tbl);
+
+	  cf_lst_var_nm_fll=(char *)nco_free(cf_lst_var_nm_fll);
+	  
+          continue;
+	}  
+	
+	
+        strcpy(cf_lst_var_nm_fll,var_trv->grp_nm_fll);
+        if(strcmp(var_trv->grp_nm_fll,sls_sng))
+	  strcat(cf_lst_var_nm_fll,sls_sng);
+	
+        strcat(cf_lst_var_nm_fll,cf_lst_var);
+ 
+	
         /* Find last occurence of '/' */
         ptr_chr=strrchr(cf_lst_var_nm_fll,sls_chr);
         psn_chr=ptr_chr-cf_lst_var_nm_fll;
@@ -1946,7 +2057,7 @@ nco_xtr_wrt                           /* [fnc] Write extracted data to output fi
     nm_id_sct **rec_lst=NULL; /* [sct] Record variables to be extracted */
     nm_id_sct *xtr_lst=NULL; /* [sct] Variables to be extracted */
 
-    if(nco_dbg_lvl_get() >= nco_dbg_std) (void)fprintf(stderr,"%s: INFO Using MM3-workaround to hasten copying of record variables\n",nco_prg_nm_get());
+    if(nco_dbg_lvl_get() >= nco_dbg_fl) (void)fprintf(stderr,"%s: INFO Using MM3-workaround to hasten copying of record variables\n",nco_prg_nm_get());
 
     /* Convert extraction list from traversal table to nm_id_sct format to re-use old code */
     xtr_lst=nco_trv_tbl_nm_id(nc_id_in,nc_id_out,gpe,&xtr_nbr,trv_tbl);
@@ -2040,12 +2151,12 @@ nco_prn_dmn_grp /* [fnc] Print dimensions for a group  */
     for(int dnm_ult_idx=0;dnm_ult_idx<nbr_dmn_ult;dnm_ult_idx++){ 
       if(dmn_ids[dnm_idx] == dmn_ids_ult[dnm_ult_idx]){ 
         is_rec_dim=True;
-        (void)fprintf(stdout," #%d record dimension: '%s'(%li)\n",dmn_ids[dnm_idx],dmn_nm,dmn_sz);
+        (void)fprintf(stdout,"Record dimension name, size, ID = %s, %li, %d\n",dmn_nm,dmn_sz,dmn_ids[dnm_idx]);
       } /* end if */
     } /* end dnm_ult_idx dimensions */
 
     /* An unlimited ID was not matched, so dimension is a plain vanilla dimension */
-    if(!is_rec_dim) (void)fprintf(stdout," #%d dimension: '%s'(%li)\n",dmn_ids[dnm_idx],dmn_nm,dmn_sz);
+    if(!is_rec_dim) (void)fprintf(stdout,"Fixed dimension name, size, ID = %s, %li, %d\n",dmn_nm,dmn_sz,dmn_ids[dnm_idx]);
 
   } /* end dnm_idx dimensions */
 
@@ -2093,46 +2204,46 @@ nco_bld_dmn_ids_trv                   /* [fnc] Build dimension info for all vari
         } /* endif dbg */
         if(strcmp(var_trv.var_dmn[idx_dmn_var].dmn_nm,dmn_trv->nm)){
 
-        /* Test case generates duplicated dimension IDs in netCDF file
-
-        ncks -O  -v two_dmn_rec_var in_grp.nc out.nc
-
-        defines new dimensions for the file, as
-
-        ID=0 index [0]:</time> 
-        ID=1 index [1]:</lev> 
-        ID=2 index [0]:</g8/lev> 
-        ID=3 index [1]:</g8/vrt_nbr> 
-        ID=4 index [1]:</vrt_nbr> 
-
-        but the resulting file, when read, has the following IDs
-
-        dimensions:
-        #0,time = UNLIMITED ; // (10 currently)
-        #1,lev = 3 ;
-        #4,vrt_nbr = 2 ;
-
-        group: g8 {
-        dimensions:
-        #0,lev = 3 ;
-        #1,vrt_nbr = 2 ;
-
-        From: "Unidata netCDF Support" <support-netcdf@unidata.ucar.edu>
-        To: <pvicente@uci.edu>
-        Sent: Tuesday, March 12, 2013 5:02 AM
-        Subject: [netCDF #SHH-257980]: Re: [netcdfgroup] Dimensions IDs
-
-        > Your Ticket has been received, and a Unidata staff member will review it and reply accordingly. Listed below are details of this new Ticket. Please make sure the Ticket ID remains in the Subject: line on all correspondence related to this Ticket.
-        > 
-        >    Ticket ID: SHH-257980
-        >    Subject: Re: [netcdfgroup] Dimensions IDs
-        >    Department: Support netCDF
-        >    Priority: Normal
-        >    Status: Open
-        */
-
+	  /* Test case generates duplicated dimension IDs in netCDF file:
+	     
+	     ncks -O  -v two_dmn_rec_var in_grp.nc out.nc
+	     
+	     defines new dimensions for the file, as
+	     
+	     ID=0 index [0]:</time> 
+	     ID=1 index [1]:</lev> 
+	     ID=2 index [0]:</g8/lev> 
+	     ID=3 index [1]:</g8/vrt_nbr> 
+	     ID=4 index [1]:</vrt_nbr> 
+	     
+	     but the resulting file, when read, has the following IDs
+	     
+	     dimensions:
+	     #0,time = UNLIMITED ; // (10 currently)
+	     #1,lev = 3 ;
+	     #4,vrt_nbr = 2 ;
+	     
+	     group: g8 {
+	     dimensions:
+	     #0,lev = 3 ;
+	     #1,vrt_nbr = 2 ;
+	     
+	     From: "Unidata netCDF Support" <support-netcdf@unidata.ucar.edu>
+	     To: <pvicente@uci.edu>
+	     Sent: Tuesday, March 12, 2013 5:02 AM
+	     Subject: [netCDF #SHH-257980]: Re: [netcdfgroup] Dimensions IDs
+	     
+	     > Your Ticket has been received, and a Unidata staff member will review it and reply accordingly. Listed below are details of this new Ticket. Please make sure the Ticket ID remains in the Subject: line on all correspondence related to this Ticket.
+	     > 
+	     >    Ticket ID: SHH-257980
+	     >    Subject: Re: [netcdfgroup] Dimensions IDs
+	     >    Department: Support netCDF
+	     >    Priority: Normal
+	     >    Status: Open
+	  */
+	  
           (void)fprintf(stdout,"%s: INFO %s reports variable <%s> with duplicate dimensions\n",nco_prg_nm_get(),fnc_nm,var_trv.nm_fll);
-          (void)fprintf(stdout,"%s: ERROR netCDF file with duplicate dimension IDs detected. Please use netCDF version at least 4.3.0.\n",nco_prg_nm_get());
+          (void)fprintf(stdout,"%s: ERROR netCDF file with duplicate dimension IDs detected. Please use netCDF version at least 4.3.0. NB: Simultaneously renaming multiple dimensions with ncrename can trigger this bug with netCDF versions up to 4.6.0.1 (current as of 20180201).\n",nco_prg_nm_get());
           (void)nco_prn_trv_tbl(nc_id,trv_tbl);
           nco_exit(EXIT_FAILURE);
         }
@@ -4274,7 +4385,7 @@ nco_cpy_var_dfn_trv                 /* [fnc] Define specified variable in output
   char dmn_nm_grp[NC_MAX_NAME+1];        /* [sng] Dimension name for group */  
   char var_nm[NC_MAX_NAME+1];            /* [sng] Variable name (local copy of object name) */ 
 
-  dmn_cmn_sct dmn_cmn[NC_MAX_DIMS];      /* [sct] Dimension information on output (for a variable) */
+  dmn_cmn_sct dmn_cmn[NC_MAX_VAR_DIMS];      /* [sct] Dimension information on output (for a variable) */
 
   dmn_trv_sct *dmn_trv;                  /* [sct] Unique dimension object */
   
@@ -4284,7 +4395,7 @@ nco_cpy_var_dfn_trv                 /* [fnc] Define specified variable in output
   int *dmn_out_id_tmp;                   /* [idx] Copy of dmn_out_id (ncpdq) */
   int *udm_out_id_grp; /* [enm] Unlimited dimension IDs */
   int dmn_id_out;                        /* [id] Dimension ID defined in outout group */  
-  int dmn_out_id[NC_MAX_DIMS];           /* [id] Dimension IDs array for output variable */
+  int dmn_out_id[NC_MAX_VAR_DIMS];           /* [id] Dimension IDs array for output variable */
   int fl_fmt;                            /* [enm] Output file format */
   int grp_dmn_out_id;                    /* [id] Group ID where dimension visible to specified group is defined */
   int grp_in_id;                         /* [id] Group ID */
@@ -4741,7 +4852,7 @@ nco_cpy_var_dfn_trv                 /* [fnc] Define specified variable in output
        ...variable is processing type */
 
     /* Temporary store for old IDs */
-    int dmn_tmp_id[NC_MAX_DIMS];
+    int dmn_tmp_id[NC_MAX_VAR_DIMS];
     for(int idx_dmn=0;idx_dmn<nbr_dmn_var;idx_dmn++) dmn_tmp_id[idx_dmn]=dmn_out_id[idx_dmn];
 
     /* Increment number of dimensions for this variable */
@@ -4787,7 +4898,7 @@ nco_cpy_var_dfn_trv                 /* [fnc] Define specified variable in output
 
   /* Special case for ncwa */
   if(nco_prg_id == ncwa){
-    int dmn_ids_out[NC_MAX_DIMS];  /* [id] Dimension IDs array for output variable (ncwa can skip some dimensions, rearrange) */
+    int dmn_ids_out[NC_MAX_VAR_DIMS];  /* [id] Dimension IDs array for output variable (ncwa can skip some dimensions, rearrange) */
     int idx_dmn_def=0;
     for(int idx_dmn=0;idx_dmn<nbr_dmn_var;idx_dmn++){
       if(DEFINE_DIM[idx_dmn]){
@@ -4801,8 +4912,11 @@ nco_cpy_var_dfn_trv                 /* [fnc] Define specified variable in output
 
   }else{ /* !ncwa */
 
-    /* Allow ncks to autoconvert netCDF4 atomic types to netCDF3 output type ... */
-    if(nco_prg_id == ncks && fl_fmt != NC_FORMAT_NETCDF4 && fl_fmt != NC_FORMAT_64BIT_DATA && !nco_typ_nc3(var_typ_out)) var_typ_out=nco_typ_nc4_nc3(var_typ_out);
+    /* Allow ncks to autoconvert any netCDF4-supported atomic type to netCDF3 or netCDF5-supported output type ... */
+    if(nco_prg_id == ncks){
+      if(fl_fmt == NC_FORMAT_CLASSIC || fl_fmt == NC_FORMAT_64BIT_OFFSET || fl_fmt == NC_FORMAT_NETCDF4_CLASSIC) var_typ_out=nco_typ_nc4_nc3(var_typ_out); else if(fl_fmt == NC_FORMAT_64BIT_DATA) var_typ_out=nco_typ_nc4_nc5(var_typ_out);
+    } /* !ncks */
+    
     /* fxm TODO nco1106 too complicated--need phony dimensions for NC_CHAR array length */
     /* if(var_typ_out == NC_STRING) nbr_dmn_var_out++; */ 
 
@@ -4874,7 +4988,7 @@ nco_cpy_var_dfn_trv                 /* [fnc] Define specified variable in output
     /* Define extra dimension on output (e.g., ncecat adds "record" dimension) */
     if(nco_prg_id == ncecat && rec_dmn_nm && var_trv->enm_prc_typ == prc_typ){ 
       /* Temporary store for old dimensions */
-      dmn_cmn_sct dmn_cmn_tmp[NC_MAX_DIMS];
+      dmn_cmn_sct dmn_cmn_tmp[NC_MAX_VAR_DIMS];
       for(int idx_dmn=0;idx_dmn<nbr_dmn_var_out;idx_dmn++) dmn_cmn_tmp[idx_dmn]=dmn_cmn[idx_dmn];
       /* Define record dimension made for ncecat */
       dmn_cmn[0].sz=NC_UNLIMITED;
@@ -5458,9 +5572,9 @@ nco_var_dmn_rdr_val_trv               /* [fnc] Change dimension ordering of vari
   int dmn_out_nbr;                 /* [nbr] Number of dimensions in output variable */
   int typ_sz;                      /* [B] Size of data element in memory */
 
-  long dmn_in_map[NC_MAX_DIMS];    /* [idx] Map for each dimension of input variable */
-  long dmn_out_map[NC_MAX_DIMS];   /* [idx] Map for each dimension of output variable */
-  long dmn_in_sbs[NC_MAX_DIMS];    /* [idx] Dimension subscripts into N-D input array */
+  long dmn_in_map[NC_MAX_VAR_DIMS];    /* [idx] Map for each dimension of input variable */
+  long dmn_out_map[NC_MAX_VAR_DIMS];   /* [idx] Map for each dimension of output variable */
+  long dmn_in_sbs[NC_MAX_VAR_DIMS];    /* [idx] Dimension subscripts into N-D input array */
   long var_in_lmn;                 /* [idx] Offset into 1-D input array */
   long var_out_lmn;                /* [idx] Offset into 1-D output array */
   long *var_in_cnt;                /* [nbr] Number of valid elements in this dimension (including effects of stride and wrapping) */
@@ -5527,7 +5641,7 @@ nco_var_dmn_rdr_val_trv               /* [fnc] Change dimension ordering of vari
 
       /* Report full metadata re-order, if requested */
       if(nco_dbg_lvl_get() > 3){
-        int dmn_idx_in_out[NC_MAX_DIMS]; /* [idx] Dimension correspondence, input->output */
+        int dmn_idx_in_out[NC_MAX_VAR_DIMS]; /* [idx] Dimension correspondence, input->output */
         /* Create reverse correspondence */
         for(dmn_out_idx=0;dmn_out_idx<dmn_out_nbr;dmn_out_idx++)
           dmn_idx_in_out[dmn_idx_out_in[dmn_out_idx]]=dmn_out_idx;
@@ -6567,7 +6681,7 @@ nco_bld_trv_tbl                       /* [fnc] Construct GTT, Group Traversal Ta
   (void)nco_bld_var_dmn(trv_tbl);       
 
   /* ncbo co-sequential match algorithm requires alphabetical sorted full names. Do it here, to avoid rebuilding hash table */
-  if(nco_prg_id_get() == ncbo) (void)trv_tbl_srt(trv_tbl);
+  if(nco_prg_id_get() == ncbo) (void)trv_tbl_srt((int)0,trv_tbl);
 
   /* Hash traversal table for faster access */
   (void)nco_trv_hsh_bld(trv_tbl);
@@ -6997,7 +7111,6 @@ nco_bld_lmt                           /* [fnc] Assign user specified dimension l
   } /* Loop table step 3 */
 
 } /* nco_bld_lmt() */
-
 
 void
 nco_bld_lmt_var                       /* [fnc] Assign user specified dimension limits to one GTT variable */
@@ -7602,7 +7715,7 @@ nco_var_has_cf /* [fnc] Variable has CF-compliant attributes ("ancillary_variabl
       /* Yes, get list of specified attributes */
       (void)nco_inq_att(grp_id,var_id,att_nm,&att_typ,&att_sz);
       if(att_typ != NC_CHAR){
-        (void)fprintf(stderr,"%s: WARNING \"%s\" attribute for variable %s is type %s, not %s. This violates the CF convention for specifying additional attributes. Therefore %s will skip this attribute.\n",nco_prg_nm_get(),att_nm,var_trv->nm_fll,nco_typ_sng(att_typ),nco_typ_sng(NC_CHAR),fnc_nm);
+        (void)fprintf(stderr,"%s: WARNING \"%s\" attribute for variable %s is type %s, not %s. This violates the CF convention for allowed datatypes (http://cfconventions.org/cf-conventions/cf-conventions.html#_data_types). Therefore %s will skip this attribute.\n",nco_prg_nm_get(),att_nm,var_trv->nm_fll,nco_typ_sng(att_typ),nco_typ_sng(NC_CHAR),fnc_nm);
         return NULL;
       } /* end if */
       att_val=(char *)nco_malloc((att_sz+1L)*sizeof(char));

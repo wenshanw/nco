@@ -2,7 +2,7 @@
 
 # Purpose: Regrid (subsets of) netCDF files between different Swath, Curvilinear, Rectangular, and Unstructured data (SCRUD) grids, generate any required/requested global or regional rectangular grid, output SCRIP, UGRID, and/or skeleton data formats
 
-# Copyright (C) 2015--2017 Charlie Zender
+# Copyright (C) 2015--2018 Charlie Zender
 # This file is part of NCO, the netCDF Operators. NCO is free software.
 # You may redistribute and/or modify NCO under the terms of the 
 # GNU General Public License (GPL) Version 3.
@@ -27,14 +27,14 @@
 # Irvine, CA 92697-3100
 
 # Prerequisites: Bash, NCO
-# Script could use other shells, e.g., dash (Debian default) after rewriting function definition and looping constructs
+# Script could use other shells, e.g., dash (Debian default) after rewriting function definitions and loops
 # For full functionality also install ESMF_RegridWeightGen and/or TempestRemap
 
 # Source: https://github.com/nco/nco/tree/master/data/ncremap
 # Documentation: http://nco.sf.net/nco.html#ncremap
 # Additional Documentation:
 # HowTo: https://acme-climate.atlassian.net/wiki/display/SIM/Generate%2C+Regrid%2C+and+Split+Climatologies+%28climo+files%29+with+ncclimo+and+ncremap
-# ACME/E3SM Climatology Requirements: https://acme-climate.atlassian.net/wiki/display/ATM/Climo+Files+-+v0.3+AMIP+runs
+# E3SM/ACME Climatology Requirements: https://acme-climate.atlassian.net/wiki/display/ATM/Climo+Files+-+v0.3+AMIP+runs
 
 # Regridder works in one of four modes:
 # 1. Free-will: Infer source and destination grids to generate map-file, then regrid
@@ -48,16 +48,18 @@
 # Insta-install:
 # scp ~/nco/data/ncremap aims4.llnl.gov:bin
 # scp ~/nco/data/ncremap blues.lcrc.anl.gov:bin
+# scp ~/nco/data/ncremap cheyenne.ucar.edu:bin
 # scp ~/nco/data/ncremap cooley.alcf.anl.gov:bin
 # scp ~/nco/data/ncremap cori.nersc.gov:bin_cori
 # scp ~/nco/data/ncremap edison.nersc.gov:bin_edison
 # scp ~/nco/data/ncremap rhea.ccs.ornl.gov:bin_rhea
 # scp ~/nco/data/ncremap skyglow.ess.uci.edu:bin
-# scp ~/nco/data/ncremap yellowstone.ucar.edu:bin
 # scp dust.ess.uci.edu:nco/data/ncremap ~/bin
 
 # Set script name, directory, PID, run directory
 drc_pwd=${PWD}
+# Security: Explicitly unset IFS before wordsplitting, so Bash uses default IFS=<space><tab><newline>
+unset IFS
 # Set these before 'module' command which can overwrite ${BASH_SOURCE[0]}
 # NB: dash supports $0 syntax, not ${BASH_SOURCE[0]} syntax
 # http://stackoverflow.com/questions/59895/can-a-bash-script-tell-what-directory-its-stored-in
@@ -85,104 +87,130 @@ fi # HOSTNAME
 if [ -z "${DATA}" ]; then
     case "${HOSTNAME}" in 
 	constance* | node* ) DATA='/scratch' ; ;; # PNNL
-	blues* | blogin* | b[0123456789][0123456789][0123456789] ) DATA="/lcrc/project/ACME/${USER}" ; ;; # ALCF blues compute nodes named bNNN, 16|64 cores|GB/node 
+	blues* | blogin* | b[0123456789][0123456789][0123456789] ) DATA="/lcrc/project/ACME/${USER}" ; ;; # ALCF blues compute nodes named bNNN, 36|64 cores|GB/node 
+	*cheyenne* ) DATA="/glade/p/work/${USER}" ; ;; # NCAR cheyenne compute nodes named cheyenneNNN, 18|(64/128) cores|GB/node (cheyenne login nodes 256 GB)
 	cooley* | cc[0123456789][0123456789][0123456789] | mira* ) DATA="/projects/HiRes_EarthSys/${USER}" ; ;; # ALCF cooley compute nodes named ccNNN, 384 GB/node 
-	cori* | edison* ) DATA="${SCRATCH}" ; ;; # NERSC cori/edison compute nodes all named nidNNNNN, edison 24|64 cores|GB/node; cori 32|128 cores|GB/node (cori login nodes 512 GB)
+	cori* | edison* ) DATA="${SCRATCH}" ; ;; # NERSC cori/edison compute nodes all named nidNNNNN, edison 24|64 cores|GB/node; cori 32|(96/128) cores|GB/node (knl/haswell) (cori login nodes 512 GB)
 	pileus* ) DATA="/lustre/atlas/world-shared/cli115/${USER}" ; ;; # OLCF CADES
 	rhea* | titan* ) DATA="/lustre/atlas/world-shared/cli115/${USER}" ; ;; # OLCF rhea compute nodes named rheaNNN, 128 GB/node
-	ys* ) DATA="/glade/p/work/${USER}" ; ;; # NCAR yellowstone compute nodes named ysNNN, 32 GB/node
 	* ) DATA='/tmp' ; ;; # Other
     esac # !HOSTNAME
 fi # DATA
-# Ensure batch jobs access correct 'mpirun' (or, with SLURM, 'srun') command, netCDF library, and NCO executables and library:
-case "${HOSTNAME}" in 
-    aims* )
-	export PATH='/export/zender1/bin'\:${PATH}
-        export LD_LIBRARY_PATH='/export/zender1/lib'\:${LD_LIBRARY_PATH} ; ;;
-    blues* | blogin* | b[0123456789][0123456789][0123456789] )
-	soft add @openmpi-gcc
-	export PATH='/home/zender/bin'\:${PATH}
-	export LD_LIBRARY_PATH='/home/zender/lib'\:${LD_LIBRARY_PATH} ; ;;
-    cooley* )
-	# 20160421: Split cooley from mira binary locations to allow for different system libraries
-	# http://www.mcs.anl.gov/hs/software/systems/softenv/softenv-intro.html
-	soft add +mvapich2 
-        export PBS_NUM_PPN=12 # Spoof PBS on Soft (which knows nothing about node capabilities)
-	export PATH='/home/zender/bin_cooley'\:${PATH}
-	export LD_LIBRARY_PATH='/home/zender/lib_cooley'\:${LD_LIBRARY_PATH} ; ;;
-    mira* )
-	export PATH='/home/zender/bin_mira'\:${PATH}
-	export LD_LIBRARY_PATH='/soft/libraries/netcdf/current/library:/home/zender/lib_mira'\:${LD_LIBRARY_PATH} ; ;;
-    cori* )
-	# 20160407: Separate cori from edison binary locations to allow for different system libraries
-	# 20160420: module load gsl, udunits required for non-interactive batch submissions by Wuyin Lin
-	# Not necessary for interactive, nor for CSZ non-interactive, batch submisssions
-	# Must be due to home environment differences between CSZ and other users
-	# Loading gsl and udunits seems to do no harm, so always do it
-	# This is equivalent to LD_LIBRARY_PATH method used for netCDF and SZIP on rhea
-	# Why do cori/edison and rhea require workarounds for different packages?
-	module load gsl
-	module load udunits
-	# On cori and edison, module load ncl installs ERWG 5.2 (from 2012) in ${NCARG_ROOT}/../intel/bin
-	# module load ncl/6.3.0 
-	if [ -n "${NCARG_ROOT}" ]; then
-            export PATH="${NCARG_ROOT}/bin:${PATH}"
-	fi # !NCARG_ROOT
-	export PATH='/global/homes/z/zender/bin_cori'\:${PATH}
-        export LD_LIBRARY_PATH='/global/homes/z/zender/lib_cori'\:${LD_LIBRARY_PATH} ; ;;
-    edison* )
-	module load gsl
-	module load udunits2 # 20170816 Name changed to udunits2
-	# On cori and edison, module load ncl installs ERWG 5.2 (from 2012) in ${NCARG_ROOT}/../intel/bin
-	# module load ncl/6.3.0 
-	if [ -n "${NCARG_ROOT}" ]; then
-            export PATH="${NCARG_ROOT}/bin:${PATH}"
-	fi # !NCARG_ROOT
-	export PATH='/global/homes/z/zender/bin_edison'\:${PATH}
-        export LD_LIBRARY_PATH='/global/homes/z/zender/lib_edison'\:${LD_LIBRARY_PATH} ; ;;
-    pileus* )
-	export PATH='/home/zender/bin'\:${PATH}
-	export LD_LIBRARY_PATH='/opt/ACME/uvcdat-2.2-build/install/Externals/lib:/home/zender/lib'\:${LD_LIBRARY_PATH} ; ;;
-    rhea* )
-	# 20151017: CSZ next three lines guarantee finding mpirun
-	source ${MODULESHOME}/init/sh # 20150607: PMC Ensures find module commands will be found
-	module unload PE-intel # Remove Intel-compiled mpirun environment
-	module load PE-gnu # Provides GCC-compiled mpirun environment (CSZ uses GCC to build NCO on rhea)
-	# 20160219: CSZ UVCDAT setup causes failures with mpirun, attempting a work-around
-	if [ -n "${UVCDAT_SETUP_PATH}" ]; then
-	    module unload python ompi paraview PE-intel PE-gnu
+
+# Ensure batch jobs access correct 'mpirun' (or, with SLURM, 'srun') command, netCDF library, and NCO executables and library
+# 20170914 Entire block is identical between ncclimo and ncremap---keep it that way!
+# hrd_pth is a placeholder no-op that could be a command-line option to control environment
+# Set NCO_PATH_OVERRIDE to 'No' to prevent NCO from executing next block that overrides PATH:
+# export NCO_PATH_OVERRIDE='No'
+hrd_pth='Yes' # [sng] Hard-code machine-dependent paths/modules if HOSTNAME in database
+if [ "${hrd_pth}" != 'No' ] && [ "${NCO_PATH_OVERRIDE}" != 'No' ]; then
+    # If HOSTNAME is not in database, change hrd_pth_fnd to 'No' in case-statement default fall-through
+    hrd_pth_fnd='Yes' # [sng] Machine-dependent paths/modules for HOSTNAME found in database
+    case "${HOSTNAME}" in 
+	aims* )
+	    export PATH='/export/zender1/bin'\:${PATH}
+            export LD_LIBRARY_PATH='/export/zender1/lib'\:${LD_LIBRARY_PATH} ; ;;
+	blues* | blogin* | b[0123456789][0123456789][0123456789] )
+	    soft add @openmpi-gcc
+	    export PATH='/home/zender/bin'\:${PATH}
+	    export LD_LIBRARY_PATH='/home/zender/lib'\:${LD_LIBRARY_PATH} ; ;;
+	cooley* )
+	    # 20160421: Split cooley from mira binary locations to allow for different system libraries
+	    # http://www.mcs.anl.gov/hs/software/systems/softenv/softenv-intro.html
+	    soft add +mvapich2 
+            export PBS_NUM_PPN=12 # Spoof PBS on Soft (which knows nothing about node capabilities)
+	    export PATH='/home/zender/bin_cooley'\:${PATH}
+	    export LD_LIBRARY_PATH='/home/zender/lib_cooley'\:${LD_LIBRARY_PATH} ; ;;
+	mira* )
+	    export PATH='/home/zender/bin_mira'\:${PATH}
+	    export LD_LIBRARY_PATH='/soft/libraries/netcdf/current/library:/home/zender/lib_mira'\:${LD_LIBRARY_PATH} ; ;;
+	*cheyenne* )
+	    # 20180112: Cheyenne support not yet tested in batch mode
+	    if [ ${spt_nm} = 'ncremap' ]; then
+		# On cheyenne, module load ncl installs ERWG in /glade/u/apps/ch/opt/ncl/6.4.0/intel/17.0.1/bin (i.e., ${NCARG_ROOT}/bin)
+		module load ncl
+	    fi # !ncremap
+	    if [ -n "${NCARG_ROOT}" ]; then
+		export PATH="${PATH}:/glade/u/apps/ch/opt/ncl/6.4.0/intel/17.0.1/bin"
+	    fi # !NCARG_ROOT
+            export PATH='/glade/u/home/zender/bin'\:${PATH}
+            export LD_LIBRARY_PATH='/glade/u/apps/ch/opt/netcdf/4.4.1.1/intel/17.0.1/lib:/glade/u/home/zender/lib'\:${LD_LIBRARY_PATH} ; ;;
+	cori* )
+	    # 20160407: Separate cori from edison binary locations to allow for different system libraries
+	    # 20160420: module load gsl, udunits required for non-interactive batch submissions by Wuyin Lin
+	    # Not necessary for interactive, nor for CSZ non-interactive, batch submisssions
+	    # Must be due to home environment differences between CSZ and other users
+	    # Loading gsl and udunits seems to do no harm, so always do it
+	    # This is equivalent to LD_LIBRARY_PATH method used for netCDF and SZIP on rhea
+	    # Why do cori/edison and rhea require workarounds for different packages?
+	    module load gsl
+	    module load udunits
+	    if [ ${spt_nm} = 'ncremap' ]; then
+		module load ncl # 20170916 OK
+	    fi # !ncremap
+	    if [ -n "${NCARG_ROOT}" ]; then
+		export PATH="${PATH}:${NCARG_ROOT}/bin"
+	    fi # !NCARG_ROOT
+	    export PATH='/global/homes/z/zender/bin_cori'\:${PATH}
+            export LD_LIBRARY_PATH='/global/homes/z/zender/lib_cori'\:${LD_LIBRARY_PATH} ; ;;
+	edison* )
+	    module load gsl
+	    module load udunits2 # 20170816 Name changed to udunits2
+	    if [ ${spt_nm} = 'ncremap' ]; then
+		module load ncl # 20170916 OK
+	    fi # !ncremap
+	    if [ -n "${NCARG_ROOT}" ]; then
+		export PATH="${PATH}:${NCARG_ROOT}/bin"
+	    fi # !NCARG_ROOT
+	    export PATH='/global/homes/z/zender/bin_edison'\:${PATH}
+            export LD_LIBRARY_PATH='/global/homes/z/zender/lib_edison'\:${LD_LIBRARY_PATH} ; ;;
+	pileus* )
+	    export PATH='/home/zender/bin'\:${PATH}
+	    export LD_LIBRARY_PATH='/opt/ACME/uvcdat-2.2-build/install/Externals/lib:/home/zender/lib'\:${LD_LIBRARY_PATH} ; ;;
+	rhea* )
+	    # 20151017: CSZ next three lines guarantee finding mpirun
+	    source ${MODULESHOME}/init/sh # 20150607: PMC Ensures find module commands will be found
+	    module unload PE-intel # Remove Intel-compiled mpirun environment
+	    module load PE-gnu # Provides GCC-compiled mpirun environment (CSZ uses GCC to build NCO on rhea)
+	    # 20160219: CSZ UVCDAT setup causes failures with mpirun, attempting a work-around
+	    if [ -n "${UVCDAT_SETUP_PATH}" ]; then
+		module unload python ompi paraview PE-intel PE-gnu
+		module load gcc
+		source /lustre/atlas1/cli900/world-shared/sw/rhea/uvcdat/latest_full/bin/setup_runtime.sh
+		export ${UVCDAT_SETUP_PATH}
+	    fi # !UVCDAT_SETUP_PATH
+	    if [ ${spt_nm} = 'ncremap' ]; then
+		# 20170825: Use module load ncl/6.3.0 (6.4.0 lacks ERWG)
+		module load ncl/6.3.0
+	    fi # !ncremap
+	    if [ -n "${NCARG_ROOT}" ]; then
+		export PATH="${PATH}:${NCARG_ROOT}/bin"
+	    fi # !NCARG_ROOT
+            export PATH='/ccs/home/zender/bin_rhea'\:${PATH}
+	    export LD_LIBRARY_PATH='/autofs/nccs-svm1_sw/rhea/.swci/0-core/opt/spack/20170224/linux-rhel6-x86_64/gcc-4.4.7/netcdf-4.4.1-uroyzcwi6fc3kerfidguoof7g2vimo57/lib:/sw/redhat6/szip/2.1/rhel6.6_gnu4.8.2/lib:/ccs/home/zender/lib_rhea'\:${LD_LIBRARY_PATH} ; ;;
+	titan* )
+	    source ${MODULESHOME}/init/sh # 20150607: PMC Ensures find module commands will be found
 	    module load gcc
-	    source /lustre/atlas1/cli900/world-shared/sw/rhea/uvcdat/latest_full/bin/setup_runtime.sh
-	    export ${UVCDAT_SETUP_PATH}
-	fi # !UVCDAT_SETUP_PATH
-	# On rhea, module load ncl installs ERWG in ${NCL_DIR}/bin
-	if [ -n "${NCL_DIR}" ]; then
-            export PATH="${NCL_DIR}/bin:${PATH}"
-	fi # !NCL_DIR
-        export PATH='/ccs/home/zender/bin_rhea'\:${PATH}
-	export LD_LIBRARY_PATH='/autofs/nccs-svm1_sw/rhea/.swci/0-core/opt/spack/20170224/linux-rhel6-x86_64/gcc-4.4.7/netcdf-4.4.1-uroyzcwi6fc3kerfidguoof7g2vimo57/lib:/sw/redhat6/szip/2.1/rhel6.6_gnu4.8.2/lib:/ccs/home/zender/lib_rhea'\:${LD_LIBRARY_PATH} ; ;;
-    titan* )
-	source ${MODULESHOME}/init/sh # 20150607: PMC Ensures find module commands will be found
-	module load gcc
-        export PATH='/ccs/home/zender/bin_titan'\:${PATH}
-	export LD_LIBRARY_PATH='/opt/cray/netcdf/4.4.1.1/GNU/49/lib:/sw/xk6/udunits/2.1.24/sl_gcc4.5.3/lib:/ccs/home/zender/lib_titan'\:${LD_LIBRARY_PATH} ; ;;
-    ys* )
-	# 20151018: Yellowstone support not yet tested in batch mode
-	# On yellowstone, module load ncl installs ERWG in /glade/apps/opt/ncl/6.4.0/intel/12.1.5/bin (not in ${NCARG_ROOT}/bin)
-	if [ -n "${NCARG_ROOT}" ]; then
-#            export PATH="${NCARG_ROOT}/bin:${PATH}"
-            export PATH="${PATH}:/glade/apps/opt/ncl/6.4.0/intel/12.1.5/bin"
-	fi # !NCARG_ROOT
-        export PATH='/glade/u/home/zender/bin'\:${PATH}
-        export LD_LIBRARY_PATH='/glade/apps/opt/netcdf/4.4.1/intel/16.0.3/lib:/glade/u/home/zender/lib'\:${LD_LIBRARY_PATH}
-esac # !HOSTNAME
+	    if [ ${spt_nm} = 'ncremap' ]; then
+		# 20170831: Use module load ncl (6.3.0 lacks ERWG)
+		module load ncl # 20170916 OK
+	    fi # !ncremap
+	    if [ -n "${NCARG_ROOT}" ]; then
+		export PATH="${PATH}:${NCARG_ROOT}/bin"
+	    fi # !NCARG_ROOT
+            export PATH='/ccs/home/zender/bin_titan'\:${PATH}
+	    export LD_LIBRARY_PATH='/opt/cray/netcdf/4.4.1.1/GNU/49/lib:/sw/xk6/udunits/2.1.24/sl_gcc4.5.3/lib:/ccs/home/zender/lib_titan'\:${LD_LIBRARY_PATH} ; ;;
+	* ) # Default fall-through
+	    hrd_pth_fnd='No' ; ;;
+    esac # !HOSTNAME
+fi # !hrd_pth && !NCO_PATH_OVERRIDE
 
 # Test cases (for Charlie's machines)
 # Map-only:
-# ncremap -s ${DATA}/grids/oEC60to30.SCRIP.150729.nc -g ${DATA}/grids/t62_SCRIP.20150901.nc -m ~/map.nc -a bilinear
-# ncremap -s ${DATA}/grids/oEC60to30.SCRIP.150729.nc -g ${DATA}/grids/t62_SCRIP.20150901.nc -m ~/map.nc -a tempest
-# ncremap -s ${DATA}/grids/oEC60to30.SCRIP.150729.nc -d ${DATA}/dstmch90/dstmch90_clm.nc -m ~/map.nc -a tempest
-# ncremap -s ${DATA}/grids/128x256_SCRIP.20160301.nc -d ${DATA}/dstmch90/dstmch90_clm.nc -m ~/map.nc -a tempest
+# ncremap -D 1 -s ${DATA}/grids/oEC60to30.SCRIP.150729.nc -g ${DATA}/grids/t62_SCRIP.20150901.nc -m ~/map.nc -a bilinear
+# ncremap -D 1 -s ${DATA}/grids/oEC60to30.SCRIP.150729.nc -g ${DATA}/grids/t62_SCRIP.20150901.nc -m ~/map.nc -a tempest
+# ncremap -D 1 -s ${DATA}/grids/oEC60to30.SCRIP.150729.nc -d ${DATA}/dstmch90/dstmch90_clm.nc -m ~/map.nc -a tempest
+# ncremap -D 1 -s ${DATA}/grids/128x256_SCRIP.20160301.nc -d ${DATA}/dstmch90/dstmch90_clm.nc -m ~/map.nc -a tempest
 # Regrid:
 # ls ${DATA}/ne30/raw/*1979*.nc | ncremap -m ${DATA}/maps/map_ne30np4_to_fv129x256_aave.20150901.nc -O ~/rgr
 # ncremap -a conserve -v FSNT -I ${DATA}/ne30/raw -s ${DATA}/grids/ne30np4_pentagons.091226.nc -d ${DATA}/dstmch90/dstmch90_clm.nc -O ~/rgr
@@ -199,7 +227,7 @@ esac # !HOSTNAME
 # ncremap -x TSurfStd_ct -i ${DATA}/sld/raw/AIRS.2014.10.01.202.L2.TSurfStd.Regrid010.1DLatLon.hole.nc -g ${DATA}/grids/180x360_SCRIP.20150901.nc -O ~/rgr
 # ncremap -i ${DATA}/hdf/cice_hi_flt.nc -g ${DATA}/grids/180x360_SCRIP.20150901.nc -O ~/rgr
 # ncremap -i ${DATA}/hdf/cam_time.nc -g ${DATA}/grids/180x360_SCRIP.20150901.nc -O ~/rgr
-# CESM & ACME/E3SM:
+# CESM & E3SM/ACME:
 # ncremap -s ${DATA}/grids/ne120np4_pentagons.100310.nc -i ${DATA}/ne120/raw/b1850c5_m2a.cam.h0.0060-01.nc -g ${DATA}/grids/180x360_SCRIP.20150901.nc -O ~/rgr
 # ncremap -s ${DATA}/grids/ne120np4_pentagons.100310.nc -i ${DATA}/ne120/raw/b1850c5_m2a.clm2.h0.0060-01.nc -g ${DATA}/grids/180x360_SCRIP.20150901.nc -O ~/rgr
 # ncremap -i ${DATA}/ne120/raw/b1850c5_m2a.cice.h.0060-01.nc -g ${DATA}/grids/180x360_SCRIP.20150901.nc -O ~/rgr
@@ -211,14 +239,15 @@ esac # !HOSTNAME
 # New MPAS filename conventions (as of ~201612):
 # ncremap -P mpas -i ${DATA}/hdf/mpaso.hist.am.timeSeriesStatsMonthly.0001-01-01.nc -m ${DATA}/maps/map_oEC60to30_to_t62_bilin.20160301.nc -O ~/rgr
 # ncremap -P mpas -i ${DATA}/hdf/mpascice.hist.am.timeSeriesStatsMonthly.0251-01-01.nc -m ${DATA}/maps/map_oEC60to30_to_t62_bilin.20160301.nc -O ~/rgr
-# ACME/E3SM benchmarks:
-# ncremap -v FSNT,AODVIS -a conserve -i ${DATA}/ne30/raw/famipc5_ne30_v0.3_00003.cam.h0.1979-01.nc -m ${DATA}/maps/map_ne30np4_to_fv129x256_aave.20150901.nc -O ~/rgr
-# ncremap -v FSNT,AODVIS -i ${DATA}/ne30/raw/famipc5_ne30_v0.3_00003.cam.h0.1979-01.nc -s ${DATA}/grids/ne30np4_pentagons.091226.nc -g ${DATA}/grids/129x256_SCRIP.20150901.nc -O ~/rgr
-# ncremap -v FSNT,AODVIS -a tempest -i ${DATA}/ne30/raw/famipc5_ne30_v0.3_00003.cam.h0.1979-01.nc -s ${DATA}/grids/ne30np4_pentagons.091226.nc -g ${DATA}/grids/129x256_SCRIP.20150901.nc -O ~/rgr
+# ncremap -P mpas --mss_val=-1.0e36 -s ${DATA}/grids/ais20km.150910.SCRIP.nc -i ${DATA}/hdf/ais20km.20180117.nc -g ${DATA}/grids/129x256_SCRIP.20150901.nc -o ~/foo.nc
+# E3SM/ACME benchmarks:
+# ncremap -v FSNT,AODVIS -i ${DATA}/ne30/raw/famipc5_ne30_v0.3_00003.cam.h0.1979-01.nc -m ${DATA}/maps/map_ne30np4_to_fv129x256_aave.20150901.nc -o ~/foo.nc
+# ncremap -v FSNT,AODVIS -a conserve -i ${DATA}/ne30/raw/famipc5_ne30_v0.3_00003.cam.h0.1979-01.nc -s ${DATA}/grids/ne30np4_pentagons.091226.nc -g ${DATA}/grids/129x256_SCRIP.20150901.nc -o ~/foo.nc
+# ncremap -v FSNT,AODVIS -a tempest -i ${DATA}/ne30/raw/famipc5_ne30_v0.3_00003.cam.h0.1979-01.nc -s ${DATA}/grids/ne30np4_pentagons.091226.nc -g ${DATA}/grids/129x256_SCRIP.20150901.nc -o ~/foo.nc
 # Positional arguments:
 # ncremap --var=FSNT,AODVIS --map=${DATA}/maps/map_ne30np4_to_fv129x256_aave.20150901.nc --drc_out=~/rgr ${DATA}/ne30/raw/famipc5_ne30_v0.3_00003.cam.h0.1979-??.nc
 # Omit cell_measures:
-# ncremap --no_cll_msr --var=FSNT,AODVIS -i ${DATA}/ne30/raw/famipc5_ne30_v0.3_00003.cam.h0.1979-01.nc -m ${DATA}/maps/map_ne30np4_to_fv129x256_aave.20150901.nc -O ~/rgr
+# ncremap --no_cll_msr --var=FSNT,AODVIS -i ${DATA}/ne30/raw/famipc5_ne30_v0.3_00003.cam.h0.1979-01.nc -m ${DATA}/maps/map_ne30np4_to_fv129x256_aave.20150901.nc -o ~/foo.nc
 # SGS (201705):
 # ncremap --vrb=3 -P sgs --var=area,FSDS,landfrac,landmask,TBOT -i ${DATA}/ne30/raw/F_acmev03_enso_camse_clm45bgc_ne30_co2cycle.clm2.h0.2000-01.nc -s ${DATA}/grids/ne30np4_pentagons.091226.nc -g ${DATA}/grids/129x256_SCRIP.20150901.nc -o ~/alm_rgr.nc # 20170510 1D->2D works conserve and bilinear, no inferral
 # ncremap --vrb=3 -P sgs --var=area,FSDS,landfrac,landmask,TBOT -i ${DATA}/essgcm14/essgcm14.clm2.h0.0000-01.nc -s ${DATA}/grids/t42_SCRIP.20150901.nc -g ${DATA}/grids/129x256_SCRIP.20150901.nc -o ~/t42_rgr.nc # 20170510 2D->2D works conserve and bilinear, no inferral
@@ -235,8 +264,17 @@ esac # !HOSTNAME
 # ncremap -a conserve -i ${DATA}/hdf/ctl_brcp85c5cn_deg1.enm.cice.h.2050-07.nc -s ${DATA}/grids/gx1v7_151008.nc -g ${DATA}/grids/129x256_SCRIP.20150901.nc -o ~/wenshan.nc # 20170521: conservative requires supplied tri-pole grid for centers/bounds in masked regions
 # File-format
 # ncremap -v FSNT,AODVIS -s ${DATA}/grids/ne30np4_pentagons.091226.nc -i ${DATA}/ne30/raw/famipc5_ne30_v0.3_00003.cam.h0.1979-01.nc -d ${DATA}/dstmch90/dstmch90_clm.nc -o ~/foo.nc
+# TempestRemap boutique:
+# GenerateCSMesh --alt --res 30 --file ${DATA}/grids/ne30.g
+# ncremap --dbg=1 -a se2fv_flx --src_grd=${DATA}/grids/ne30.g --dst_grd=${DATA}/grids/129x256_SCRIP.20150901.nc -m ~/map_ne30np4_to_fv129x256_mono.20180301.nc
+# ncremap --dbg=1 -i ${DATA}/ne30/raw/famipc5_ne30_v0.3_00003.cam.h0.1979-01.nc -m ~/map_ne30np4_to_fv129x256_mono.20180301.nc -o ~/foo_fv129x256.nc
+# ncremap --dbg=1 -a fv2se_stt --src_grd=${DATA}/grids/129x256_SCRIP.20150901.nc --dst_grd=${DATA}/grids/ne30.g -m ~/map_fv129x256_to_ne30np4_highorder.20180301.nc
+# ncremap --dbg=1 -i ~/foo_fv129x256.nc -m ~/map_fv129x256_to_ne30np4_highorder.20180301.nc -o ~/foo_ne30.nc
+# ncremap --dbg=1 -a se2fv_flx --src_grd=${DATA}/grids/ne30.g --se_mtd=${DATA}/grids/ne30np4_latlon.091226.nc --dst_grd=${DATA}/grids/129x256_SCRIP.20150901.nc -m ~/map_ne30np4_to_fv129x256_mono.20180301.nc
+# Atmosphere->Ocean:
+# ncremap --dbg=1 --a2o -a se2fv_flx --src_grd=${DATA}/grids/ne30.g --dst_grd=${DATA}/grids/129x256_SCRIP.20150901.nc -m ~/map_ne30np4_to_fv129x256_mono.20180301.nc
 # Debugging and Benchmarking:
-# ncremap -D 1 -i ${DATA}/sld/raw/AIRS.2014.10.01.202.L2.TSurfStd.Regrid010.1DLatLon.hole.nc -d ${DATA}/dstmch90/dstmch90_clm.nc -O ~/rgr > ~/ncremap.out 2>&1 &
+# ncremap -D 1 -i ${DATA}/sld/raw/AIRS.2014.10.01.202.L2.TSurfStd.Regrid010.1DLatLon.hole.nc -d ${DATA}/dstmch90/dstmch90_clm.nc -o ~/foo.nc > ~/ncremap.out 2>&1 &
 
 # dbg_lvl: 0 = Quiet, print basic status during evaluation
 #          1 = Print configuration, full commands, and status to output during evaluation
@@ -261,7 +299,7 @@ lbr_vrs=$(ncks --library 2>&1 > /dev/null | awk '{print $6}')
 
 # Detect and warn about mixed modules (for Qi Tang 20170531)
 if [ "${drc_spt}" != "${drc_nco}" ]; then
-    echo "WARNING: Possible mixture of NCO versions from different locations. Script ${spt_nm} is from directory ${drc_spt} while NCO binaries are from directory ${drc_nco}. Normally the script and binaries are from the same executables directory. This WARNING may be safely ignore for customized scripts and/or binaries that the user has intentionally split into different directories."
+    echo "WARNING: Possible mixture of NCO versions from different locations. Script ${spt_nm} is from directory ${drc_spt} while NCO binaries are from directory ${drc_nco}. Normally the script and binaries are from the same executables directory. This WARNING may be safely ignored for customized scripts and/or binaries that the user has intentionally split into different directories."
     echo "HINT: Conflicting script and binary directories may result from 1) Hardcoding an NCO script and/or binary pathname, 2) Having incomplete NCO installations in one or more directories in the \$PATH environment variable, 3) Loading multiple NCO modules with different locations."
 fi # drc_spt
 
@@ -283,12 +321,14 @@ fi # !TERM
 
 # Defaults for command-line options and some derived variables
 # Modify these defaults to save typing later
-alg_typ='bilinear' # [nbr] Algorithm for interpolation (bilinear|conserve|nearestdtos|neareststod|patch|tempest)
+a2o_flg='No' # [flg] Atmosphere-to-ocean (only used by Tempest mesh generator)
+alg_typ='bilinear' # [nbr] Algorithm for remapping (bilinear|conserve|nearestdtos|neareststod|patch|tempest|se2fv_flx|se2fv_stt|se2fv_alt|fv2se_flx|fv2se_stt|fv2se_alt)
 bch_pbs='No' # [sng] PBS batch (non-interactive) job
 bch_slr='No' # [sng] SLURM batch (non-interactive) job
 cln_flg='Yes' # [flg] Clean-up (remove) intermediate files before exiting
 clm_flg='No' # [flg] Invoked by ncclimo script
 dbg_lvl=0 # [nbr] Debugging level
+dfl_lvl=0 # [enm] Deflate level
 #drc_in="${drc_pwd}" # [sng] Input file directory
 drc_in='' # [sng] Input file directory
 drc_in_xmp='~/drc_in' # [sng] Input file directory for examples
@@ -296,9 +336,10 @@ drc_out="${drc_pwd}" # [sng] Output file directory
 drc_out_xmp="~/rgr" # [sng] Output file directory for examples
 dst_fl='' # [sng] Destination file
 dst_xmp='dst.nc' # [sng] Destination file for examples
-fl_nbr=0 # [nbr] Number of files to remap
 fl_fmt='' # [enm] Output file format
+fl_nbr=0 # [nbr] Number of files to remap
 gaa_sng="--gaa remap_script=${spt_nm} --gaa remap_command=\"'${cmd_ln}'\" --gaa remap_hostname=${HOSTNAME} --gaa remap_version=${nco_vrs}" # [sng] Global attributes to add
+gll_fl='' # [sng] GLL grid metadata (geometry+connectivity+Jacobian) file
 grd_dst='' # [sng] Destination grid-file
 grd_dst_xmp='grd_dst.nc' # [sng] Destination grid-file for examples
 grd_sng='' # [sng] Grid string
@@ -315,6 +356,8 @@ inp_psn='No' # [sng] Input file list from positional arguments
 inp_std='No' # [sng] Input file list from stdin
 job_nbr=2 # [nbr] Job simultaneity for parallelism
 map_fl='' # [sng] Map-file
+map_rsl_fl='' # [sng] File containing results of weight-generation command (i.e., map_fl or map_trn_fl for monotr)
+map_trn_fl='' # [sng] Map-file transpose (for Tempest)
 map_xmp='map.nc' # [sng] Map-file for examples
 mlt_map_flg='Yes' # [sng] Multi-map flag
 mpi_flg='No' # [sng] Parallelize over nodes
@@ -322,12 +365,15 @@ msh_fl='' # [sng] Mesh-file (for Tempest)
 msk_dst='' # [sng] Mask-template variable in destination file
 msk_out='' # [sng] Mask variable in regridded file
 msk_src='' # [sng] Mask-template variable in source file
+mss_val='-9.99999979021476795361e+33' # [frc] Missing value for MPAS (ocean+seaice)
+#mss_val='-1.0e36' # [frc] Missing value for MPAS (landice)
 nco_opt='-O --no_tmp_fl' # [sng] NCO defaults (e.g., '-O -6 -t 1')
 nco_usr='' # [sng] NCO user-configurable options (e.g., '-D 1')
 nd_nbr=1 # [nbr] Number of nodes
 out_fl='' # [sng] Output file
 out_xmp='out.nc' # [sng] Output file for examples
 par_typ='nil' # [sng] Parallelism type
+ppc_prc='' # [nbr] Precision-preserving compression number of significant digits
 prc_typ='' # [sng] Procedure type
 rgr_opt='--rgr lat_nm_out=lat#lon_nm_out=lon' # [sng] Regridding options
 rnr_thr='' # [frc] Renormalization option
@@ -337,6 +383,7 @@ sgs_nrm='1.0' # [frc] Sub-grid normalization
 std_flg='No' # [sng] Input available from pipe to stdin
 thr_nbr=2 # [nbr] Thread number for regridder
 tmp_out_fl='ncremap_grd_tmp.nc' # [sng] Temporary output file
+trn_map='No' # [flg] Tempest transpose map (i.e., fv2se_flx == monotr)
 ugrid_fl='' # [sng] UGRID file
 unq_sfx=".pid${spt_pid}" # [sng] Unique suffix
 #var_lst='FSNT,AODVIS' # [sng] Variables to process (empty means all)
@@ -352,7 +399,7 @@ vrb_4=4 # [enm] Verbosity level: Pedantic
 vrs_prn='No' # [sng] Print version information
 wgt_exe_esmf='ESMF_RegridWeightGen' # [sng] ESMF executable
 wgt_exe_tps='GenerateOfflineMap' # [sng] TempestRemap executable
-wgt_typ='esmf' # [sng] Weight-generator program
+wgt_typ='esmf' # [sng] Weight-generator program ('esmf' or 'tempest')
 wgt_opt='' # [sng] Weight-generator options
 #wgt_opt_esmf='--ignore_unmapped --netcdf4' # [sng] ESMF_RegridWeightGen options
 wgt_opt_esmf='--ignore_unmapped' # [sng] ESMF_RegridWeightGen options
@@ -375,25 +422,31 @@ function fnc_usg_prn { # NB: dash supports fnc_nm (){} syntax, not function fnc_
     printf "${fnt_rvr}Basic usage:\n${fnt_nrm} ${fnt_bld}$spt_nm -i in_fl -d dst_fl -o out_fl${fnt_nrm}\n"
     printf "${fnt_nrm} ${fnt_bld}${spt_nm} --input_file=in_fl --destination=dst_fl --output_file=out_fl${fnt_nrm}\n\n"
     echo "Command-line options [long-option synonyms in ${fnt_tlc}italics${fnt_nrm}]:"
-    echo "${fnt_rvr}-3${fnt_nrm}          Output file format CLASSIC (netCDF3 classic) [${fnt_tlc}fl_fmt, file_format=classic${fnt_nrm}]"
+    echo "${fnt_rvr}-3${fnt_nrm}          Output file format CLASSIC (netCDF3 classic CDF1) [${fnt_tlc}fl_fmt, file_format=classic${fnt_nrm}]"
     echo "${fnt_rvr}-4${fnt_nrm}          Output file format NETCDF4 (netCDF4 extended) [${fnt_tlc}fl_fmt, file_format=netcdf4${fnt_nrm}]"
-    echo "${fnt_rvr}-5${fnt_nrm}          Output file format 64BIT_DATA (pnetCDF3) [${fnt_tlc}fl_fmt, file_format=64bit_data${fnt_nrm}]"
-    echo "${fnt_rvr}-6${fnt_nrm}          Output file format 64BIT_OFFSET (netCDF3 64bit) [${fnt_tlc}fl_fmt, file_format=64bit_offset${fnt_nrm}]"
+    echo "${fnt_rvr}-5${fnt_nrm}          Output file format 64BIT_DATA (netCDF3/PnetCDF CDF5) [${fnt_tlc}fl_fmt, file_format=64bit_data${fnt_nrm}]"
+    echo "${fnt_rvr}-6${fnt_nrm}          Output file format 64BIT_OFFSET (netCDF3 64bit CDF2) [${fnt_tlc}fl_fmt, file_format=64bit_offset${fnt_nrm}]"
     echo "${fnt_rvr}-7${fnt_nrm}          Output file format NETCDF4_CLASSIC (netCDF4 classic) [${fnt_tlc}fl_fmt, file_format=netcdf4_classic${fnt_nrm}]"
     echo "${fnt_rvr}-a${fnt_nrm} ${fnt_bld}alg_typ${fnt_nrm}  Algorithm for weight generation (default ${fnt_bld}${alg_typ}${fnt_nrm}) [${fnt_tlc}alg_typ, algorithm, regrid_algorithm${fnt_nrm}]"
+    echo "            ESMF algorithms: bilinear|conserve|nearestdtos|neareststod|patch|tempest|se2fv_flx|se2fv_stt|se2fv_alt|fv2se_flx|fv2se_stt|fv2se_alt"
+    echo "            Tempest algorithms: tempest|se2fv_flx|se2fv_stt|se2fv_alt|fv2se_flx|fv2se_stt|fv2se_alt"
     echo "${fnt_rvr}-d${fnt_nrm} ${fnt_bld}dst_fl${fnt_nrm}   Data file to infer destination grid from (empty means none, i.e., use grd_fl, grd_sng or map_fl)) (default ${fnt_bld}${dst_fl}${fnt_nrm}) [${fnt_tlc}dst_fl, destination_file, template_file, template${fnt_nrm}]"
+    echo " ${fnt_bld}--a2o${fnt_nrm}      Atmosphere-to-ocean remap (for Tempest only) (default ${fnt_bld}${a2o_flg}${fnt_nrm}) [${fnt_tlc}a2o, atm2ocn, b2l, big2ltl, l2s, lrg2sml${fnt_nrm}]"
     echo "${fnt_rvr}-D${fnt_nrm} ${fnt_bld}dbg_lvl${fnt_nrm}  Debug level (default ${fnt_bld}${dbg_lvl}${fnt_nrm}) [${fnt_tlc}dbg_lvl, dbg, debug, debug_level${fnt_nrm}]"
-    echo " ${fnt_bld}--fl_fmt${fnt_nrm}   File format (empty is netCDF3 classic) (default ${fnt_bld}${fl_fmt}${fnt_nrm}) [${fnt_tlc}fl_fmt, fmt_out, file_format, format_out${fnt_nrm}]"
+    echo " ${fnt_bld}--fl_fmt${fnt_nrm}   File format (empty is netCDF3 64bit CDF2) (default ${fnt_bld}${fl_fmt}${fnt_nrm}) [${fnt_tlc}fl_fmt, fmt_out, file_format, format_out${fnt_nrm}]"
     echo "${fnt_rvr}-G${fnt_nrm} ${fnt_bld}grd_sng${fnt_nrm}  Grid generation argument string (empty means none) (default ${fnt_bld}${grd_sng}${fnt_nrm}) [${fnt_tlc}grd_sng, grid_generation, grid_gen, grid_string${fnt_nrm}]"
-    echo "${fnt_rvr}-g${fnt_nrm} ${fnt_bld}grd_dst${fnt_nrm}  Grid-file (destination) (empty means none, i.e., infer from dst_fl or use grd_sng or map_fl) (default ${fnt_bld}${grd_dst}${fnt_nrm}) [${fnt_tlc}grd_dst, grid_dest, dest_grid, destination_grid${fnt_nrm}]"
+    echo "${fnt_rvr}-g${fnt_nrm} ${fnt_bld}grd_dst${fnt_nrm}  Grid-file (destination) (empty means none, i.e., infer from dst_fl or use grd_sng or map_fl) (default ${fnt_bld}${grd_dst}${fnt_nrm}) [${fnt_tlc}grd_dst, grid_dest, dst_grd, dest_grid, destination_grid${fnt_nrm}]"
+    echo " ${fnt_bld}--gll_fl${fnt_nrm}   GLL metadata (SE grid geometry+connectivity+Jacobian) file (default ${fnt_bld}${gll_fl}${fnt_nrm}) [${fnt_tlc}gll_fl, gll_mtd, se_gmt, se_mtd${fnt_nrm}]"
     echo "${fnt_rvr}-I${fnt_nrm} ${fnt_bld}drc_in${fnt_nrm}   Input directory (empty means none) (default ${fnt_bld}${drc_in}${fnt_nrm}) [${fnt_tlc}drc_in, in_drc, dir_in, in_dir, input${fnt_nrm}]"
     echo "${fnt_rvr}-i${fnt_nrm} ${fnt_bld}in_fl${fnt_nrm}    Input file (empty means pipe to stdin or drc_in) (default ${fnt_bld}${in_fl}${fnt_nrm}) [${fnt_tlc}in_fl, in_file, input_file${fnt_nrm}]"
     echo "${fnt_rvr}-j${fnt_nrm} ${fnt_bld}job_nbr${fnt_nrm}  Job simultaneity for parallelism (default ${fnt_bld}${job_nbr}${fnt_nrm}) [${fnt_tlc}job_nbr, job_number, jobs${fnt_nrm}]"
+    echo "${fnt_rvr}-L${fnt_nrm} ${fnt_bld}dfl_lvl${fnt_nrm}  Deflate level (empty is none) (default ${fnt_bld}${dfl_lvl}${fnt_nrm}) [${fnt_tlc}dfl_lvl, dfl, deflate${fnt_nrm}]"
     echo "${fnt_rvr}-M${fnt_nrm}          Multi-map-file toggle (unset means generate one map-file per input file) [${fnt_tlc}mlt_map, no_multimap${fnt_nrm}]"
     echo "${fnt_rvr}-m${fnt_nrm} ${fnt_bld}map_fl${fnt_nrm}   Map-file (empty means generate internally) (default ${fnt_bld}${map_fl}${fnt_nrm}) [${fnt_tlc}map_fl, map, map_file, rgr_map, regrid_map${fnt_nrm}]"
     echo " ${fnt_bld}--msk_dst${fnt_nrm}  Mask-template variable in destination file (empty means none) (default ${fnt_bld}${msk_dst}${fnt_nrm}) [${fnt_tlc}msk_dst, dst_msk, mask_destination, mask_dst${fnt_nrm}]"
     echo " ${fnt_bld}--msk_out${fnt_nrm}  Mask variable in regridded file (empty means none) (default ${fnt_bld}${msk_out}${fnt_nrm}) [${fnt_tlc}msk_out, out_msk, mask_output, mask_rgr${fnt_nrm}]"
     echo " ${fnt_bld}--msk_src${fnt_nrm}  Mask-template variable in source file (empty means none) (default ${fnt_bld}${msk_src}${fnt_nrm}) [${fnt_tlc}msk_src, src_msk, mask_source, mask_src${fnt_nrm}]"
+    echo " ${fnt_bld}--mss_val${fnt_nrm}  Missing value for MPAS (empty means none) (default ${fnt_bld}${mss_val}${fnt_nrm}) [${fnt_tlc}mss_val, fll_val, missing_value, fill_value${fnt_nrm}]"
     echo "${fnt_rvr}-n${fnt_nrm} ${fnt_bld}nco_opt${fnt_nrm}  NCO options (empty means none) (default ${fnt_bld}${nco_opt}${fnt_nrm}) [${fnt_tlc}nco_opt, nco_options${fnt_nrm}]"
     echo " ${fnt_bld}--no_cll_msr${fnt_nrm}  Omit cell_measures variables (e.g., 'area') [${fnt_tlc}no_area, no_cll_msr, no_cell_measures${fnt_nrm}]"
     echo " ${fnt_bld}--no_frm_trm${fnt_nrm}  Omit formula_terms variables (e.g., 'hyba', 'PS') [${fnt_tlc}no_frm_trm, no_formula_terms${fnt_nrm}]"
@@ -402,6 +455,8 @@ function fnc_usg_prn { # NB: dash supports fnc_nm (){} syntax, not function fnc_
     echo "${fnt_rvr}-o${fnt_nrm} ${fnt_bld}out_fl${fnt_nrm}   Output-file (regridded file) (empty copies Input filename) (default ${fnt_bld}${out_fl}${fnt_nrm}) [${fnt_tlc}out_fl, out_file, output_file${fnt_nrm}]"
     echo "${fnt_rvr}-P${fnt_nrm} ${fnt_bld}prc_typ${fnt_nrm}  Procedure type (empty means none) (default ${fnt_bld}${prc_typ}${fnt_nrm}) [${fnt_tlc}prc_typ, pdq_typ, prm_typ, procedure${fnt_nrm}]"
     echo "${fnt_rvr}-p${fnt_nrm} ${fnt_bld}par_typ${fnt_nrm}  Parallelism type (default ${fnt_bld}${par_typ}${fnt_nrm}) [${fnt_tlc}par_typ, par_md, parallel_type, parallel_mode, parallel${fnt_nrm}]"
+# 20171101: Implement but do not yet advertise PPC in ncremap
+#    echo " ${fnt_bld}--ppc${fnt_nrm} ${fnt_bld}ppc_prc${fnt_nrm} Precision-preserving compression (empty means none) (default ${fnt_bld}${ppc_prc}${fnt_nrm}) [${fnt_tlc}ppc, precision, quantize${fnt_nrm}]"
     echo "${fnt_rvr}-R${fnt_nrm} ${fnt_bld}rgr_opt${fnt_nrm}  Regrid options (empty means none) (default ${fnt_bld}${rgr_opt}${fnt_nrm}) [${fnt_tlc}rgr_opt, regrid_options${fnt_nrm}]"
     echo "${fnt_rvr}-r${fnt_nrm} ${fnt_bld}rnr_thr${fnt_nrm}  Renormalization threshold (empty means none) (default ${fnt_bld}${rnr_thr}${fnt_nrm}) [${fnt_tlc}rnr_thr, thr_rnr, renormalize_threshold${fnt_nrm}]"
     echo " ${fnt_bld}--rgn_dst${fnt_nrm}  Regional destination grid [${fnt_tlc}rgn_dst, dst_rgn, regional_destination${fnt_nrm}]"
@@ -465,7 +520,7 @@ fi # !arg_nbr
 # Parse command-line options:
 # http://stackoverflow.com/questions/402377/using-getopts-in-bash-shell-script-to-get-long-and-short-command-line-options
 # http://tuxtweaks.com/2014/05/bash-getopts
-while getopts :34567a:CD:d:f:g:G:h:I:i:j:Mm:n:O:o:P:p:R:r:s:T:t:Uu:V:v:W:w:x:-: OPT; do
+while getopts :34567a:CD:d:f:g:G:h:I:i:j:L:Mm:n:O:o:P:p:R:r:s:T:t:Uu:V:v:W:w:x:-: OPT; do
     case ${OPT} in
 	3) fl_fmt='3' ;; # File format
 	4) fl_fmt='4' ;; # File format
@@ -481,6 +536,7 @@ while getopts :34567a:CD:d:f:g:G:h:I:i:j:Mm:n:O:o:P:p:R:r:s:T:t:Uu:V:v:W:w:x:-: 
 	I) drc_in="${OPTARG}" ;; # Input directory
 	i) in_fl="${OPTARG}" ;; # Input file
 	j) job_usr="${OPTARG}" ;; # Job simultaneity
+	L) dfl_lvl="${OPTARG}" ;; # Deflate level
 	M) mlt_map_flg='No' ;; # Multi-map flag
 	m) map_fl="${OPTARG}" ;; # Map-file
 	n) nco_usr="${OPTARG}" ;; # NCO options
@@ -506,14 +562,18 @@ while getopts :34567a:CD:d:f:g:G:h:I:i:j:Mm:n:O:o:P:p:R:r:s:T:t:Uu:V:v:W:w:x:-: 
 	       # Long options with no argument, no short option counterpart
 	       # Long options with argument, no short option counterpart
 	       # Long options with short counterparts, ordered by short option key
+	       a2o | atm2ocn | b2l | big2ltl | l2s | lrg2sml ) a2o_flg='Yes' ;; # # Atmosphere-to-ocean
+	       a2o=?* | atm2ocn=?* | b2l=?* | big2ltl=?* | l2s=?* | lrg2sml=?* ) echo "No argument allowed for --${OPTARG switch}" >&2; exit 1 ;; # # Atmosphere-to-ocean
 	       alg_typ=?* | algorithm=?* | regrid_algorithm=?* ) alg_typ="${LONG_OPTARG}" ;; # -a # Algorithm
 	       clm_flg=?* | climatology_flag=?* ) clm_flg='Yes' ;; # -C # Climo flag (undocumented)
 	       dbg_lvl=?* | dbg=?* | debug=?* | debug_level=?* ) dbg_lvl="${LONG_OPTARG}" ;; # -d # Debugging level
+	       dfl_lvl=?* | deflate=?* | dfl=?* ) dfl_lvl="${LONG_OPTARG}" ;; # -L # Deflate level
 	       dst_fl=?* | destination_file=?* | template_file=?* | template=?* ) dst_fl="${LONG_OPTARG}" ;; # -d # Destination file
-	       grd_dst=?* | grid_dest=?* | dest_grid=?* | destination_grid=?* ) grd_dst="${LONG_OPTARG}" ;; # -g # Destination grid-file
+	       grd_dst=?* | grid_dest=?* | dst_grd=?* | dest_grid=?* | destination_grid=?* ) grd_dst="${LONG_OPTARG}" ;; # -g # Destination grid-file
 	       grd_sng=?* | grid_generation=?* | grid_gen=?* | grid_string=?* ) grd_sng="${LONG_OPTARG}" ;; # -G # Grid generation string
 	       drc_in=?* | in_drc=?* | dir_in=?* | in_dir=?* | input=?* ) drc_in="${LONG_OPTARG}" ;; # -i # Input directory
 	       fl_fmt=?* | fmt_out=?* | file_format=?* | format_out=?* ) fl_fmt="${LONG_OPTARG}" ;; # # Output file format
+	       gll_fl=?* | gll_mtd=?* | se_gmt=?* | se_mtd=?* ) gll_fl="${LONG_OPTARG}" ;; # # GLL grid metadata (geometry+connectivity+Jacobian) file
 	       in_fl=?* | in_file=?* | input_file=?* ) in_fl="${LONG_OPTARG}" ;; # -i # Input file
 	       job_nbr=?* | job_number=?* | jobs=?* ) job_usr="${LONG_OPTARG}" ;; # -j # Job simultaneity
 	       mlt_map | multimap | no_multimap | nomultimap ) mlt_map_flg='No' ;; # -M # Multi-map flag
@@ -522,6 +582,7 @@ while getopts :34567a:CD:d:f:g:G:h:I:i:j:Mm:n:O:o:P:p:R:r:s:T:t:Uu:V:v:W:w:x:-: 
 	       msk_dst=?* | dst_msk=?* | mask_destination=?* | mask_dst=?* ) msk_dst="${LONG_OPTARG}" ;; # # Mask-template variable in destination file
 	       msk_out=?* | out_msk=?* | mask_output=?* | mask_out=?* ) msk_out="${LONG_OPTARG}" ;; # # Mask variable in regridded file
 	       msk_src=?* | src_msk=?* | mask_source=?* | mask_src=?* ) msk_src="${LONG_OPTARG}" ;; # # Mask-template variable in source file
+	       mss_val=?* | fll_val=?* | missing_value=?* | fill_value=?* ) mss_val="${LONG_OPTARG}" ;; # # Missing value for MPAS
 	       nco_opt=?* | nco=?* | nco_options=?* ) nco_usr="${LONG_OPTARG}" ;; # -n # NCO options
 	       no_area | no_cll_msr | no_cell_measures ) no_cll_msr='Yes' ;; # # Omit cell_measures variables
 	       no_area=?* | no_cell_msr=?* | no_cell_measures=?* ) echo "No argument allowed for --${OPTARG switch}" >&2; exit 1 ;; # # Omit cell_measures variables
@@ -533,6 +594,7 @@ while getopts :34567a:CD:d:f:g:G:h:I:i:j:Mm:n:O:o:P:p:R:r:s:T:t:Uu:V:v:W:w:x:-: 
 	       out_fl=?* | output_file=?* | out_file=?* ) out_fl="${LONG_OPTARG}" ;; # -o # Output file
 	       prc_typ=?* | pdq_typ=?* | prm_typ=?* | procedure=?* ) prc_typ="${LONG_OPTARG}" ;; # -P # Procedure type
 	       par_typ=?* | par_md=?* | parallel_type=?* | parallel_mode=?* | parallel=?* ) par_typ="${LONG_OPTARG}" ;; # -p # Parallelism type
+	       ppc=?* | ppc_prc=?* | precision=?* | quantize=?* ) ppc_prc="${LONG_OPTARG}" ;; # # Precision-preserving compression
 	       rgr_opt=?* | regrid_options=?* ) rgr_opt="${LONG_OPTARG}" ;; # -R # Regridding options
 	       rnr_thr=?* | thr_rnr=?* | renormalization_threshold=?* ) rnr_thr="${LONG_OPTARG}" ;; # -r # Renormalization threshold
 	       rgn_dst=?* | dst_rgn=?* | regional_destination=?* ) hnt_dst='--dst_regional' ;; # # Regional destination grid
@@ -573,7 +635,7 @@ if [ ${psn_nbr} -ge 1 ]; then
 fi # !psn_nbr
 if [ ${vrs_prn} = 'Yes' ]; then
     printf "${spt_nm}, the NCO regridder and map- and grid-generator, version ${nco_vrs}\n"
-    printf "Copyright (C) 2016--2017 Charlie Zender\n"
+    printf "Copyright (C) 2016--2018 Charlie Zender\n"
     printf "This program is part of NCO, the netCDF Operators\n"
     printf "NCO is free software and comes with a BIG FAT KISS and ABSOLUTELY NO WARRANTY\n"
     printf "You may redistribute and/or modify NCO under the terms of the\n"
@@ -581,8 +643,14 @@ if [ ${vrs_prn} = 'Yes' ]; then
     printf "GPL: http://www.gnu.org/copyleft/gpl.html\n"
     printf "LICENSE: https://github.com/nco/nco/tree/master/LICENSE\n"
     printf "Config: ${spt_nm} running from directory ${drc_spt}\n"
-    printf "Config: calling NCO binaries in directory ${drc_nco}\n"
-    printf "Config: binaries linked to netCDF library version ${lbr_vrs}\n"
+    printf "Config: Calling NCO binaries in directory ${drc_nco}\n"
+    printf "Config: Binaries linked to netCDF library version ${lbr_vrs}\n"
+    if [ "${hrd_pth_fnd}" = 'Yes' ]; then
+	printf "Config: Employ NCO machine-dependent hardcoded paths/modules for ${HOSTNAME}\n"
+	printf "Config: (Turn-off NCO hardcoded paths with \"export NCO_PATH_OVERRIDE=No\")\n"
+    else
+	printf "Config: No hardcoded path/module overrides\n"
+    fi # !hrd_pth_fnd
     tst_cmd=${wgt_exe_esmf}
     cmd_wgt=`command -v ${tst_cmd} 2> /dev/null`
     if [ $? -eq 0 ]; then
@@ -697,10 +765,10 @@ pdq_fl=${pdq_fl}${unq_sfx}
 tmp_out_fl=${tmp_out_fl}${unq_sfx}
 znl_fl=${znl_fl}${unq_sfx}
 
-# Algorithm options are bilinear|conserve|nearestdtos|neareststod|patch|tempest
-if [ ${alg_typ} = 'bilinear' ] || [ ${alg_typ} = 'bln' ]; then 
+# Algorithm options are bilinear|conserve|nearestdtos|neareststod|patch|tempest|se2fv_flx|se2fv_stt|se2fv_alt|fv2se_flx|fv2se_stt|fv2se_alt
+if [ ${alg_typ} = 'bilinear' ] || [ ${alg_typ} = 'bilin' ] || [ ${alg_typ} = 'bln' ]; then 
     alg_opt='bilinear'
-elif [ ${alg_typ} = 'conserve' ] || [ ${alg_typ} = 'conservative' ] || [ ${alg_typ} = 'cns' ]; then 
+elif [ ${alg_typ} = 'conserve' ] || [ ${alg_typ} = 'conservative' ] || [ ${alg_typ} = 'cns' ] || [ ${alg_typ} = 'aave' ]; then 
     alg_opt='conserve'
 elif [ ${alg_typ} = 'nearestdtos' ] || [ ${alg_typ} = 'nds' ] || [ ${alg_typ} = 'dtos' ]; then 
     alg_opt='nearestdtos'
@@ -709,10 +777,54 @@ elif [ ${alg_typ} = 'neareststod' ] || [ ${alg_typ} = 'nsd' ] || [ ${alg_typ} = 
 elif [ ${alg_typ} = 'patch' ] || [ ${alg_typ} = 'pch' ] || [ ${alg_typ} = 'ptc' ]; then 
     alg_opt='patch'
 elif [ ${alg_typ} = 'tempest' ] || [ ${alg_typ} = 'tps' ] || [ ${alg_typ} = 'tmp' ]; then 
+    # 20171108 'tempest' invokes TempestRemap with no automatic options, suitable for RLL re-mapping?
+    # 20171108 TempestRemap boutique options based on particular remapping type
+    # https://acme-climate.atlassian.net/wiki/spaces/Docs/pages/178848194/Transition+to+TempestRemap+for+Atmosphere+grids
+    # map_tag in comments is for E3SM naming convention map_src_to_dst_${map_tag}.20180301.nc
     alg_opt='tempest'
+    wgt_typ='tempest'
+elif [ ${alg_typ} = 'se2fv_flx' ] || [ ${alg_typ} = 'mono_se2fv' ] || [ ${alg_typ} = 'conservative_monotone_se2fv' ]; then # map_tag='mono'
+    wgt_opt_tps="--in_type cgll --in_np 4 --out_type fv --out_double --mono"
+    if [ -n "${gll_fl}" ]; then
+	wgt_opt_tps="--in_meta ${gll_fl} ${wgt_opt_tps}"
+    fi # !gll_fl
+    wgt_typ='tempest'
+elif [ ${alg_typ} = 'se2fv_stt' ] || [ ${alg_typ} = 'highorder_se2fv' ] || [ ${alg_typ} = 'accurate_conservative_nonmonotone_se2fv' ]; then # map_tag='highorder'
+    wgt_opt_tps="--in_type cgll --in_np 4 --out_type fv --out_double"
+    if [ -n "${gll_fl}" ]; then
+	wgt_opt_tps="--in_meta ${gll_fl} ${wgt_opt_tps}"
+    fi # !gll_fl
+    wgt_typ='tempest'
+elif [ ${alg_typ} = 'se2fv_alt' ] || [ ${alg_typ} = 'intbilin_se2fv' ] || [ ${alg_typ} = 'accurate_monotone_nonconservative_se2fv' ]; then # map_tag='intbilin'
+    wgt_opt_tps="--in_type cgll --in_np 4 --out_type fv --out_double --mono3 --noconserve"
+    if [ -n "${gll_fl}" ]; then
+	wgt_opt_tps="--in_meta ${gll_fl} ${wgt_opt_tps}"
+    fi # !gll_fl
+    wgt_typ='tempest'
+elif [ ${alg_typ} = 'fv2se_flx' ] || [ ${alg_typ} = 'monotr_fv2se' ] || [ ${alg_typ} = 'conservative_monotone_fv2se' ]; then # map_tag='monotr'
+    # NB: Generate mono map for opposite direction regridding (i.e., reverse switches and grids), then transpose
+    wgt_opt_tps="--in_type cgll --in_np 4 --out_type fv --out_double --mono"
+    if [ -n "${gll_fl}" ]; then
+	wgt_opt_tps="--in_meta ${gll_fl} ${wgt_opt_tps}"
+    fi # !gll_fl
+    wgt_typ='tempest'
+    trn_map='Yes'
+elif [ ${alg_typ} = 'fv2se_stt' ] || [ ${alg_typ} = 'highorder_fv2se' ] || [ ${alg_typ} = 'accurate_conservative_nonmonotone_fv2se' ]; then # map_tag='highorder'
+    wgt_opt_tps="--in_type fv --in_np 2 --out_type cgll --out_np 4 --out_double --volumetric"
+    if [ -n "${gll_fl}" ]; then
+	wgt_opt_tps="${wgt_opt_tps} --out_meta ${gll_fl}"
+    fi # !gll_fl
+    wgt_typ='tempest'
+elif [ ${alg_typ} = 'fv2se_alt' ] || [ ${alg_typ} = 'mono_fv2se' ] || [ ${alg_typ} = 'conservative_monotone_fv2se_alt' ]; then # map_tag='mono'
+    wgt_opt_tps="--in_type fv --in_np 1 --out_type cgll --out_np 4 --out_double --mono --volumetric"
+    if [ -n "${gll_fl}" ]; then
+	wgt_opt_tps="${wgt_opt_tps} --out_meta ${gll_fl}"
+    fi # !gll_fl
+    wgt_typ='tempest'
 else 
-    echo "${spt_nm}: ERROR ${alg_typ} is not a valid interpolation option\n"
-    echo "${spt_nm}: HINT Valid interpolation options are bilinear|conserve|nearestdtos|neareststod|patch|tempest\n"
+    echo "${spt_nm}: ERROR ${alg_typ} is not a valid remapping algorithm\n"
+    echo "${spt_nm}: HINT Valid ESMF remapping algorithms are bilinear,bilin,bln | conserve,cns,aave | nearestdtos,nds,dtos | neareststod,nsd,stod | patch,pch\n"
+    echo "${spt_nm}: HINT Valid TempestRemap remapping options are tempest | se2fv_flx,mono_se2fv | se2fv_stt,highorder_se2fv | se2fv_alt,intbilin | fv2se_flx,monotr_fv2se | fv2se_stt,highorder_fv2se | fv2se_alt,mono_fv2se\n"
     exit 1
 fi # !alg_typ
 if [ -n "${fl_fmt}" ]; then
@@ -723,9 +835,9 @@ if [ -n "${fl_fmt}" ]; then
 	nco_fl_fmt='--fl_fmt=netcdf4'
 	wgt_opt_esmf="${wgt_opt_esmf} --netcdf4"
     fi # !fl_fmt
-    if [ "${fl_fmt}" = '5' ] || [ "${fl_fmt}" = '64bit_data' ] || [ "${fl_fmt}" = 'pnetcdf' ]; then
+    if [ "${fl_fmt}" = '5' ] || [ "${fl_fmt}" = '64bit_data' ] || [ "${fl_fmt}" = 'cdf5' ]; then
 	nco_fl_fmt='--fl_fmt=64bit_data'
-	wgt_opt_esmf="${wgt_opt_esmf} --64bit_offset" # Change when ERWG supports netCDF5
+	wgt_opt_esmf="${wgt_opt_esmf} --64bit_offset" # Change when ERWG supports CDF5
     fi # !fl_fmt
     if [ "${fl_fmt}" = '6' ] || [ "${fl_fmt}" = '64bit_offset' ] || [ "${fl_fmt}" = '64' ]; then
 	nco_fl_fmt='--fl_fmt=64bit_offset'
@@ -737,9 +849,6 @@ if [ -n "${fl_fmt}" ]; then
     fi # !fl_fmt
     nco_opt="${nco_opt} ${nco_fl_fmt}"
 fi # !fl_fmt
-if [ ${alg_opt} = 'tempest' ]; then
-    wgt_typ='tempest'
-fi # alg_opt
 if [ ${wgt_typ} = 'esmf' ]; then
     wgt_cmd="${wgt_exe_esmf}"
     wgt_exe="${wgt_exe_esmf}"
@@ -771,6 +880,12 @@ fi # !job_usr
 if [ ${dbg_lvl} -ge 2 ]; then
     nco_opt="-D ${dbg_lvl} ${nco_opt}"
 fi # !dbg_lvl
+if [ -n "${ppc_prc}" ]; then
+    nco_opt="${nco_opt} --ppc default=${ppc_prc}"
+fi # !ppc_prc
+if [ -n "${dfl_lvl}" ]; then
+    nco_opt="${nco_opt} --dfl_lvl=${dfl_lvl}"
+fi # !dfl_lvl
 if [ -n "${nco_usr}" ]; then 
     nco_opt="${nco_usr} ${nco_opt}"
 fi # !var_lst
@@ -853,7 +968,8 @@ if [ "${prc_typ}" = 'mod04' ]; then
 fi # !mod04
 if [ "${prc_typ}" = 'mpas' ]; then 
 #    pdq_opt='-a Time,nVertLevels,maxEdges,MaxEdges2,nEdges,nCells' # Ocean
-#    pdq_opt='-a Time,nCategories,ONE,nEdges,nCells' # Ice
+#    pdq_opt='-a Time,nCategories,ONE,nEdges,nCells' # SeaIce
+#    pdq_opt='-a Time,nCategories,TWO,nEdges,nCells' # LandIce
     pdq_opt='-a Time,nVertLevels,maxEdges,MaxEdges2,nCategories,ONE,nEdges,nCells' # Ocean and Ice in one swell foop
     if [ -n "${rnr_thr}" ]; then 
 	# Setting rnr_thr='off' in MPAS mode turns-off renormalization
@@ -865,8 +981,8 @@ if [ "${prc_typ}" = 'mpas' ]; then
     fi # !rnr_thr
 fi # !mpas
 if [ "${prc_typ}" = 'alm' ] || [ "${prc_typ}" = 'clm' ]; then 
-    # Set ALM/CLM-specific options first, then change prc_typ to sgs
-    rds_rth='6.37122e6' # [m] Radius of Earth in ALM/CLM (SHR_CONST_REARTH)
+    # Set ALM/CLM/ELM-specific options first, then change prc_typ to sgs
+    rds_rth='6.37122e6' # [m] Radius of Earth in ALM/CLM/ELM (SHR_CONST_REARTH)
     sgs_frc='landfrac'
     sgs_msk='landmask'
     sgs_nrm='1.0'
@@ -971,16 +1087,21 @@ else # !map_fl
     fi # !tempest
     map_fl=${map_fl_dfl}
 fi # !map_fl
+map_rsl_fl=${map_fl}
 if [ "${map_mk}" = 'Yes' ] && [ "${wgt_typ}" = 'tempest' ]; then 
     msh_fl_dfl="${drc_tmp}/ncremap_tmp_msh_ovr_${wgt_typ}.g${unq_sfx}" # [sng] Mesh-file default
     msh_fl=${msh_fl_dfl}
+    if [ "${trn_map}" = 'Yes' ]; then 
+	map_trn_fl="${drc_tmp}/ncremap_tmp_map_trn_${wgt_typ}.nc${unq_sfx}" # [sng] Map-file transpose default
+	map_rsl_fl=${map_trn_fl}
+    fi # !trn_map
 fi # !tempest
 
 # Read files from stdin pipe, positional arguments, or directory glob
 # Code block taken from ncclimo
 # ncclimo sets inp_aut flag when file list is automatically (i.e., internally) generated
 # ncremap uses convention that input files specified with -i set inp_aut flag
-# That way, ncremap code block looks closer to ncclimo with introducing a new "inp_cmd" flag
+# That way, ncremap code block looks closer to ncclimo without introducing a new "inp_cmd" flag
 #printf "dbg: inp_aut  = ${inp_aut}\n"
 #printf "dbg: inp_glb  = ${inp_glb}\n"
 #printf "dbg: inp_psn  = ${inp_psn}\n"
@@ -1016,6 +1137,7 @@ if [ ${inp_psn} = 'Yes' ]; then
 	fl_nbr=1
     elif [ ${psn_nbr} -eq 2 ]; then
 	if [ -z "${out_fl}" ]; then
+	    fl_in[0]=${1}
 	    out_fl=${2}
 	    out_usr_flg='Yes'
 	    fl_nbr=1
@@ -1106,16 +1228,24 @@ if [ ${dbg_lvl} -ge 2 ]; then
     printf "dbg: alg_opt  = ${alg_opt}\n"
     printf "dbg: cln_flg  = ${cln_flg}\n"
     printf "dbg: dbg_lvl  = ${dbg_lvl}\n"
+    printf "dbg: dfl_lvl  = ${dfl_lvl}\n"
     printf "dbg: drc_in   = ${drc_in}\n"
     printf "dbg: drc_out  = ${drc_out}\n"
     printf "dbg: drc_tmp  = ${drc_tmp}\n"
     printf "dbg: dst_fl   = ${dst_fl}\n"
     printf "dbg: fl_fmt   = ${fl_fmt}\n"
+    printf "dbg: fl_nbr   = ${fl_nbr}\n"
     printf "dbg: gaa_sng  = ${gaa_sng}\n"
+    printf "dbg: gll_fl   = ${gll_fl}\n"
     printf "dbg: grd_dst  = ${grd_dst}\n"
     printf "dbg: grd_sng  = ${grd_sng}\n"
     printf "dbg: grd_src  = ${grd_src}\n"
+    printf "dbg: inp_aut  = ${inp_aut}\n"
+    printf "dbg: inp_glb  = ${inp_glb}\n"
+    printf "dbg: inp_psn  = ${inp_psn}\n"
+    printf "dbg: inp_std  = ${inp_std}\n"
     printf "dbg: hdr_pad  = ${hdr_pad}\n"
+    printf "dbg: hrd_pth  = ${hrd_pth}\n"
     printf "dbg: job_nbr  = ${job_nbr}\n"
     printf "dbg: in_fl    = ${in_fl}\n"
     printf "dbg: map_fl   = ${map_fl}\n"
@@ -1129,6 +1259,7 @@ if [ ${dbg_lvl} -ge 2 ]; then
     printf "dbg: nd_nbr   = ${nd_nbr}\n"
     printf "dbg: out_fl   = ${out_fl}\n"
     printf "dbg: par_typ  = ${par_typ}\n"
+    printf "dbg: ppc_prc  = ${ppc_prc}\n"
     printf "dbg: rgr_opt  = ${rgr_opt}\n"
     printf "dbg: rnr_thr  = ${rnr_thr}\n"
     printf "dbg: sgs_frc  = ${sgs_frc}\n"
@@ -1227,9 +1358,9 @@ if [ ${vrb_lvl} -ge ${vrb_3} ]; then
 	fi # !pdq_typ
     fi # !pdq_opt
     if [ "${prc_typ}" = 'mpas' ]; then
-	printf "Input assumed to be MPAS-O/I data: will renormalize (with --rnr=0.0) regridding\n"
+	printf "Input assumed to be MPAS data: will renormalize (with --rnr=0.0) regridding\n"
 	if [ "${clm_flg}" = 'No' ]; then
- 	    printf "Input assumed to be barenaked of attributes: will annotate NC_DOUBLE variables with _FillValue prior to regridding\n"
+ 	    printf "Input assumed to be barenaked of attributes: will annotate NC_DOUBLE variables with _FillValue = ${mss_val} prior to regridding\n"
 	fi # !clm_flg
     fi # !mpas
     if [ "${prc_typ}" = 'sgs' ]; then 
@@ -1442,7 +1573,7 @@ if [ "${prc_typ}" = 'sgs' ]; then
     if [ ${vrb_lvl} -ge ${vrb_3} ]; then
 	printf "SGS: Regrid sub-grid fraction ${sgs_frc} to destination grid...\n"
     fi # !vrb_lvl
-    # NB: Do not regrid sub-grid mask as it is extensive and may contain _FillValue (ALM/CLM landmask does)
+    # NB: Do not regrid sub-grid mask as it is extensive and may contain _FillValue (ALM/CLM/ELM landmask does)
     cmd_lnd_rmp[${fl_idx}]="ncremap --vrb=0 -a ${alg_opt} -v ${sgs_frc} -i ${frc_in_sgs} -s ${grd_src} -g ${grd_dst} -o ${frc_out_sgs}"
     if [ ${dbg_lvl} -ge 1 ]; then
 	echo ${cmd_lnd_rmp[${fl_idx}]}
@@ -1533,7 +1664,15 @@ if [ "${grd_src_usr_flg}" = 'Yes' ] || [ "${prc_typ}" = 'sgs' ]; then
     fi # !esmf
     if [ "${wgt_typ}" = 'tempest' ]; then 
 	cmd_msh[${fl_idx}]="GenerateOverlapMesh --a ${grd_src} --b ${grd_dst} --out ${msh_fl} > /dev/null"
+	if [ "${a2o_flg}" = 'Yes' ]; then 
+	    cmd_msh[${fl_idx}]="GenerateOverlapMesh --b ${grd_src} --a ${grd_dst} --out ${msh_fl} > /dev/null"
+	fi # !a2o_flg
 	cmd_map[${fl_idx}]="${wgt_cmd} --in_mesh ${grd_src} --out_mesh ${grd_dst} --ov_mesh ${msh_fl} --out_map ${map_fl} ${wgt_opt} > /dev/null"
+	if [ "${trn_map}" = 'Yes' ]; then 
+	    # NB: Generate mono map for opposite direction regridding (i.e., reverse switches and grids), then transpose
+	    cmd_map[${fl_idx}]="${wgt_cmd} --in_mesh ${grd_dst} --out_mesh ${grd_src} --ov_mesh ${msh_fl} --out_map ${map_trn_fl} ${wgt_opt} > /dev/null"
+	    cmd_trn[${fl_idx}]="GenerateTransposeMap --in ${map_trn_fl} --out ${map_fl} > /dev/null"
+	fi # !trn_map
 	if [ ${dbg_lvl} -ge 1 ]; then
 	    echo ${cmd_msh[${fl_idx}]}
 	fi # !dbg
@@ -1541,6 +1680,7 @@ if [ "${grd_src_usr_flg}" = 'Yes' ] || [ "${prc_typ}" = 'sgs' ]; then
 	    eval ${cmd_msh[${fl_idx}]}
 	    if [ $? -ne 0 ] || [ ! -f ${msh_fl} ]; then
 		printf "${spt_nm}: ERROR Failed to generate mesh-file. Debug this:\n${cmd_msh[${fl_idx}]}\n"
+		printf "${spt_nm}: HINT GenerateOverlapMesh requires that grids of unequal area be given as arguments in the order smaller first, larger second. ncremap supplies the grid arguments in the order source first, destination second unless explicitly told otherwise. A source grid that is a superset of the destination would violate the GenerateOverlapMesh rule. The solution is to add the \"--a2o\" switch (documented at http://nco.sf.net/nco.html#a2o) that tells ncremap to swap the grid argument order.\n"
 		exit 1
 	    fi # !err
 	fi # !dbg
@@ -1550,7 +1690,7 @@ if [ "${grd_src_usr_flg}" = 'Yes' ] || [ "${prc_typ}" = 'sgs' ]; then
     fi # !dbg
     if [ ${dbg_lvl} -ne 2 ]; then
 	eval ${cmd_map[${fl_idx}]}
-	if [ $? -ne 0 ] || [ ! -f ${map_fl} ]; then
+	if [ $? -ne 0 ] || [ ! -f ${map_rsl_fl} ]; then
 	    printf "${spt_nm}: ERROR Failed to generate map-file. Debug this:\n${cmd_map[${fl_idx}]}\n"
 	    if [ "${wgt_typ}" = 'esmf' ]; then 
 		printf "${spt_nm}: HINT When ESMF fails to generate map-files, it often puts additional debugging information in the file named PET0.RegridWeightGen.Log in the invocation directory (${drc_pwd})\n"
@@ -1562,7 +1702,7 @@ if [ "${grd_src_usr_flg}" = 'Yes' ] || [ "${prc_typ}" = 'sgs' ]; then
 	    if [ "${wgt_typ}" = 'tempest' ]; then 
 		hst_att="${hst_att};${cmd_msh[${fl_idx}]}"
 	    fi # !tempest
-	    cmd_att[${fl_idx}]="ncatted -O ${gaa_sng} --gaa history='${hst_att}' ${map_fl}"
+	    cmd_att[${fl_idx}]="ncatted -O ${gaa_sng} --gaa history='${hst_att}' ${map_rsl_fl}"
 	    eval ${cmd_att[${fl_idx}]}
 	    if [ $? -ne 0 ]; then
 		printf "${spt_nm}: ERROR Failed to annotate map-file. Debug this:\n${cmd_att[${fl_idx}]}\n"
@@ -1570,6 +1710,18 @@ if [ "${grd_src_usr_flg}" = 'Yes' ] || [ "${prc_typ}" = 'sgs' ]; then
 	    fi # !err
 	fi # !map_usr_flg
     fi # !dbg
+    if [ "${trn_map}" = 'Yes' ]; then 
+	if [ ${dbg_lvl} -ge 1 ]; then
+	    echo ${cmd_trn[${fl_idx}]}
+	fi # !dbg
+	if [ ${dbg_lvl} -ne 2 ]; then
+	    eval ${cmd_trn[${fl_idx}]}
+	    if [ $? -ne 0 ] || [ ! -f ${map_fl} ]; then
+		printf "${spt_nm}: ERROR Failed to transpose map-file. Debug this:\n${cmd_trn[${fl_idx}]}\n"
+		exit 1
+	    fi # !err
+	fi # !dbg
+    fi # !trn_map
     # Set map_mk to something besides 'Yes' to avoid re-generating map within file loop
     map_mk='Already made map once. Never again.'
 fi # !grd_src_usr_flg
@@ -1673,7 +1825,15 @@ for ((fl_idx=0;fl_idx<${fl_nbr};fl_idx++)); do
 	if [ "${wgt_typ}" = 'tempest' ]; then 
 	    printf "Mesh-File: ${msh_fl}\n"
 	    cmd_msh[${fl_idx}]="GenerateOverlapMesh --a ${grd_src} --b ${grd_dst} --out ${msh_fl} > /dev/null"
+	    if [ "${a2o_flg}" = 'Yes' ]; then 
+		cmd_msh[${fl_idx}]="GenerateOverlapMesh --b ${grd_src} --a ${grd_dst} --out ${msh_fl} > /dev/null"
+	    fi # !a2o_flg
 	    cmd_map[${fl_idx}]="${wgt_cmd} --in_mesh ${grd_src} --out_mesh ${grd_dst} --ov_mesh ${msh_fl} --out_map ${map_fl} ${wgt_opt} > /dev/null"
+	    if [ "${trn_map}" = 'Yes' ]; then 
+		# NB: Generate mono map for opposite direction regridding (i.e., reverse switches and grids), then transpose
+		cmd_map[${fl_idx}]="${wgt_cmd} --in_mesh ${grd_dst} --out_mesh ${grd_src} --ov_mesh ${msh_fl} --out_map ${map_trn_fl} ${wgt_opt} > /dev/null"
+		cmd_trn[${fl_idx}]="GenerateTransposeMap --in ${map_trn_fl} --out ${map_fl} > /dev/null"
+	    fi # !trn_map
 	    if [ ${dbg_lvl} -ge 1 ]; then
 		echo ${cmd_msh[${fl_idx}]}
 	    fi # !dbg
@@ -1681,6 +1841,7 @@ for ((fl_idx=0;fl_idx<${fl_nbr};fl_idx++)); do
 		eval ${cmd_msh[${fl_idx}]}
 		if [ $? -ne 0 ] || [ ! -f ${msh_fl} ]; then
 		    printf "${spt_nm}: ERROR Failed to generate mesh-file. Debug this:\n${cmd_msh[${fl_idx}]}\n"
+		    printf "${spt_nm}: HINT GenerateOverlapMesh requires that grids of unequal area be given as arguments in the order smaller first, larger second. ncremap supplies the grid arguments in the order source first, destination second unless explicitly told otherwise. A source grid that is a superset of the destination would violate the GenerateOverlapMesh rule. The solution is to add the \"--a2o\" switch (documented at http://nco.sf.net/nco.html#a2o) that tells ncremap to swap the grid argument order.\n"
 		    exit 1
 		fi # !err
 	    fi # !dbg
@@ -1692,7 +1853,7 @@ for ((fl_idx=0;fl_idx<${fl_nbr};fl_idx++)); do
 	fi # !dbg
 	if [ ${dbg_lvl} -ne 2 ]; then
 	    eval ${cmd_map[${fl_idx}]}
-	    if [ $? -ne 0 ] || [ ! -f ${map_fl} ]; then
+	    if [ $? -ne 0 ] || [ ! -f ${map_rsl_fl} ]; then
 		printf "${spt_nm}: ERROR Failed to generate map-file. Debug this:\n${cmd_map[${fl_idx}]}\n"
 		if [ "${wgt_typ}" = 'esmf' ]; then 
 		    printf "${spt_nm}: HINT When ESMF fails to generate map-files, it often puts additional debugging information in the file named PET0.RegridWeightGen.Log in the invocation directory (${drc_pwd})\n"
@@ -1701,7 +1862,7 @@ for ((fl_idx=0;fl_idx<${fl_nbr};fl_idx++)); do
 	    fi # !err
 	    if [ "${map_usr_flg}" = 'Yes' ]; then
 		hst_att="`date`: ${cmd_ln};${cmd_map[${fl_idx}]}"
-		cmd_att[${fl_idx}]="ncatted -O ${gaa_sng} --gaa history='${hst_att}' ${map_fl}"
+		cmd_att[${fl_idx}]="ncatted -O ${gaa_sng} --gaa history='${hst_att}' ${map_rsl_fl}"
 		eval ${cmd_att[${fl_idx}]}
 		if [ $? -ne 0 ]; then
 		    printf "${spt_nm}: ERROR Failed to annotate map-file. Debug this:\n${cmd_att[${fl_idx}]}\n"
@@ -1709,6 +1870,18 @@ for ((fl_idx=0;fl_idx<${fl_nbr};fl_idx++)); do
 		fi # !err
 	    fi # !map_usr_flg
 	fi # !dbg
+	if [ "${trn_map}" = 'Yes' ]; then 
+	    if [ ${dbg_lvl} -ge 1 ]; then
+		echo ${cmd_trn[${fl_idx}]}
+	    fi # !dbg
+	    if [ ${dbg_lvl} -ne 2 ]; then
+		eval ${cmd_trn[${fl_idx}]}
+		if [ $? -ne 0 ] || [ ! -f ${map_fl} ]; then
+		    printf "${spt_nm}: ERROR Failed to transpose map-file. Debug this:\n${cmd_trn[${fl_idx}]}\n"
+		    exit 1
+		fi # !err
+	    fi # !dbg
+	fi # !trn_map
 
 	# Prevent creating new source gridfile and map-file after first iteration
 	if [ "${mlt_map_flg}" = 'No' ] && [ ${fl_idx} -eq 0 ]; then 
@@ -1720,7 +1893,7 @@ for ((fl_idx=0;fl_idx<${fl_nbr};fl_idx++)); do
     # Block 4: Special cases
     # Block 4a: Add missing metadata to MPAS files unless script was invoked by ncclimo (it makes no sense to give naked files to ncclimo and then annotate here, so assume ncclimo is working with annotated files)
     if [ "${prc_typ}" = 'mpas' ] && [ "${clm_flg}" = 'No' ]; then
-	cmd_att[${fl_idx}]="ncatted -O -t -a _FillValue,,o,d,-9.99999979021476795361e+33 ${in_fl} ${att_fl};"
+	cmd_att[${fl_idx}]="ncatted -O -t -a _FillValue,,o,d,${mss_val} ${in_fl} ${att_fl};"
 	if [ ${vrb_lvl} -ge ${vrb_2} ]; then
 	    printf "att(in)  : ${in_fl}\n"
 	    printf "att(out) : ${att_fl}\n"
@@ -1790,7 +1963,7 @@ for ((fl_idx=0;fl_idx<${fl_nbr};fl_idx++)); do
 	let bch_flg=$(((fl_idx+1) % job_nbr))
 	#printf "${spt_nm}: fl_idx = ${fl_idx}, bch_idx = ${bch_idx}, bch_flg = ${bch_flg}\n"
 	if [ ${bch_flg} -eq 0 ]; then
-	    if [ ${dbg_lvl} -ge 1 ]; then
+	    if [ ${dbg_lvl} -ge 1 ] && [ ${idx_srt} -le ${idx_end} ]; then
 		printf "${spt_nm}: Waiting for batch ${bch_idx} to finish at fl_idx = ${fl_idx}...\n"
 	    fi # !dbg
 	    for ((pid_idx=${idx_srt};pid_idx<=${idx_end};pid_idx++)); do
@@ -1829,7 +2002,9 @@ if [ -n "${par_opt}" ]; then
     let bch_flg=$((fl_nbr % job_nbr))
     if [ ${bch_flg} -ne 0 ]; then
 	let bch_idx=$((bch_idx+1))
-	printf "${spt_nm}: Waiting for (partial) batch ${bch_idx} to finish...\n"
+	if [ ${dbg_lvl} -ge 1 ] && [ ${idx_srt} -lt ${fl_nbr} ]; then
+	    printf "${spt_nm}: Waiting for (partial) batch ${bch_idx} to finish...\n"
+	fi # !idx_srt
 	for ((pid_idx=${idx_srt};pid_idx<${fl_nbr};pid_idx++)); do
 	    wait ${rgr_pid[${pid_idx}]}
 	    if [ $? -ne 0 ]; then
@@ -1899,7 +2074,7 @@ if [ "${cln_flg}" = 'Yes' ]; then
     if [ ${vrb_lvl} -ge ${vrb_3} ]; then
 	printf "Clean-up intermediate files...\n"
     fi # !vrb_lvl
-    /bin/rm -f ${att_fl} ${frc_in_sgs} ${frc_out_sgs} ${grd_dst_sgs} ${grd_dst_dfl} ${grd_src_sgs} ${grd_src_dfl} ${hnt_dst_fl} ${hnt_src_fl} ${map_fl_dfl} ${msh_fl_dfl} ${ncwa_fl} ${pdq_fl} ${tmp_out_fl} ${znl_fl/znl/znl1} ${znl_fl/znl/znl2}
+    /bin/rm -f ${att_fl} ${frc_in_sgs} ${frc_out_sgs} ${grd_dst_sgs} ${grd_dst_dfl} ${grd_src_sgs} ${grd_src_dfl} ${hnt_dst_fl} ${hnt_src_fl} ${map_fl_dfl} ${map_trn_fl} ${msh_fl_dfl} ${ncwa_fl} ${pdq_fl} ${tmp_out_fl} ${znl_fl/znl/znl1} ${znl_fl/znl/znl2}
 else # !cln_flg
     if [ ${vrb_lvl} -ge ${vrb_3} ]; then
 	printf "Explicitly instructed not to clean-up intermediate files.\n"

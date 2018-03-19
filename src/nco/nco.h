@@ -2,7 +2,7 @@
 
 /* Purpose: netCDF Operator (NCO) definitions */
 
-/* Copyright (C) 1995--2017 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -138,10 +138,15 @@ extern "C" {
 #define CEWI_unused(x)   ((void)x)
   
   /* Numeric constants to simplify arithmetic */
-#define NCO_BYT_PER_KB 1024UL
-#define NCO_BYT_PER_MB 1048576UL
-#define NCO_BYT_PER_GB 1073741824UL
-#define NCO_BYT_PER_TB 1099511627776UL
+#define NCO_BYT_PER_KiB 1024UL
+#define NCO_BYT_PER_MiB 1048576UL
+#define NCO_BYT_PER_GiB 1073741824UL
+#define NCO_BYT_PER_TiB 1099511627776UL
+
+#define NCO_BYT_PER_KB 1000UL
+#define NCO_BYT_PER_MB 1000000UL
+#define NCO_BYT_PER_GB 1000000000UL
+#define NCO_BYT_PER_TB 1000000000000UL
 
   /* netcdf.h NC_GLOBAL is, strictly, the variable ID for global attributes
      NCO_REC_DMN_UNDEFINED is dimension ID of record dimension iff record dimension is undefined
@@ -336,20 +341,20 @@ extern "C" {
 # define NCO_VERSION_MAJOR 4
 #endif /* !NCO_VERSION_MAJOR */
 #ifndef NCO_VERSION_MINOR
-# define NCO_VERSION_MINOR 6
+# define NCO_VERSION_MINOR 7
 #endif /* !NCO_VERSION_MINOR */
 #ifndef NCO_VERSION_PATCH
-# define NCO_VERSION_PATCH 9
+# define NCO_VERSION_PATCH 4
 #endif /* !NCO_VERSION_PATCH */
 #ifndef NCO_VERSION_NOTE
-# define NCO_VERSION_NOTE "-alpha01" /* Blank for final versions, non-blank (e.g., "beta37") for pre-release versions */
+# define NCO_VERSION_NOTE "-alpha02" /* Blank for final versions, non-blank (e.g., "-beta37") for pre-release versions */
 #endif /* !NCO_VERSION_NOTE */
 #ifndef NCO_LIB_VERSION
   /* Define NC_LIB_VERSION as three-digit number for arithmetic comparisons by CPP */
 # define NCO_LIB_VERSION ( NCO_VERSION_MAJOR * 100 + NCO_VERSION_MINOR * 10 + NCO_VERSION_PATCH )
 #endif /* !NCO_LIB_VERSION */
 #ifndef NCO_VERSION
-# define NCO_VERSION "4.6.9-alpha01"
+# define NCO_VERSION "4.7.4-alpha02"
 #endif /* !NCO_VERSION */
 
 /* Compatibility tokens new to netCDF4 netcdf.h: */
@@ -466,6 +471,7 @@ extern "C" {
 #ifndef NC_FORMAT_DAP4
 # define NC_FORMAT_DAP4    (6)
 #endif
+
 #ifndef NC_FORMATX_UNDEFINED
 # define NC_FORMATX_UNDEFINED (0)
 #else
@@ -494,7 +500,7 @@ extern "C" {
 #endif
 
   /* Three compatibility tokens from pnetcdf.h introduced to NCO 20140604 
-     None are used yet */
+     These were first fully supported in 201708 (NCO 4.6.9) */
 #ifndef NC_64BIT_DATA
 # define NC_64BIT_DATA	0x0010 /* CDF-5 format, (64-bit) supported */
 #endif
@@ -947,9 +953,12 @@ extern "C" {
     char *dlm_sng; /* [sng] User specified delimiter string for printed output */
     char *fl_in; /* [sng] Input filename */
     char *fl_stb; /* [sng] Input filename stub */
+    char *fmt_val; /* [sng] Format string for variable values */
     char *smr_sng; /* [sng] Summary string */
+    char *smr_fl_sz_sng; /* [sng] String describing estimated file size */
     char *spr_chr; /* [sng] Separator string for character types */
     char *spr_nmr; /* [sng] Separator string for numeric types */
+    FILE *fp_out; /* [fl] Formatted text output file handle */
     gpe_sct *gpe; /* I [sng] GPE structure */
     md5_sct *md5; /* [flg] MD5 configuration */
     nco_bool cdl; /* [flg] Print CDL */
@@ -963,8 +972,9 @@ extern "C" {
     nco_bool nfo_xtr; /* [flg] Print extra information in CDL/XML mode */
     nco_bool new_fmt; /* [flg] Print in new format */
     nco_bool nwl_pst_val; /* [flg] Print newline after variable values */
-    int fll_pth; /* [nbr] Print full paths */
     int cdl_fmt_dt; /* [enm] CDL date-stamp format specifier */ 
+    int fl_out_fmt; /* [enm] Output file format */
+    int fll_pth; /* [nbr] Print full paths */
     int jsn_att_fmt; /* [enm] JSON format for netCDF attributes: 0 (no object, only data), 1 (data only for string, char, int, and floating-point types, otherwise object), 2 (always object) */
     int jsn_data_brk; /* [flg] JSON format for netCDF variables: 0 (no bracketing of var data ), 1 ( bracketing of var data )*/
     int nbr_zro; /* [nbr] Trailing zeros allowed after decimal point */
@@ -1164,7 +1174,7 @@ extern "C" {
     nco_bool flg_grd; /* [flg] Create SCRIP-format grid file */
     nco_bool flg_grd_dst; /* [flg] User-specified destination grid */
     nco_bool flg_grd_src; /* [flg] User-specified input grid */
-    nco_bool flg_map; /* [flg] User-specified mapping weights */
+    nco_bool flg_wgt; /* [flg] User-specified mapping weights */
     nco_bool flg_msk_out; /* [flg] Add mask to output */
     nco_bool flg_nfr; /* [flg] Infer SCRIP-format grid file */
     nco_bool flg_rnr; /* [flg] Renormalize destination values by valid area */

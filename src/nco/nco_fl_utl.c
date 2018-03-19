@@ -2,7 +2,7 @@
 
 /* Purpose: File manipulation */
 
-/* Copyright (C) 1995--2017 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -27,7 +27,7 @@ nco_create_mode_mrg /* [fnc] Merge clobber mode with user-specified file format 
   } /* endif */
 
   md_create=md_clobber;
-  if(fl_out_fmt == NC_FORMAT_64BIT){
+  if(fl_out_fmt == NC_FORMAT_64BIT_OFFSET){
     md_create|=NC_64BIT_OFFSET;
   }else if(fl_out_fmt == NC_FORMAT_CDF5){
     md_create|=NC_64BIT_DATA;
@@ -84,7 +84,7 @@ nco_create_mode_prs /* [fnc] Parse user-specified file format */
     if(NC_LIB_VERSION >= 440){
       *fl_fmt_enm=NC_FORMAT_CDF5;
     }else{
-      (void)fprintf(stderr,"%s: ERROR This NCO was not built with PnetCDF (aka CDF5, http://trac.mcs.anl.gov/projects/parallel-netcdf) capabilities and cannot create the requested PnetCDF file format. PnetCDF (CDF5) was introduced in the base netCDF library in version 4.4.0 in January, 2016. HINT: Re-try with requisite library version or select a supported file format such as \"classic\" or \"64bit_offset\".\n",nco_prg_nm_get());
+      (void)fprintf(stderr,"%s: ERROR This NCO was not built with CDF5 (http://trac.mcs.anl.gov/projects/parallel-netcdf) capabilities and cannot create the requested CDF5 (aka PnetCDF) file format. CDF5 was introduced in the base netCDF library in version 4.4.0 in January, 2016. HINT: Re-try with after building NCO with the requisite netCDF library version or select a supported file format such as \"classic\" or \"64bit_offset\".\n",nco_prg_nm_get());
     } /* !NC_LIB_VERSION */
   }else{
     (void)fprintf(stderr,"%s: ERROR Unknown output file format \"%s\" requested. Valid formats are (unambiguous leading characters of) \"classic\", \"64bit_offset\",%s \"netcdf4\", and \"netcdf4_classic\".\n",nco_prg_nm_get(),fl_fmt_sng,(NC_LIB_VERSION >= 440) ? "\"64bit_data\"," : "");
@@ -93,6 +93,46 @@ nco_create_mode_prs /* [fnc] Parse user-specified file format */
 
   return rcd; /* [rcd] Return code */
 } /* end nco_create_mode_prs() */
+void
+nco_fl_sz_est /* [fnc] Estimate RAM size == uncompressed file size */
+(char *smr_fl_sz_sng, /* I/O [sng] String describing estimated file size */
+ const trv_tbl_sct * const trv_tbl) /* I [sct] Traversal table */
+{
+  /* Purpose: Estimate RAM size == uncompressed file size */
+  const char fnc_nm[]="nco_fl_sz_est()"; /* [sng] Function name */
+
+  size_t ram_sz_crr;
+  size_t ram_sz_ttl=0L;
+  size_t dmn_sz[NC_MAX_VAR_DIMS]; /* [nbr] Dimension sizes */
+  
+  for(unsigned idx_tbl=0;idx_tbl<trv_tbl->nbr;idx_tbl++){
+    trv_sct var_trv=trv_tbl->lst[idx_tbl]; 
+    if(var_trv.flg_xtr && var_trv.nco_typ == nco_obj_typ_var){
+      ram_sz_crr=1L;
+      for(unsigned int dmn_idx=0;dmn_idx<(unsigned int)var_trv.nbr_dmn;dmn_idx++){
+	if(var_trv.var_dmn[dmn_idx].is_crd_var){
+	  /* Get coordinate from table */
+	  crd_sct *crd=var_trv.var_dmn[dmn_idx].crd;
+	  /* Use hyperslabbed size */
+	  dmn_sz[dmn_idx]=crd->lmt_msa.dmn_cnt;
+	}else{
+	  /* Get unique dimension */
+	  dmn_trv_sct *dmn_trv=var_trv.var_dmn[dmn_idx].ncd;
+	  /* Use hyperslabbed size */
+	  dmn_sz[dmn_idx]=dmn_trv->lmt_msa.dmn_cnt;
+	} /* !is_crd_var */
+	ram_sz_crr*=dmn_sz[dmn_idx];
+      } /* !dmn */
+      ram_sz_crr*=nco_typ_lng(var_trv.var_typ);
+      ram_sz_ttl+=ram_sz_crr;
+    } /* !var */
+  } /* end idx_tbl */
+
+  (void)sprintf(smr_fl_sz_sng,"Size expected in RAM or uncompressed storage of all data (not metadata), accounting for subsets and hyperslabs, is %lu B ~ %lu kB, %lu kiB ~ %lu MB, %lu MiB ~ %lu GB, %lu GiB",(unsigned long)ram_sz_ttl,(unsigned long)round(1.0*ram_sz_ttl/NCO_BYT_PER_KB),(unsigned long)round(1.0*ram_sz_ttl/NCO_BYT_PER_KiB),(unsigned long)round(1.0*ram_sz_ttl/NCO_BYT_PER_MB),(unsigned long)round(1.0*ram_sz_ttl/NCO_BYT_PER_MiB),(unsigned long)round(1.0*ram_sz_ttl/NCO_BYT_PER_GB),(unsigned long)round(1.0*ram_sz_ttl/NCO_BYT_PER_GiB));
+  if(nco_dbg_lvl_get() >= nco_dbg_scl) (void)fprintf(stdout,"%s: %s reports %s\n",nco_prg_nm_get(),fnc_nm,smr_fl_sz_sng);
+
+  return;
+} /* end nco_fl_sz_est() */
 
 void
 nco_fl_cmp_err_chk(void) /* [fnc] Perform error checking on file */
@@ -223,7 +263,7 @@ nco_fl_cp /* [fnc] Copy first file to second */
 #ifdef _MSC_VER
   const char cmd_cp_fmt[]="copy %s %s";
 #else /* !_MSC_VER */
-  const char cmd_cp_fmt[]="cp %s %s";
+  const char cmd_cp_fmt[]="/bin/cp %s %s";
 #endif /* !_MSC_VER */
 
   int rcd;
@@ -249,7 +289,7 @@ nco_fl_cp /* [fnc] Copy first file to second */
     (void)fprintf(stdout,"%s: ERROR nco_fl_cp() is unable to execute cp command \"%s\"\n",nco_prg_nm_get(),cmd_cp);
     nco_exit(EXIT_FAILURE);
   } /* end if */
-  if(nco_dbg_lvl_get() >= nco_dbg_std) (void)fprintf(stderr,"done\n");
+  if(nco_dbg_lvl_get() >= nco_dbg_fl) (void)fprintf(stderr,"done\n");
 
   cmd_cp=(char *)nco_free(cmd_cp);
   if(fl_dst_cdl) fl_dst_cdl=(char *)nco_free(fl_dst_cdl);
@@ -317,6 +357,8 @@ nco_fl_lst_mk /* [fnc] Create file list from command line positional arguments *
      Multi-file operators take input filenames from positional arguments, if any
      Otherwise, multi-file operators try to get input filenames from stdin */
 
+  const char fnc_nm[]="nco_fl_lst_mk()"; /* [sng] Function name */
+
   nco_bool FL_OUT_FROM_PSN_ARG=True; /* [flg] fl_out comes from positional argument */
 
   char **fl_lst_in=NULL_CEWI; /* [sng] List of user-specified filenames */
@@ -363,8 +405,15 @@ nco_fl_lst_mk /* [fnc] Create file list from command line positional arguments *
     } /* end if */
     fl_lst_in=(char **)nco_malloc(sizeof(char *)); /* fxm: free() this memory sometime */
     fl_lst_in[(*fl_nbr)++]=(char *)strdup(argv[arg_crr++]);
+
+    /* Sanitize input list from stdin and from positional arguments */
+    for(int fl_idx=0;fl_idx<*fl_nbr;fl_idx++) (void)nco_sng_sntz(fl_lst_in[fl_idx]);
+
     /* Output file is optional for these operators */
-    if(arg_crr == argc-1) *fl_out=(char *)strdup(argv[arg_crr]);
+    if(arg_crr == argc-1){
+      *fl_out=(char *)strdup(argv[arg_crr]);
+      *fl_out=nco_sng_sntz(*fl_out);
+    } /* !arg_crr */
     return fl_lst_in;
     /* break; *//* NB: break after return in case statement causes SGI cc warning */
   case ncbo:
@@ -496,9 +545,15 @@ nco_fl_lst_mk /* [fnc] Create file list from command line positional arguments *
     nco_exit(EXIT_FAILURE);
   } /* end if */
 
-  /* Assign output file from positional argument */
-  if(FL_OUT_FROM_PSN_ARG) *fl_out=(char *)strdup(argv[argc-1]);
+  /* Sanitize input list from stdin and from positional arguments */
+  for(int fl_idx=0;fl_idx<*fl_nbr;fl_idx++) (void)nco_sng_sntz(fl_lst_in[fl_idx]);
 
+  /* Assign output file from positional argument */
+  if(FL_OUT_FROM_PSN_ARG){
+    *fl_out=(char *)strdup(argv[argc-1]);
+    *fl_out=nco_sng_sntz(*fl_out);
+  } /* !FL_OUT_FROM_PSN_ARG */
+ 
   return fl_lst_in;
 
 } /* end nco_fl_lst_mk() */
@@ -510,8 +565,8 @@ nco_fl_mk_lcl /* [fnc] Retrieve input file and return local filename */
  nco_bool * const FL_RTR_RMT_LCN) /* O [flg] File was retrieved from remote location */
 {
   /* Purpose: Locate input file, retrieve it from remote storage system if necessary,
-  create local storage directory if neccessary, check file for read-access,
-  return name of file on local system */
+     create local storage directory if neccessary, check file for read-access,
+     return name of file on local system */
 
 #ifdef _MSC_VER
   /* TODO nco1068 The stat function retuns -1 for large files; assume success */
@@ -545,7 +600,6 @@ nco_fl_mk_lcl /* [fnc] Retrieve input file and return local filename */
 #endif /* !ENABLE_DAP */
   int rcd_stt=0; /* [rcd] Return code from stat() */
   int rcd_sys; /* [rcd] Return code from system() */
-  int rcd_frd; /* [rcd] Return code from fread() and fclose() */
 
   size_t url_sng_lng=0L; /* CEWI */
 
@@ -787,7 +841,7 @@ nco_fl_mk_lcl /* [fnc] Retrieve input file and return local filename */
             /* fxm: use autoconf HAVE_XXX rather than WIN32 token TODO nco292 */
 #ifdef WIN32
             /* #ifndef HAVE_NETWORK fxm */
-            /* I have no idea how networking calls work in MS Windows, so just exit */
+            /* I have no idea how FTP networking calls work in MS Windows, so just exit */
             (void)fprintf(stdout,"%s: ERROR Networking required to obtain %s is not supported by this operating system\n",nco_prg_nm_get(),fl_nm_rmt);
             nco_exit(EXIT_FAILURE);
 #else /* !WIN32 */
@@ -810,15 +864,15 @@ nco_fl_mk_lcl /* [fnc] Retrieve input file and return local filename */
             rmt_cmd=&ftp;
 
             /* Get UID to get password structure which contains home directory, login name
-            Home directory needed to search for .netrc
-            Login name used to construct e-mail address for anonymous FTP */
+	       Home directory needed to search for .netrc
+	       Login name used to construct e-mail address for anonymous FTP */
             usr_uid=getuid();
             usr_pwd=getpwuid(usr_uid);
             usr_nm=usr_pwd->pw_name;
 
             /* Construct remote hostname and filename now since:
-            1. .netrc, if any, will soon be searched for remote hostname
-            2. Remote hostname and filename always needed for remote retrieval */
+	       1. .netrc, if any, will soon be searched for remote hostname
+	       2. Remote hostname and filename always needed for remote retrieval */
 
             /* Remote hostname begins directly after "[s]ftp://" */
             host_nm_rmt=fl_nm_rmt+url_sng_lng;
@@ -838,6 +892,7 @@ nco_fl_mk_lcl /* [fnc] Retrieve input file and return local filename */
               char *host_nm_rmt_psn;
               char *fl_netrc_bfr;
               FILE *fp_netrc; /* [fl] .netrc inpu file handle */
+	      int rcd_frd; /* [rcd] Return code from fread() and fclose() */
               if((fp_netrc=fopen(fl_nm_netrc,"r")) == NULL){
                 (void)fprintf(stderr,"%s: ERROR unable to open user's .netrc file %s\n",nco_prg_nm_get(),fl_nm_netrc);
                 /* Why did fopen() command fail? */
@@ -1169,7 +1224,7 @@ nco_fl_mv /* [fnc] Move first file to second */
 #ifdef _MSC_VER
   const char cmd_mv_fmt[]="move %s %s";
 #else /* !_MSC_VER */
-  const char cmd_mv_fmt[]="mv -f %s %s";
+  const char cmd_mv_fmt[]="/bin/mv -f %s %s";
 #endif /* !_MSC_VER */
 
   int rcd_sys; /* [rcd] Return code from system() */
@@ -1199,7 +1254,7 @@ nco_fl_mv /* [fnc] Move first file to second */
     (void)fprintf(stdout,"%s: ERROR nco_fl_mv() unable to execute mv command \"%s\"\n",nco_prg_nm_get(),cmd_mv);
     nco_exit(EXIT_FAILURE);
   } /* end if */
-  if(nco_dbg_lvl_get() >= nco_dbg_std) (void)fprintf(stderr,"done\n");
+  if(nco_dbg_lvl_get() >= nco_dbg_fl) (void)fprintf(stderr,"done\n");
 
   cmd_mv=(char *)nco_free(cmd_mv);
   if(fl_dst_cdl) fl_dst_cdl=(char *)nco_free(fl_dst_cdl);
@@ -1444,7 +1499,7 @@ nco_fl_open /* [fnc] Open file using appropriate buffer size hints and verbosity
     /* Set undefined extended file type to actual extended filetype */
     nco_fmt_xtn_set(fl_fmt_xtn_crr);
   } /* endif */
-  if(nco_dbg_lvl_get() >= nco_dbg_scl && FIRST_INFO) (void)fprintf(stderr,"%s: INFO %s reports extended filetype of %s is %s, mode = %d\n",nco_prg_nm_get(),fnc_nm,fl_nm,nco_fmt_xtn_sng(fl_fmt_xtn_crr),mode);
+  if(nco_dbg_lvl_get() >= nco_dbg_scl && FIRST_INFO) (void)fprintf(stderr,"%s: INFO %s reports extended filetype of %s is %s, mode = %o (oct) = %d (dec) = %04x (hex) \n",nco_prg_nm_get(),fnc_nm,fl_nm,nco_fmt_xtn_sng(fl_fmt_xtn_crr),mode,(unsigned)mode,(unsigned)mode);
 
   if(FIRST_INFO && nco_dbg_lvl_get() >= nco_dbg_fl){
     (void)fprintf(stderr,"%s: INFO %s will not print any more INFO messages if this file is opened again. (Many NCO operators open the same file multiple times when OpenMP is enabled, %s prints INFO messages only the first time because successive messages are usually redundant).\n",nco_prg_nm_get(),fnc_nm,fnc_nm);
@@ -1552,6 +1607,11 @@ nco_fl_out_open /* [fnc] Open output file subject to availability and user input
     nco_exit(EXIT_FAILURE);
   } /* netCDF4 */
 #endif /* ENABLE_NETCDF4 */
+
+  if(!fl_out){
+    (void)fprintf(stdout,"%s: ERROR %s received empty filename to open\n",nco_prg_nm_get(),fnc_nm);
+    nco_exit(EXIT_FAILURE);
+  } /* fl_out */
 
   /* Set default clobber mode then modify for specified file format */
   md_create=NC_CLOBBER; /* [enm] Mode flag for nco_create() call */

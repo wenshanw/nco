@@ -136,7 +136,7 @@ appending history to file.
 This script is part of the netCDF Operators package:
 http://nco.sf.net
 
-Copyright 1995--2017 Charlie Zender
+Copyright 1995--2018 Charlie Zender
 
 USAGE
 exit(0);
@@ -686,7 +686,7 @@ sub tst_run {
 	    $cmd_lst_cnt++;
 	    if ($dbg_lvl > 2) {
 		print "\ntst_run: test cycle held - hit <Enter> to continue\n";
-		my $wait = <STDIN>;
+		#		my $wait = <STDIN>;
 	    }
 	} # end loop: 	foreach (@cmd_lst)
     } # end of client side 'else'
@@ -910,7 +910,7 @@ sub SS_prepare {
 ####################
 sub failed {
     $failure{$opr_nm}++;
-    $err_sng .= "   ERR: FAILURE in $opr_nm failure: $dsc_sng\n";
+    $err_sng .= "   ERR: FAILED in $opr_nm test: $dsc_sng\n";
     foreach(@cmd_lst) { $err_sng .= "   $_\n";}
     $err_sng .= "   ERR::EXPLAIN: Result: [$cmd_rsl] != Expected: [$nsr_xpc]\n\n" ;
     return;

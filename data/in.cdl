@@ -627,9 +627,21 @@ variables:
 	char_var_space:long_name = "Character variable with whitespace on ends";
 
 	char char_var_nul;
-	char_var_nul:long_name = "Character variable containing one NUL";
+	char_var_nul:long_name = "Character variable containing one NUL specified as empty string: \"\"";
 
-	// 20131015: This confuses the XML parser. Omit it for now.
+	char char_var_nul_c_format;
+	char_var_nul_c_format:long_name = "Character variable containing one NUL specified in C-format: \'\\0\'";
+
+	char char_var_zero;
+	char_var_zero:long_name = "Character variable containing zero";
+
+	char char_var_1D_arr(time);
+        char_var_1D_arr:long_name = "char-type 1D variable array";
+
+	char char_var_2D_arr(lat,lon);
+        char_var_2D_arr:long_name = "char-type 2D variable array";
+	
+        // 20131015: This confuses the XML parser. Omit it for now.
 	// char char_var_multinul(lev);
 	// char_var_multinul:long_name = "Character variable containing multiple NULs";
 
@@ -762,6 +774,44 @@ variables:
         att_var:float_att = 73.0f,72.0f,71.0f,70.010f,69.0010f,68.010000f,67.01000100f;
 	att_var:double_att = 73.0,72.0,71.0,70.010,69.0010,68.010000,67.01000100;
 
+	int att_var_jsn;
+        att_var_jsn:char\ att\ with\ whitespace = "cf-json.org <http://cf-json.org>";
+        att_var_jsn:double\ att\ with\ whitespace = 3.14;
+        att_var_jsn:int\ att\ with\ whitespace = 1;
+        att_var_jsn:int_array\ att\ with\ whitespace = 1,2;
+
+	// Purpose: Test special characters in names
+	// Most special characters need backslash protection
+	int att_var_spc_chr;
+	att_var_spc_chr:space\ in\ name = "foo";
+	att_var_spc_chr:comma_in_name\, = "foo";
+	att_var_spc_chr:lt_in_name\< = "foo";
+	att_var_spc_chr:gt_in_name\> = "foo";
+	att_var_spc_chr:hash_in_name\# = "foo";
+	att_var_spc_chr:xclaim_in_name\! = "foo";
+	att_var_spc_chr:dollar_in_name\$ = "foo";
+	att_var_spc_chr:ampersand_in_name\& = "foo";
+	att_var_spc_chr:equals_in_name\= = "foo";
+	att_var_spc_chr:semicolon_in_name\; = "foo";
+	att_var_spc_chr:colon_in_name\: = "foo";
+	att_var_spc_chr:lbrace_in_name\{ = "foo";
+	att_var_spc_chr:rbrace_in_name\} = "foo";
+	att_var_spc_chr:lparen_in_name\( = "foo";
+	att_var_spc_chr:rparen_in_name\) = "foo";
+	att_var_spc_chr:lbracket_in_name\[ = "foo";
+	att_var_spc_chr:rbracket_in_name\] = "foo";
+	att_var_spc_chr:plus_in_name+ = "foo";
+	//  : period_in_name. = "foo"; // Likely to cause DAP server error
+	att_var_spc_chr:hyphen_in_name- = "foo";
+	att_var_spc_chr:at_in_name@ = "foo";
+
+	// Purpose test special chars in char atts 
+        int att_sng;
+        att_sng:nul_sng = '\0';
+	att_sng:empty_sng = "";
+        att_sng:space_sng = " ";
+	att_sng:zero_sng = "0";
+	
 	int bnd_var(lev,bnd);
 	bnd_var:byte_att = '\0';
 	bnd_var:char_att = "Sentence one.\nSentence two.\n";
@@ -1200,6 +1250,14 @@ variables:
 	three_dmn_rec_var:units = "watt meter-2";
 	three_dmn_rec_var:_FillValue = -99.;
 
+	short three_dmn_rec_var_pck(time,lat,lon);
+	three_dmn_rec_var_pck:long_name = "three dimensional record variable";
+	three_dmn_rec_var_pck:purpose = "should unpack into identical values with three_dmn_rec_var (i.e., 1..80)";
+	three_dmn_rec_var_pck:units = "watt meter-2";
+	three_dmn_rec_var_pck:_FillValue = -99.;
+        three_dmn_rec_var_pck:add_offset = 40.5f ;
+        three_dmn_rec_var_pck:scale_factor = -0.001205518f ;
+
 	int three_dmn_var_int(time,lat,lon);
 	three_dmn_var_int:long_name = "three dimensional record variable of type int";
 	three_dmn_var_int:units = "watt meter-2";
@@ -1295,6 +1353,9 @@ data:
 //	None in this file
 //	netCDF3 atomic types:
 	att_var=10.0,10.1,10.20,10.3000,10.40101,10.500001,10.60000001,10.7000001,10.80,10.9900;
+	att_var_jsn=73;
+	att_var_spc_chr=73;
+	att_sng=20;
 	area=10.,10.;
 	area2=20.,5.;
 	area_asm=1.,2.;
@@ -1319,9 +1380,20 @@ data:
 	// 20131015: This confuses the XML parser
 	//	char_var_multinul="\b\n\0";
 	// char_var_multinul='0','\n','\0';
-	char_var_nul='\0';
+	// 20180111: Historically we specified char_var_nul as '\0'
+	// However, ncgen apparently turns '\0' into a zero
+	// "correct" (meaning ncgen-supported) way to specify a scalar NUL character is with ""
+	// As of today we specify char_var_nul as "" and char_var_nul_c_format as '\0'
+	// char_var_nul_c_format indicates what happens when specifying characters in C-format
+	// I think ncgen should support C-format byte codes for characters, though ncgen does not yet do so correctly
+	char_var_nul="";
+	char_var_nul_c_format='\0';
+	char_var_zero="0";
 	char_var_space=" ";
+        char_var_1D_arr="two words";
+        char_var_2D_arr="one","two";
         cnv_CF_grd=1,2,3,4,5,6,7,8;
+	albers_conical_equal_area="";
 	cnv_CF_crd=273.1,273.2,273.3,273.4,273.5,273.6,273.7,273.8;
 	cnv_CF_ncl=1.,2.,3.,4.,5.,6.,7.,8.,9.,10.;
 	cnv_CF_ncl_var_1=11.,22.,23.,24.,25.,26.,27.,28.,29.,30.;
@@ -1423,7 +1495,6 @@ data:
 	var_mss_1=0.,_,2.,3.;
 	var_mss_2=0.,1.,_,3.;
 	var_mss_3=0.,1.,2.,_;
-	var_msk=0.,1.,0.,0.,1.,1.,0.,2.;
 	ORO=0.,1.,0.,0.,1.,1.,0.,2.;
 	orog=0.,1.,0.,0.,1.,1.,0.,2.;
 	orog2=1.,1.,1.,1.,1.,1.,1.,1.;
@@ -1731,6 +1802,16 @@ data:
 				57,58,59,60,61,62,63,64,
 				65,66,67,68,69,70,71,72,
 				73,74,75,76,77,78,79,80;
+	three_dmn_rec_var_pck=  32766, 31936, 31107, 30277, 29448, 28618, 27789, 26959, 
+	  26130, 25300, 24471, 23641, 22812, 21982, 21153, 20323, 
+	  19494, 18664, 17835, 17005, 16176, 15346, 14517, 13687, 
+	  12858, 12028, 11199, 10369, 9539, 8710, 7880, 7051, 
+	  6221, 5392, 4562, 3733, 2903, 2074, 1244, 415, 
+	  -415, -1244, -2074, -2903, -3733, -4562, -5392, -6221, 
+	  -7051, -7880, -8710, -9539, -10369, -11199, -12028, -12858, 
+	  -13687, -14517, -15346, -16176, -17005, -17835, -18664, -19494, 
+	  -20323, -21153, -21982, -22812, -23641, -24471, -25300, -26130, 
+	  -26959, -27789, -28618, -29448, -30277, -31107, -31936, -32766 ; 
 	prs_sfc=		 1, 2, 3, 4, 5, 6, 7, 8,
 				 9,10,11,12,13,14,15,16,
 				17,18,19,20,21,22,23,24,

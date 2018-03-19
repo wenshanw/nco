@@ -70,7 +70,7 @@ Try to disable Spammers' machines:
 <p><h1 align="center">Bienvenue sur le netCDF Operator (NCO) site</h1>
 
 <p><h2>
-Current stable NCO version is 4.6.8 released <!--#flastmod file="src/nco-4.6.8.tar.gz"-->
+Current stable NCO version is 4.7.3 released <!--#flastmod file="src/nco-4.7.3.tar.gz"-->
 </h2>
 
 <table border=0 width=100%>
@@ -149,7 +149,12 @@ and
 <h2>Recent Releases &amp; Milestones</h2>
 
 <ul>
-<li>2017 Sep&nbsp;??: 4.7.0 <i>In Progress...</i>
+<li>2018 Apr&nbsp;??: 4.7.4 <i>In Progress...</i>
+<li>2018 Mar&nbsp;02: 4.7.3 Sundry features/fixes
+<li>2018 Jan&nbsp;25: 4.7.2 Tempest2
+<li>2017 Dec&nbsp;21: 4.7.1 Conda Windows port
+<li>2017 Nov&nbsp;08: 4.7.0 Sundry features/fixes
+<li>2017 Sep&nbsp;18: 4.6.9 CDF5, CMake
 <li>2017 Aug&nbsp;16: 4.6.8 Sundry features/fixes
 <li>2017 May&nbsp;26: 4.6.7 Sub-gridscale regridding
 <li>2017 Apr&nbsp;21: 4.6.6 UGRID
@@ -160,28 +165,14 @@ and
 <li>2016 Nov&nbsp;16: 4.6.2 JSON
 <li>2016 Sep&nbsp;19: <i>Geosci. Model Dev.</i> publishes PPC <a href="http://www.geosci-model-dev.net/9/3199/2016">paper</a></li>
 <li>2016 Aug&nbsp;06: 4.6.1 Sundry features/fixes
-<li>2016 Jul&nbsp;06: Submitted Layer-packing <a href="http://www.geosci-model-dev-discuss.net/gmd-2016-177">manuscript</a> to <i>Geosci. Model Dev.</i></li>
+<li>2016 Jul&nbsp;06: Submitted compression-error trade-off <a href="http://www.geosci-model-dev-discuss.net/gmd-2016-177">manuscript</a> to <i>Geosci. Model Dev.</i></li>
 <li>2016 May&nbsp;12: 4.6.0 <tt>ncclimo</tt>
 <li>2016 Apr&nbsp;06: <a href="http://dust.ess.uci.edu/smn/pst_nco_esds_201604.pdf">Poster</a> at NASA ESDSWG, Greenbelt</li>
 <li>2016 Apr&nbsp;05: <a href="http://dust.ess.uci.edu/smn/smn_nco_gsfc_201604.pdf">Talk</a> at NASA GES DISC, Greenbelt</li>
 <li>2016 Mar&nbsp;22: Submitted PPC manuscript to <i>Geosci. Model Dev.</i></li>
 <li>2016 Feb&nbsp;17: 4.5.5 Sundry features/fixes
 <li>2016 Jan&nbsp;07: 4.5.4 <tt>ncremap</tt>
-<li>2015 Dec&nbsp;16: <a href="http://dust.ess.uci.edu/smn/pst_nco_agu_201512.pdf">Poster</a> at Fall AGU, San Francisco</li>
-<li>2015 Nov&nbsp;04: <a href="http://dust.ess.uci.edu/smn/smn_nco_acme_201511.pdf">Talk</a> at DOE ACME, Albuquerque</li>
-<li>2015 Oct&nbsp;20: 4.5.3 Curvilinear
-<li>2015 Sep&nbsp;06: 4.5.2 Generate SCRIP
-<li>2015 Sep&nbsp;01: NSF EarthCube <a href="#prp_e3">project</a> commences</li>
-<li>2015 Jul&nbsp;10: 4.5.1 Sundry features/fixes
-<li>2015 Jun&nbsp;11: 4.5.0 Regridding
-<li>2015 May&nbsp;21: 4.4.9 <tt>ncra</tt> weights
-<li>2015 Feb&nbsp;16: 4.4.8 Precision-Preserving Compression
-<li>2014 Dec&nbsp;15: DOE ACME <a href="#prp_acme">project</a> commences</li>
-<li>2014 Nov&nbsp;26: 4.4.7 Chunking features
-<li>2014 Oct&nbsp;01: 4.4.6 <tt>ncra, ncwa</tt> packing bugfixes, stride optimization
-<li>2014 Aug&nbsp;26: 4.4.5 Sundry features/fixes
-<li>2014 Jul&nbsp;01: NASA ACCESS 2013 <a href="#prp_axs">project</a> commences</li>
-<li><a href="./milestones_old.shtml">Milestones from 200301&ndash;201406 (versions 2.8.4&ndash;4.4.4)</a></li>
+<li><a href="./milestones_old.shtml">Milestones from 200301&ndash;201512 (versions 2.8.4&ndash;4.5.3)</a></li>
 <li><a href="./nco_news.shtml">News and Announcements from 199801&ndash;200212 (version 1.1.0&ndash;2.8.3) and earlier</a></li>
 </ul>
 <hr></p>
@@ -194,10 +185,10 @@ command-line programs that take
 <a href="http://www.unidata.ucar.edu/netcdf">netCDF</a>,
 <a href="http://hdfgroup.org">HDF</a>, and/or
 <a href="http://opendap.org">DAP</a>
-files as input, then operate (e.g., derive new data, compute
-statistics, print, hyperslab, manipulate metadata) and output the
-results to screen or files in text, binary, or netCDF formats.
-NCO aids analysis of gridded scientific data.  
+files as input, then operate (e.g., derive new fields, compute
+statistics, print, hyperslab, manipulate metadata, regrid) and output
+the results to screen or files in text, binary, or netCDF formats.
+NCO aids analysis of gridded and unstructured scientific data.  
 The shell-command style of NCO allows users to manipulate and analyze
 files interactively, or with expressive scripts that avoid some
 overhead of higher-level programming environments.  
@@ -265,8 +256,8 @@ special cases.
 
 <p><hr width="100%"></p>
 
-<!-- http://nco.sf.net#Contribute -->
-<dt><a name="Contribute"></a></dt>
+<a name="Contribute"></a> <!-- http://nco.sf.net#Contribute -->
+<a name="contribute"></a> <!-- http://nco.sf.net#contribute -->
 <h2>How to Contribute: Volunteer, Endorse, or Donate</h2>
 <p>NCO has always (since 1995) been GPL'd Open Source.
 <a href="http://sf.net">SourceForge.net</a> started hosting NCO 
@@ -364,20 +355,24 @@ Be on the lookout for announcements!
 <a name="DOE"></a> <!-- http://nco.sf.net#DOE -->
 <a name="ACME"></a> <!-- http://nco.sf.net#ACME -->
 <a name="acme"></a> <!-- http://nco.sf.net#acme -->
+<a name="E3SM"></a> <!-- http://nco.sf.net#E3SM -->
+<a name="e3sm"></a> <!-- http://nco.sf.net#e3sm -->
 <dt><a name="prp_acme"></a></dt> <!-- http://nco.sf.net#prp_acme -->
-<h2>DOE ACME Project</h2>
+<dt><a name="prp_e3sm"></a></dt> <!-- http://nco.sf.net#prp_e3sm -->
+<h2>DOE E3SM (formerly ACME) Project</h2>
 <img src="doe.jpg" height=180 width=180 align=right>
 &ldquo;Lightweight Climate Analysis Tools for ACME&rdquo;
 is a US Department of Energy Cooperative Agreement (CA)
 <a href="http://www.climatemodeling.science.energy.gov/projects/nco">DE-SC0012998</a>
 from 20141215&ndash;20171214 that funds our
 <a href="http://dust.ess.uci.edu/prp/prp_acme/prp_acme.pdf">contribution</a>
-to the Accelerated Climate Modeling for Energy (ACME)
+to the Energy Exascale Earth System Model (E3SM)
+(formerly the Accelerated Climate Modeling for Energy, or ACME)
 <a href="https://acme-climate.atlassian.net/wiki/display/ACME/ACME+Home">project</a>,
 a part of DOE's Earth System Modeling (ESM)
 <a href="http://science.energy.gov/ber/research/cesd/earth-system-modeling-program">program</a>.
-The ACME project provides the resources to implement support for
-parallel regridding and workflows in NCO accessible through UV-CDAT.
+The E3SM project provides the resources to implement support for
+parallel regridding and workflows in NCO.
 Spatially intelligent, parallelized analysis tools are a key component
 of the Group-Oriented Data Analysis and Distribution
 (<a href="http://nco.sf.net/nco.html#godad">GODAD</a>) paradigm we
@@ -628,15 +623,45 @@ Identical copies of those tarballs are also stored
 <a href="http://nco.sf.net/src">here</a> on SourceForge for historical
 continuity.
 You may retrieve the source of tagged versions directly with, e.g.,
-<tt>git clone -b 4.6.8 http://github.com/nco/nco.git nco-4.6.8</tt></a>.
+<tt>git clone -b 4.7.3 http://github.com/nco/nco.git nco-4.7.3</tt></a>.
 <ul>
-<li><b>NCO 4.7.1</b>: (<i>Future</i>)
-Chunking bytes not elements;
+<li><b>NCO 4.7.5</b>: (<i>Future</i>)
+Chunking bytes not elements?;
 extensive hashing?;
-netCDF4 compound types?;</li>
-<li><b>NCO 4.7.0</b>: (<i>In Progress, features in-progress or complete include</i>) 
-<tt>ncks --xtn</tt> better extensive variable treatment;</li>
-<li><b>NCO 4.6.8</b>: (<i>Current Stable Release</i>)
+netCDF4 compound types?;
+<tt>ncclimo -v</tt> splitter support for regular expressions?;
+<tt>ncks --xtn</tt> better extensive variable treatment?;
+<tt>ncremap</tt> generate weights?;</li>
+<li><b>NCO 4.7.4</b>: (<i>In Progress, features in-progress or complete include</i>) 
+<tt>ncremap</tt> guesses column dimension for unstructured grids;
+Support Out-of-Group (OOG) variables in CF attributes;</li>
+<li><b>NCO 4.7.3</b>: (<i>Current Stable Release</i>)
+Sanitize input/output filenames;
+<tt>ncclimo</tt> Support <tt>YYYY-MM</tt> and <tt>YYYY-MM-01</tt> rx's;
+<tt>ncks --fmt_val --fl_prn</tt> for printing;
+<tt>ncremap --a2o</tt> for TempestRemap2 ordering;
+<tt>ncap2</tt> silence compiler warnings;</li>
+<li><b>NCO 4.7.2</b>:
+<tt>ncclimo</tt> splitter <i>ypf</i> bugfix;
+<tt>ncremap</tt> canonical positional arguments;
+<tt>ncremap</tt> TempestRemap2 support;</li>
+<li><b>NCO 4.7.1</b>: 
+Conda Windows port;
+<tt>ncclimo --clm_md=dly/ann</tt> fix;
+JSON tweaks;</li>
+<li><b>NCO 4.7.0</b>: 
+CMake build-engine intrinsic math, networking support on MS Windows;
+<tt>ncclimo/ncremap --fl_fmt</tt> options;
+<tt>ncclimo/ncremap --dfl_lvl</tt> compression;
+<tt>ncclimo --ppc</tt> compression;
+<tt>ncra/ncrcat</tt> fix negative hyperslab off-by-one error;</li>
+<li><b>NCO 4.6.9</b>: 
+CDF5 autoconversion, features to help detect <a href="#bug_cdf5">corruption</a>;
+CMake build-engine is mature;
+<tt>ncks</tt> estimates correct filesizes;
+<tt>ncks</tt> CDL prints variable RAM size;
+<tt>ncks</tt> prints CDL by default;</li>
+<li><b>NCO 4.6.8</b>:
 <tt>ncap2</tt> full chunking options;
 <tt>ncclimo --seasons</tt> custom season support;
 <tt>ncks --dt_fmt</tt> put the &ldquo;T&rdquo; in time;
@@ -676,8 +701,8 @@ CMake build option;
 <tt>ncclimo, ncremap</tt> support long-options;
 <tt>ncks --cdl</tt> attribute types as comments;
 <tt>ncks --json</tt> strided brackets for multi-dimensional arrays;</li>
-<li><b>NCO 4.6.2</b>: (<i>Current Stable Release</i>)
-Improved <tt>ncclimo, ncremap</tt> behavior in <tt>module</tt> environments;
+<li><b>NCO 4.6.2</b>: 
+Improve <tt>ncclimo, ncremap</tt> behavior in <tt>module</tt> environments;
 <tt>ncks --json</tt> for JSON output;
 Multi-argument support for <tt>--gaa</tt>, <tt>--rgr</tt>, <tt>--ppc</tt>, <tt>--trr</tt> options;</li>
 <li><b>NCO 4.6.1</b>:
@@ -695,7 +720,7 @@ Multi-argument support for <tt>--gaa</tt>, <tt>--rgr</tt>, <tt>--ppc</tt>, <tt>-
 <tt>ncremap</tt> uses CF to find coordinates;
 <tt>ncremap</tt> uses $TMPDIR;</li>
 <li><b>NCO 4.5.5</b>:
-All operators support CDF5 format;
+Initial CDF5 support;
 <tt>ncap2</tt> fix negative dimension indices handling;
 <tt>ncremap -P airs,hirdls,mls,mpas</tt>;
 <tt>nces/ncra</tt> fix <tt>-y mebs</tt> normalization, add <tt>-y tabs</tt>;
@@ -706,71 +731,7 @@ All operators support CDF5 format;
 <tt>ncks</tt> XML <tt>_Unsigned</tt> attribute;
 <tt>ncremap</tt> debuts;
 <tt>ncwa</tt> fix whitespace in <tt>coordinates</tt> attribute;</li>
-<li><b>NCO 4.5.3</b>: 
-<tt>ncatted</tt> fix deletion of all attributes;
-<tt>ncecat</tt> fix <tt>gag</tt> mode;
-<tt>ncks</tt> infers rectangular and curvilinear grids;
-<tt>ncks --xtn</tt> specifies extensive variables;
-<tt>ncks</tt> regridder fix multi-level field normalization;</li>
-<li><b>NCO 4.5.2</b>: 
-All operators support <tt>--glb_att_add</tt>;
-<tt>ncks</tt> better support for <tt>fracarea</tt>, <tt>mask</tt>, and displaced-pole grids;
-<tt>ncks</tt> diagnoses <tt>area</tt> for bilinear remapping and when area_b equals 0.0;
-<tt>ncks</tt> <i>generates</i> exact Gaussian and equi-angular, rectangular, and regional gridfiles;
-<tt>ncks</tt> regrid with old, new, and regional TempestRemap mapfiles;
-<tt>ncra -n NINTAP</tt> option understands calendar month counting;
-<tt>ncra -N</tt> avoids normalizing by weights;
-<tt>ncra -w</tt> bugfix with missing value normalization;
-<tt>ncwa</tt> bugfix when weights were not found;</li>
-<li><b>NCO 4.5.1</b>: 
-<tt>cell_method</tt> improvments;
-<tt>ncap2</tt> gets </tt>mibs()/mabs()/mebs()</tt> methods;
-<tt>ncatted</tt> regular expressions in </tt>att_nm</tt>;
-<tt>ncks</tt> regrid using TempestRemap mapfiles;
-<tt>ncra</tt> weights with </tt>--wgt wgt_nm</tt>;</li>
-<li><b>NCO 4.5.0</b>:
-Regridding with <tt>ncks --map</tt>;
-<tt>date/time_written</tt> updates;
-<tt>history</tt> provenance with <tt>-A</tt> (append-mode);
-<tt>ncdismember</tt> uploads to NERC;</li>
-<li><b>NCO 4.4.9</b>: 
-Output chunking map/policy nco/nco = rew/all is default for netCDF3 input;
-Turn-off MM3 workaround for MM3->MM4 copying to speed-up compression-induced chunking;
-LFP chunking uses &ldquo;reasonable defaults&rdquo; when variable smaller than default chunksize;
-Shuffle by default when manually deflating;
-Support CF <tt>climatology</tt> attribute;
-Output chunking defaults to <tt>rew/all</tt> on netCDF3 input;
-Unchunking plays nicely with <tt>shuffle</tt>;
-<tt>ncra</tt> weights with </tt>--wgt 1,2,3</tt>;
-<tt>ncks</tt> suggests <tt>-C</tt> with <tt>-x -v crd</tt>;
-<tt>ncwa</tt> modifies <tt>coordinates</tt> attribute;</li>
-<li><b>NCO 4.4.8</b>:
-Precision-Preserving Compression with <tt>--ppc</tt>;
-Arithmetic operators <tt>-y mabs/mebs/mibs</tt></li>
-<li><b>NCO 4.4.7</b>:
-<tt>cnk_min</tt> minimum chunksize;
-Chunking <tt>cnk_map=rew</tt>;
-Smarter chunking defaults;</li>
-<li><b>NCO 4.4.6</b>: 
-<tt>-0</tt> hyperslabs;
-<tt>configure</tt> DAP correctly;
-HDF4 chunking and deflation;
-netCDF4 stride (NC4_SRD) <a href="#bug_nc4_srd">bugfix</a>;
-<tt>ncap2</tt> command line args with scripts;
-<tt>ncra --dbl</tt> averaging packed variables with missing values <a href="#bug_ncra_dbl_pck_mss">bugfix</a>;
-<tt>ncwa --dbl</tt> minimization/maximization of packed variables <a href="#bug_ncwa_pck_min_max">bugfix</a>;
-<tt>ncks _SOURCE_FORMAT</tt> and <tt>-V</tt>;
-<tt>ncrename</tt> re-write</li>
-<li><b>NCO 4.4.5</b>:
-DAP on <a href="http://nco.sf.net/nco.html#dap">HTTPS</a>;
-<tt>ancillary_variables</tt> for <a href="http://nco.sf.net/nco.html#ncl">CF</a>;
-<tt>ncks --grp_xtr_var_xcl</tt> <a href="http://nco.sf.net/nco.html#gxvx">subsetting</a>
-Chunking <tt>cnk_plc=r1d</tt>;
-Default chunking policy/map is <tt>xst/xst</tt>;
-Fix <tt>ncpdq</tt> dimension-reversal parsing;
-Chunking while hyperslabbing <a href="#bug_cnk_hyp">bugfix</a>;
-Correctly parse MS Windows volume names like <tt>C:\foo</tt></li>
-<li><a href="./highlights_old.shtml">Release Highlights from 200001&ndash;201406 (versions 1.1.47&ndash;4.4.4)</a></li>
+<li><a href="./highlights_old.shtml">Release Highlights from 200001&ndash;201512 (versions 1.1.47&ndash;4.5.3)</a></li>
 </ul>
 <hr></p>
 <!-- End http://nco.sf.net#hgh -->
@@ -811,15 +772,18 @@ Thanks to NSF for supporting AIX machines at NCAR over the years.
 <ul>
 <a href="https://www.continuum.io/why-anaconda">Anaconda</a> is a coordinated,
 cross-platform Python environment that utilizes the <tt>conda</tt> package manager.
-Up-to-date versions of NCO for Linux and MacOS are maintained at <a href="https://github.com/conda-forge/nco-feedstock">conda-forge</a>.
+Anaconda can be easily installed into a user-owned directory.
+This bypasses the normal headache of relying on system-administrators to install the latest NCO on shared systems like supercomputers.
+Miniconda (rather than the full Anaconda install) suffices for most purposes.
+Up-to-date Anaconda-compatible versions of NCO for Linux, MacOS, and Windows are maintained at <a href="https://github.com/conda-forge/nco-feedstock">conda-forge</a>.
 Install NCO in your Anaconda framework with one command &lsquo;<tt>conda install -c conda-forge nco</tt>&rsquo;.
-Or, alternatively, permanently add conda-forge (which has numerous
+Or, alternatively, permanently add conda-forge (which teems with
 goodies besides NCO) to your automatically-searched channels with
-&lsquo;<tt>conda config --add channels --conda-forge</tt>&rsquo;, then
+&lsquo;<tt>conda config --add channels conda-forge</tt>&rsquo;, then
 install NCO with &lsquo;<tt>conda install nco</tt>&rsquo;.
 The default NCO installed by <tt>conda</tt> is generally within a month of the latest release. 
-<li><a href="https://github.com/conda-forge/nco-feedstock">nco-4.6.8</a> Executables Anaconda-compatible. Maintained by Filipe Fernandes.</li>
-Thanks to Rich Signell, Filipe Fernandes (and others?) for developing and maintaining the NCO package for conda.
+<li><a href="https://github.com/conda-forge/nco-feedstock">nco-4.7.3</a> Executables Anaconda-compatible. Maintained by Filipe Fernandes.</li>
+Thanks to Rich Signell, Filipe Fernandes, Pedro Vicente, and others for developing and maintaining the NCO package for conda.
 </ul>
 
 <a name="debian"></a><a name="dbn"></a> <!-- http://nco.sf.net#debian -->
@@ -827,7 +791,7 @@ Thanks to Rich Signell, Filipe Fernandes (and others?) for developing and mainta
 <h3><a href="http://www.debian.org">Debian</a> and <a href="http://www.ubuntu.com">Ubuntu</a> GNU/Linux</a></h3>
 <ul>
 <!--
-<li><a href="http://www.debian.org">Debian</a> and <a href="http://www.ubuntu.com">Ubuntu</a> GNU/Linux-compatible Intel systems, prebuilt binary executable <a href="http://www.debian.org">deb</a>: <a href="http://packages.debian.org/testing/math/nco.html">nco-4.6.8</a></li>
+<li><a href="http://www.debian.org">Debian</a> and <a href="http://www.ubuntu.com">Ubuntu</a> GNU/Linux-compatible Intel systems, prebuilt binary executable <a href="http://www.debian.org">deb</a>: <a href="http://packages.debian.org/testing/math/nco.html">nco-4.7.3</a></li>
 -->
 <a href="http://packages.debian.org/unstable/science/nco">Debian NCO</a> and 
 <a href="https://launchpad.net/ubuntu/+source/nco">Ubuntu NCO</a> homepages.
@@ -835,8 +799,8 @@ Thanks to Rich Signell, Filipe Fernandes (and others?) for developing and mainta
 NCO packages in the Debian/Ubuntu repositories (e.g., Sid and Raring) generally lag the packages distributed here by 6&ndash;12 months.
 <a name="beta"></a><a name="prerelease"> <!-- http://nco.sf.net#beta -->
 Newer (beta- or pre-release) packages are often available for intrepid Debian/Ubuntu users as described <a href="https://github.com/nco/nco/tree/master/doc/beta.txt">here</a>.
-<dt>Debian package for most recent NCO release (install with, e.g., &lsquo;<tt>dpkg --install nco_4.6.8-1_i386.deb</tt>&rsquo;):</dt>
-<li><a href="https://launchpad.net/ubuntu/+source/nco/4.6.8-1">nco_4.6.8-1_amd64.deb</a> : Executables AMD64-compatible</li>
+<dt>Debian package for most recent NCO release (install with, e.g., &lsquo;<tt>dpkg --install nco_4.7.3-1_i386.deb</tt>&rsquo;):</dt>
+<li><a href="https://launchpad.net/ubuntu/+source/nco/4.7.3-1">nco_4.7.3-1_amd64.deb</a> : Executables AMD64-compatible</li>
 Thanks to Daniel Baumann, Sebastian Couwenberg, Barry deFreese, Francesco Lovergine, 
 Brian Mays, Rorik Peterson, and Matej Vela for their help packaging
 NCO for Debian over the years. 
@@ -847,7 +811,7 @@ NCO for Debian over the years.
 <a name="centos"></a><a name="cnt"></a><a name="rhel"></a> <!-- http://nco.sf.net#centos --> <!-- http://nco.sf.net#cnt --> <!-- http://nco.sf.net#rhel -->
 <h3><a href="http://fedora.redhat.com">Fedora</a>, RedHat Enterprise Linux (<a href="http://www.redhat.com/rhel">RHEL</a>), and Community ENTerprise Operating System (<a href="http://www.centos.org">CentOS</a>) GNU/Linux</h3>
 <ul>
-<dt>The <a href="https://admin.fedoraproject.org/pkgdb/package/nco">Fedora NCO</a> RPMs are usually up-to-date so that &lsquo;<tt>dnf install nco</tt>&rsquo; will install a recent version. 
+<dt>The <a href="https://admin.fedoraproject.org/pkgdb/package/nco">Fedora NCO</a> RPMs are usually up-to-date so that &lsquo;<tt>sudo dnf install nco</tt>&rsquo; installs a recent version. 
 RHEL NCO RPMs are documented at the Fedora site.
 OpenSUSE keeps NCO RPMs <a href="http://software.opensuse.org/package/nco">here</a>.
 A comprehensive list of pre-built RPMs for many OS's is <a href="http://rpmfind.net/linux/rpm2html/search.php?query=nco">here</a>.
@@ -878,19 +842,19 @@ Thanks to Gavin Burris and Kyle Wilcox for documenting build procedures for RHEL
 <h3><a href="http://www.apple.com/macosx/">Mac&nbsp;OS&nbsp;X/Darwin</a></h3>
 <ul>
 <!-- 
-# Mac OS X 10.12 (Sierra) systems (aerosol):
+# Mac OS X 10.13 (High Sierra) systems (aerosol):
 /usr/bin/scp ~/nco/doc/index.shtml zender,nco@web.sf.net:/home/project-web/nco/htdocs
-cd ~/bin;tar cvzf ${DATA}/nco-4.6.8.macosx.10.12.tar.gz nc*;scp ${DATA}/nco-4.6.8.macosx.10.12.tar.gz zender,nco@web.sf.net:/home/project-web/nco/htdocs/src
+cd ~/bin;tar cvzf ${DATA}/nco-4.7.3.macosx.10.13.tar.gz nc*;scp ${DATA}/nco-4.7.3.macosx.10.13.tar.gz zender,nco@web.sf.net:/home/project-web/nco/htdocs/src
 -->
 The most up-to-date executables are probably those in the tarball below. Those unfamiliar with installing executables from tarballs may try the (older) <a href="http://en.wikipedia.org/wiki/Apple_Disk_Image">DMG</a> files (you may need to add <tt>/opt/local/bin</tt> to your executable path to access those operators).
-<li><a href="src/nco-4.6.8.macosx.10.12.tar.gz">nco-4.6.8.macosx.10.12.tar.gz</a> (<!--#fsize file="src/nco-4.6.8.macosx.10.12.tar.gz"-->): Executables MacOSX 10.12-compatible (last updated <!--#flastmod file="src/nco-4.6.8.macosx.10.12.tar.gz"-->). 
+<li><a href="src/nco-4.7.3.macosx.10.13.tar.gz">nco-4.7.3.macosx.10.13.tar.gz</a> (<!--#fsize file="src/nco-4.7.3.macosx.10.13.tar.gz"-->): Executables MacOSX 10.13-compatible (last updated <!--#flastmod file="src/nco-4.7.3.macosx.10.13.tar.gz"-->). 
 (NB: These executables require
   the <a href="http://trac.macosforge.org/projects/macports/wiki">MacPorts</a>
   <a href="#bld_macports">dependencies</a> for <a href="http://svn.macports.org/repository/macports/trunk/dports/science/nco">NCO</a>). Maintained by NCO Project.</li>
 <li><a href="src/nco-4.0.7_x86_10.6.dmg">nco-4.0.7_x86_10.6.dmg</a> (<!--#fsize file="src/nco-4.0.7_x86_10.6.dmg"-->): For Mac OS 10.6 (last updated <!--#flastmod file="src/nco-4.0.7_x86_10.6.dmg"-->). Maintained by Chad Cantwell.</li>
 <li><a href="http://fink.sf.net">Fink</a> packages for <a href="http://fink.sf.net/pdb/package.php/nco">NCO</a>: Currently NCO 3.9.5. Maintained by Alexander Hansen.</li> 
-<li><a href="http://brew.sh">Homebrew</a> packages for <a href="https://github.com/Homebrew/homebrew-science/nco.rb">NCO</a>: Currently NCO 4.4.2. Maintained by Ian Lancaster (Alejandro Soto's instructions <a href="http://alejandrosoto.net/blog/2014/01/22/setting-up-my-mac-for-scientific-research">here</a>).</li> 
-<li><a href="http://trac.macosforge.org/projects/macports/wiki">MacPorts</a> infrastructure for <a href="http://svn.macports.org/repository/macports/trunk/dports/science/nco">NCO</a>: <a href="http://svn.macports.org/repository/macports/trunk/dports/science/nco">Portfile</a> for NCO 4.6.0. Maintained by Takeshi Enomoto.</li>
+<li><a href="http://brew.sh">Homebrew</a> packages for <a href="https://github.com/Homebrew/homebrew-science/nco.rb">NCO</a>: Currently NCO 4.6.X. Install with &lsquo;<tt>sudo brew install nco</tt>&rsquo;. Maintained by Ian Lancaster (Alejandro Soto's instructions <a href="http://alejandrosoto.net/blog/2014/01/22/setting-up-my-mac-for-scientific-research">here</a>).</li> 
+<li><a href="http://trac.macosforge.org/projects/macports/wiki">MacPorts</a> infrastructure for <a href="http://svn.macports.org/repository/macports/trunk/dports/science/nco">NCO</a>: <a href="http://svn.macports.org/repository/macports/trunk/dports/science/nco">Portfile</a>: Currently NCO 4.6.6. Install with &lsquo;<tt>sudo port install nco</tt>&rsquo;. Maintained by Takeshi Enomoto.</li>
 </ul>
 
 <a name="visual"></a> <!-- http://nco.sf.net#visual -->
@@ -898,16 +862,16 @@ The most up-to-date executables are probably those in the tarball below. Those u
 <a name="windows"></a> <!-- http://nco.sf.net#windows -->
 <h3><a href="http://www.microsoft.com">Microsoft Windows</a>
 (native build, compiled with <a href="https://www.visualstudio.com/en-us/visual-studio-homepage-vs.aspx">Visual Studio 2015</a>, use this if unsure)</h3>
-These native Windows executables should be stand-alone, i.e., not
+These native Windows executables (64bit) are stand-alone, i.e., do not
 require users to have any additional software. 
 This is a new feature as of 20120615, please send us feedback. 
-To build NCO from source yourself using MSVC or Qt, please see the <a href="nco_qt_msvc.shtml">NCO Qt/MSVC build</a> page.
+To build NCO from source yourself using MSVC with CMake, please see example in <tt>nco/cmake/build.bat</tt>.
 <ul>
 <!-- Copy files from http://glace.ess.uci.edu
 /usr/bin/scp /home/pvicente/nco/doc/index.shtml pvicente,nco@web.sf.net:/home/project-web/nco/htdocs
-/usr/bin/scp /home/pvicente/windows_setup/nco-4.6.8.windows.mvs.exe pvicente,nco@web.sf.net:/home/project-web/nco/htdocs/src
+/usr/bin/scp /home/pvicente/windows_setup/nco-4.7.4.windows.mvs.exe pvicente,nco@web.sf.net:/home/project-web/nco/htdocs/src
 -->
-<li><a href="src/nco-4.6.6.windows.mvs.exe">nco-4.6.8.windows.mvs.exe</a> (<!--#fsize file="src/nco-4.6.8.windows.mvs.exe"-->) : Windows Self-Extracting Installer (last updated <!--#flastmod file="src/nco-4.6.8.windows.mvs.exe"-->). Maintained by Pedro Vicente.</li>
+<li><a href="src/nco-4.7.3.windows.mvs.exe">nco-4.7.3.windows.mvs.exe</a> (<!--#fsize file="src/nco-4.7.3.windows.mvs.exe"-->) : Windows Self-Extracting Installer (last updated <!--#flastmod file="src/nco-4.7.3.windows.mvs.exe"-->). Maintained by Pedro Vicente.</li>
 </ul>
 
 <a name="cygwin"></a> <!-- http://nco.sf.net#cygwin -->
@@ -1078,12 +1042,12 @@ site.</li>
 The simplest way to acquire the source is to download the compressed tarball:
 <ul>
 <li>
-<!-- scp ${DATA}/nco-4.6.8.tar.gz zender,nco@web.sf.net:/home/project-web/nco/htdocs/src -->
-<a href="https://github.com/nco/nco/archive/4.6.8.tar.gz">nco-4.6.8.tar.gz</a> 
-(<!--#fsize file="src/nco-4.6.8.tar.gz"--> compressed tar-file)<br>
-<!--#exec cmd="openssl dgst -md5 src/nco-4.6.8.tar.gz"--><br>
-<!--#exec cmd="openssl dgst -sha1 src/nco-4.6.8.tar.gz"--><br>
-<!--#exec cmd="openssl dgst -sha256 src/nco-4.6.8.tar.gz"--> 
+<!-- scp ${DATA}/nco-4.7.3.tar.gz zender,nco@web.sf.net:/home/project-web/nco/htdocs/src -->
+<a href="https://github.com/nco/nco/archive/4.7.3.tar.gz">nco-4.7.3.tar.gz</a> 
+(<!--#fsize file="src/nco-4.7.3.tar.gz"--> compressed tar-file)<br>
+<!--#exec cmd="openssl dgst -md5 src/nco-4.7.3.tar.gz"--><br>
+<!--#exec cmd="openssl dgst -sha1 src/nco-4.7.3.tar.gz"--><br>
+<!--#exec cmd="openssl dgst -sha256 src/nco-4.7.3.tar.gz"--> 
 </li>
 </ul>
 
@@ -1102,8 +1066,8 @@ You may retrieve any NCO distribution you wish from
 <a href="https://help.github.com">GitHub</a>. 
 Usually you wish to retrieve a recent tagged (i.e., released) version.
 This command retrieves the entire NCO repository (&lt; 20&nbsp;MB) and
-then checks out NCO version <tt>4.6.8</tt>:
-<p><tt>git clone https://github.com/nco/nco.git;cd nco;git checkout 4.6.8</tt></p>
+then checks out NCO version <tt>4.7.3</tt>:
+<p><tt>git clone https://github.com/nco/nco.git;cd nco;git checkout 4.7.3</tt></p>
 These commands retrieve the current (&ldquo;bleeding edge&rdquo;)
 development version of NCO into a local directory named <tt>nco</tt>:
 <p><tt>git clone https://github.com/nco/nco.git ~/nco</tt></p> or
@@ -1111,9 +1075,9 @@ development version of NCO into a local directory named <tt>nco</tt>:
 Track changes to the development version using
 <p><tt>cd nco;git pull</tt></p>
 One difference between running a "tagged" release 
-(e.g., <tt>4.6.8</tt>) and the development version is that the
+(e.g., <tt>4.7.3</tt>) and the development version is that the
 tagged release operators will print a valid version number (e.g.,
-<tt>4.6.8</tt>) when asked to do so with the <tt>-r</tt> flag
+<tt>4.7.3</tt>) when asked to do so with the <tt>-r</tt> flag
 (e.g., <tt>ncks -r</tt>).
 The development version simply places today's date in place of the
 version.
@@ -1138,6 +1102,7 @@ Source documentation for NCO and netCDF4(alpha13)</a></li>
 <!-- http://nco.sf.net#bld -->
 <dt><a name="Rqr"></a><a name="rqr"></a></dt> <!-- http://nco.sf.net#rqr -->
 <dt><a name="bld"></a></dt> <!-- http://nco.sf.net#bld -->
+<dt><a name="build"></a></dt> <!-- http://nco.sf.net#build -->
 <dt><a name="cmp"></a></dt> <!-- http://nco.sf.net#cmp -->
 <h2>Compilation Requirements</h2>
 
@@ -1197,12 +1162,12 @@ Remember, to compile NCO from source, you need not only the library
 dependencies the "devel" versions 
 (which include the header files) of the 
 
-For Debian-based systems (like Ubuntu) (<tt>aptitude</tt> is similar to and interchangeable, I think, with <tt>apt-get</tt>):
+For Debian-based systems (like Ubuntu) (<tt>aptitude</tt> is similar to and interchangeable with <tt>apt-get</tt>):
 <tt>
 <dt>sudo aptitude install antlr libantlr-dev # ANTLR</dt>
 <dt>sudo aptitude install libcurl4-gnutls-dev libexpat1-dev libxml2-dev # DAP-prereqs (curl, expat XML parser) </dt>
-<dt>sudo aptitude install bison flex gcc g++ # GNU toolchain</dt>
-<dt>sudo aptitude install gsl-bin libgsl0-dev # GSL</dt>
+<dt>sudo aptitude install bison cmake flex gcc g++ # GNU toolchain</dt>
+<dt>sudo aptitude install gsl-bin libgsl-dev # GSL</dt>
 <dt>sudo aptitude install libnetcdf11 libnetcdf-dev netcdf-bin # netCDF and DAP</dt>
 <dt>sudo aptitude install libhdf5-serial-dev # HDF5</dt>
 <dt>sudo aptitude install ncl-ncarg # ESMF_RegridWeightGen (for ncremap)</dt>
@@ -1219,10 +1184,11 @@ For RPM-based systems like Fedora and CentOS (substitute <tt>yum</tt> for <tt>dn
 <dt>sudo dnf install curl-devel libxml2-devel -y # DAP-prereqs</dt>
 <dt>sudo dnf install expat expat-devel -y # expat XML parser, a UDUnits-prereq (RHEL only?)</dt>
 <dt>sudo dnf install libdap libdap-devel -y # DAP</dt>
-<dt>sudo dnf install bison flex gcc gcc-c++ -y # GNU toolchain</dt>
+<dt>sudo dnf install bison cmake flex gcc gcc-c++ -y # GNU toolchain</dt>
 <dt>sudo dnf install ncl # ESMF_RegridWeightGen (for ncremap)</dt>
 <dt>sudo dnf install gsl gsl-devel -y # GSL</dt>
 <dt>sudo dnf install netcdf netcdf-devel -y # netCDF</dt>
+<dt>sudo dnf install zlib-devel -y # zlib</dt>
 <dt>sudo dnf install librx librx-devel -y # RX</dt>
 <dt>sudo dnf install udunits2 udunits2-devel -y # UDUnits</dt>
 </tt>
@@ -1232,10 +1198,12 @@ For RPM-based systems like Fedora and CentOS (substitute <tt>yum</tt> for <tt>dn
 For Mac OS X with MacPorts:
 <tt>
 <dt>sudo port install antlr # Antlr</dt>
+<dt>sudo port install cmake # CMake</dt>
 <dt>sudo port install esmf # ESMF_RegridWeightGen (for ncremap)</dt>
 <dt>sudo port install libdap # DAP</dt>
 <dt>sudo port install gsl # GSL</dt>
 <dt>sudo port install netcdf # netCDF</dt>
+<dt>sudo port install netcdf-fortran +gcc7 # netCDF for ESMF</dt>
 <dt>sudo port install udunits2 # UDUnits</dt>
 </tt>
 Without MacPorts, the system TeXInfo may be too old to build the
@@ -1253,20 +1221,49 @@ For Windows with Cygwin, select and install the following packages with Cygwin S
 <dt>udunits2 # UDUnits</dt>
 </tt>
 As of 20131101 there is no Cygwin package for ANTLR, and the netCDF package does not yet support DAP. 
-Users should instead first download and install the ANTLR found <a href="http://nco.sourceforge.net/nco_qt_msvc.shtml">here</a>.
 </li>
 
 <li>Once you have installed the pre-requisites as shown above, you may then build the latest stable NCO and install it in, e.g., <tt>/usr/local</tt> with: 
 <tt>
-<dt>wget https://github.com/nco/nco/archive/4.6.8.tar.gz</dt>
-<dt>tar xvzf 4.6.8.tar.gz</dt>
-<dt>cd nco-4.6.8</dt>
+<dt>wget https://github.com/nco/nco/archive/4.7.3.tar.gz</dt>
+<dt>tar xvzf 4.7.3.tar.gz</dt>
+<dt>cd nco-4.7.3</dt>
 <dt>./configure --prefix=/usr/local</dt>
 <dt>make</dt>
 <dt>sudo make install</dt>
 <dt>export PATH=/usr/local/bin\:${PATH}</dt>
 <dt>export LD_LIBRARY_PATH=/usr/local/lib\:${LD_LIBRARY_PATH}</dt>
 </tt>
+<dt><a name="cmake"></a></dt> <!-- http://nco.sf.net#cmake -->
+<dt><a name="CMake"></a></dt> <!-- http://nco.sf.net#CMake -->
+<li>The CMake-equivalent to the autoconf/configure build-engine example above is:
+<tt>
+<dt>cd ~/nco/cmake</dt>
+<dt>cmake .. -DCMAKE_INSTALL_PREFIX=/usr/local</dt>
+<dt>make</dt>
+<dt>sudo make install</dt>
+</tt>
+Unlike autoconf/configure, CMake works well on MS Windows. 
+CMake tries to find header and dependency libraries in standard locations.
+Override these manually with, e.g., 
+<tt>
+<dt>cmake .. -DNETCDF_INCLUDE:PATH=/my/netcdf/include/path 
+-DNETCDF_LIBRARY=/my/netcdf/library/file 
+-DHDF5_LIBRARY=/my/hdf5/library/file 
+-DHDF5_HL_LIBRARY=/my/hdf5 high level/library/file 
+-DSZIP_LIBRARY=/my/szip/library/file 
+-DZLIB_LIBRARY=/my/zlib/library/file 
+-DCURL_LIBRARY=/my/curl/library/file 
+-DANTLR_INCLUDE:PATH=/my/antlr/include/path 
+-DANTLR_LIBRARY:FILE=/my/antlr/library/file 
+-DUDUNITS2_INCLUDE:PATH=/my/udunits2/include/path 
+-DUDUNITS2_LIBRARY:FILE=/my/udunits2/library/file 
+-DEXPAT_LIBRARY:FILE=/my/expat/library/file 
+-DGSL_INCLUDE:PATH=/my/gsl/include/path 
+-DGSL_LIBRARY:FILE=/my/gsl/library/file 
+-DGSL_CBLAS_LIBRARY:FILE=/my/cblas/library/file</dt>
+</tt>
+</p>
 <dt><a name="bonobo"></a></dt> <!-- http://nco.sf.net#bonobo -->
 <dt><a name="bnb"></a></dt> <!-- http://nco.sf.net#bnb -->
 Please post questions about building or installing NCO to the 
@@ -1277,30 +1274,12 @@ in the first sentence of your post.
 Yes, &ldquo;bonobo&rdquo;.
 Otherwise we will likely redirect you here.
 For more sophisticated build/install options, see the next section.
-<li>CMake build. To build with CMake, do:
-<tt>
-<dt>mkdir build</dt>
-<dt>cd build</dt>
-<dt>cmake ..</dt>
-<dt>make</dt>
-</tt>
-The CMake script tries to find header and dependency libraries in standard locations.
-They can also be set manually with, e.g., 
-<tt>
-<dt>cmake .. -DNETCDF_INCLUDE:PATH=/my/netcdf/include/path 
--DNETCDF_LIBRARY=/my/netcdf/library/file 
--DHDF5_LIBRARY=/my/hdf5/library/file 
--DHDF5_HL_LIBRARY=/my/hdf5 high level/library/file 
--DSZIP_LIBRARY=/my/szip/library/file 
--DZLIB_LIBRARY=/my/zlib/library/file 
--DCURL_LIBRARY=/my/curl/library/file</dt>
-</tt>
 </ul>
 
 <dt><a name="Makefile"></a></dt> <!-- http://nco.sf.net#Makefile -->
 <dt><a name="hnt"></a></dt> <!-- http://nco.sf.net#hnt -->
 <dt><a name="bld_hnt"></a></dt> <!-- http://nco.sf.net#bld_hnt -->
-Still having trouble building NCO from source? Read these 
+Still having trouble building NCO from source? Read these (much older)
 <a href="./build_hints.shtml">Build Hints</a>
 
 </ul>
@@ -1383,7 +1362,49 @@ LAM installs easily with our own testing environment (latest Ubuntu).
 <h2>Known Problems from 2013 (version 4.2.4) Onwards</h2>
 
 <ul><b>Recent Generic Run-time Problems:</b>
-<!-- http://nco.sf.net#bug_nc4_srd -->
+
+<!-- http://nco.sf.net#bug_cdf5 -->
+<a name="bug_cdf5"></a>
+<li><i>netCDF CDF5 corruption:</i>
+  netCDF libraries 4.4.0+ supports the CDF5 binary format.
+  Unfortunately the CDF5 implementation is buggy for large (> 4 GiB)
+  variables in library versions 4.4.0&ndash;4.5.0. 
+  Writing CDF5 files with large variables is buggy unless there is
+  only one such &ldquo;large&rdquo; variable and it is the last to be defined.
+  If the file is an input dataset (i.e., NCO <i>reads</i> it) written
+  by PnetCDF then the input data are fine (because PnetCDF writes CDF5
+  through a different mechanism than serial programs like NCO's
+  writer).
+  And if the CDF5 dataset was originally written by any netCDF version
+  4.5.1 or greater, then it may be fine (It depends whether/when
+  Unidata patches the bug, see below, that we identified on 20170906.) 
+  However, a CDF5 input file with large variables written by any serial
+  netCDF writer (like NCO) employing netCDF library 4.4.0&ndash;4.5.0, is likely
+  corrupt and variables were silently truncated when writing it.
+  Output files (that NCO wrote) with large variables will definitely
+  be corrupt if NCO was linked to netCDF library version 4.4.0&ndash;4.5.0 (so
+  upgrade to netCDF 4.5.1+ ASAP).
+  Here are two potential workarounds for data affected by this bug:
+  1. Re-write (using any netCDF version) original input files in
+  netCDF4 format instead of CDF5, then process these as normal and
+  write netCDF4 output (instead of CDF5); 
+  2. Re-compile NCO with netCDF library 4.5.1+ or later and use it to
+  convert non-corrupt datasets to netCDF4 format, then process the
+  data.
+  For more information on this nasty bug, see
+  <a href="https://github.com/Unidata/netcdf-c/issues/463">here</a>.
+  Our understanding of this bug is still evolving and salient updates
+  will be posted here.
+  <b>UPDATE</b>: Unidata released netCDF 4.5.0 on 20171020.
+  Unfortunately a patch to fix the CDF5 bug was not included.
+  Hence the earliest a general-purpose CDF5 fix will appear is 4.5.1.
+  Those bonking their heads against walls and willing to try what
+  Unidata chose not to include in 4.5.0 can use this experimental 
+  <a href="https://github.com/Unidata/netcdf-c/pull/478">patch</a>.
+  YMMV. Unsupported.
+</li>
+  
+  <!-- http://nco.sf.net#bug_nc4_srd -->
 <a name="bug_nc4_srd"></a>
 <li><i>netCDF4 Strided Hyperslab bug:</i>
 Multiple users complain that access to strided hyperslabs of
@@ -1650,7 +1671,7 @@ former Assistant Professor of Electrical Engineering and Computer Science
 <li>
 <a name="vicente"></a><a name="Vicente"></a> <!-- http://nco.sf.net#vicente -->
 <a href="http://dust.ess.uci.edu/pvicente">Pedro Vicente</a>, 
-software engineer, 201206&mdash;201405.
+software engineer, 201206&mdash;201405, and continuing as volunteer
 <!--
 <i>Roles</i>: Scientific programmer
 <i>Current Research</i>: 

@@ -2,7 +2,7 @@
 
 /* Purpose: Variable list utilities */
 
-/* Copyright (C) 1995--2017 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -313,7 +313,7 @@ nco_var_lst_crd_add /* [fnc] Add all coordinates to extraction list */
           /* Yes, get list of specified attributes */
           (void)nco_inq_att(nc_id,var_id,att_nm,&att_typ,&att_sz);
           if(att_typ != NC_CHAR){
-            (void)fprintf(stderr,"%s: WARNING the \"%s\" attribute for variable %s is type %s, not %s. This violates the CF convention for specifying additional attributes. Therefore %s will skip this attribute.\n",nco_prg_nm_get(),att_nm,xtr_lst[idx_var].nm,nco_typ_sng(att_typ),nco_typ_sng(NC_CHAR),fnc_nm);
+            (void)fprintf(stderr,"%s: WARNING the \"%s\" attribute for variable %s is type %s, not %s. This violates the CF convention for allowed datatypes (http://cfconventions.org/cf-conventions/cf-conventions.html#_data_types). Therefore %s will skip this attribute.\n",nco_prg_nm_get(),att_nm,xtr_lst[idx_var].nm,nco_typ_sng(att_typ),nco_typ_sng(NC_CHAR),fnc_nm);
             return xtr_lst;
           } /* end if */
           att_val=(char *)nco_malloc((att_sz+1L)*sizeof(char));
@@ -398,7 +398,7 @@ nco_var_lst_crd_add /* [fnc] Add all coordinates to extraction list */
           /* Yes, get list of specified attributes */
           (void)nco_inq_att(nc_id,var_id,att_nm,&att_typ,&att_sz);
           if(att_typ != NC_CHAR){
-            (void)fprintf(stderr,"%s: WARNING the \"%s\" attribute for variable %s is type %s, not %s. This violates the CF convention for specifying additional attributes. Therefore %s will skip this attribute.\n",nco_prg_nm_get(),att_nm,xtr_lst[idx_var].nm,nco_typ_sng(att_typ),nco_typ_sng(NC_CHAR),fnc_nm);
+            (void)fprintf(stderr,"%s: WARNING the \"%s\" attribute for variable %s is type %s, not %s. This violates the CF convention for allowed datatypes (http://cfconventions.org/cf-conventions/cf-conventions.html#_data_types). Therefore %s will skip this attribute.\n",nco_prg_nm_get(),att_nm,xtr_lst[idx_var].nm,nco_typ_sng(att_typ),nco_typ_sng(NC_CHAR),fnc_nm);
             return xtr_lst;
           } /* end if */
           att_val=(char *)nco_malloc((att_sz+1L)*sizeof(char));
@@ -539,7 +539,7 @@ nco_var_lst_crd_ass_add /* [fnc] Add to extraction list all coordinates associat
           /* Yes, get list of specified attributes */
           (void)nco_inq_att(nc_id,var_id,att_nm,&att_typ,&att_sz);
           if(att_typ != NC_CHAR){
-            (void)fprintf(stderr,"%s: WARNING the \"%s\" attribute for variable %s is type %s, not %s. This violates the CF convention for specifying additional attributes. Therefore %s will skip this attribute.\n",nco_prg_nm_get(),att_nm,xtr_lst[idx_var].nm,nco_typ_sng(att_typ),nco_typ_sng(NC_CHAR),fnc_nm);
+            (void)fprintf(stderr,"%s: WARNING the \"%s\" attribute for variable %s is type %s, not %s. This violates the CF convention for allowed datatypes (http://cfconventions.org/cf-conventions/cf-conventions.html#_data_types). Therefore %s will skip this attribute.\n",nco_prg_nm_get(),att_nm,xtr_lst[idx_var].nm,nco_typ_sng(att_typ),nco_typ_sng(NC_CHAR),fnc_nm);
             return xtr_lst;
           } /* end if */
           att_val=(char *)nco_malloc((att_sz+1L)*sizeof(char));
@@ -620,7 +620,7 @@ nco_var_lst_crd_ass_add /* [fnc] Add to extraction list all coordinates associat
           /* Yes, get list of specified attributes */
           (void)nco_inq_att(nc_id,var_id,att_nm,&att_typ,&att_sz);
           if(att_typ != NC_CHAR){
-            (void)fprintf(stderr,"%s: WARNING the \"%s\" attribute for variable %s is type %s, not %s. This violates the CF convention for specifying additional attributes. Therefore %s will skip this attribute.\n",nco_prg_nm_get(),att_nm,xtr_lst[idx_var].nm,nco_typ_sng(att_typ),nco_typ_sng(NC_CHAR),fnc_nm);
+            (void)fprintf(stderr,"%s: WARNING the \"%s\" attribute for variable %s is type %s, not %s. This violates the CF convention for allowed datatypes (http://cfconventions.org/cf-conventions/cf-conventions.html#_data_types). Therefore %s will skip this attribute.\n",nco_prg_nm_get(),att_nm,xtr_lst[idx_var].nm,nco_typ_sng(att_typ),nco_typ_sng(NC_CHAR),fnc_nm);
             return xtr_lst;
           } /* end if */
           att_val=(char *)nco_malloc((att_sz+1L)*sizeof(char));
@@ -1295,7 +1295,7 @@ nco_var_is_fix                               /* [fnc] Variable should be treated
   
   /* Conditions #1 and #2 are already implemented above in the case() statement */
   /* Check condition #4 above: */
-  if(is_sz_rnk_prv_rth_opr && (!strcmp(var_nm,"lat") || !strcmp(var_nm,"lon") || !strcmp(var_nm,"lev") || !strcmp(var_nm,"longxy") || !strcmp(var_nm,"latixy") )) var_is_fix=True;
+  if(is_sz_rnk_prv_rth_opr && (!strcmp(var_nm,"lat") || !strcmp(var_nm,"lon") || !strcmp(var_nm,"lev") || !strcmp(var_nm,"longxy") || !strcmp(var_nm,"latixy") || !strcmp(var_nm,"latitude") || !strcmp(var_nm,"longitude") )) var_is_fix=True;
 
   return var_is_fix;
 

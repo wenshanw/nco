@@ -2,7 +2,7 @@
 
 /* Purpose: Description (definition) of regridding functions */
 
-/* Copyright (C) 2015--2017 Charlie Zender
+/* Copyright (C) 2015--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -25,6 +25,7 @@
 
 /* Personal headers */
 #include "nco.h" /* netCDF Operator (NCO) definitions */
+#include "nco_map.h" /* Map generation */
 #include "nco_mmr.h" /* Memory management */
 #include "nco_omp.h" /* OpenMP utilities */
 #include "nco_sld.h" /* Swath-Like Data */
@@ -34,7 +35,7 @@
 extern "C" {
 #endif /* __cplusplus */
 
-  typedef enum nco_rgr_cmd_typ_enm{ /* [enm] Tempest remap type enum */
+  typedef enum nco_rgr_tps_cmd_enm{ /* [enm] Tempest remap type enum */
     nco_rgr_AAA_nil=0,
     nco_rgr_ApplyOfflineMap,
     nco_rgr_CalculateDiffNorms,
@@ -48,7 +49,7 @@ extern "C" {
     nco_rgr_GenerateTestData,
     nco_rgr_MeshToTxt,
     nco_rgr_ZZZ_last
-  } nco_rgr_cmd_typ;
+  } nco_rgr_tps_cmd;
 
   typedef enum nco_rgr_mpf_typ_enm{ /* [enm] Mapfile type enum */
     nco_rgr_mpf_nil=0,
@@ -134,7 +135,7 @@ extern "C" {
    double * const wgt_Gss); /* O [frc] Gaussian weights */
 
   int /* O [enm] Return code */
-  nco_rgr_map /* [fnc] Regrid with external weights */
+  nco_rgr_wgt /* [fnc] Regrid with external weights */
   (rgr_sct * const rgr_nfo, /* I/O [sct] Regridding structure */
    trv_tbl_sct * const trv_tbl); /* I/O [sct] Traversal Table */
 
@@ -201,11 +202,11 @@ extern "C" {
 
   const char * /* O [sng] String containing regridding command and format */
   nco_tps_cmd_fmt_sng /* [fnc] Convert Tempest remap command enum to command string */
-  (const nco_rgr_cmd_typ nco_rgr_cmd); /* I [enm] Tempest remap command enum */
+  (const nco_rgr_tps_cmd nco_tps_cmd); /* I [enm] Tempest remap command enum */
 
   const char * /* O [sng] String containing regridding command name */
   nco_tps_cmd_sng /* [fnc] Convert Tempest remap command enum to command name */
-  (const nco_rgr_cmd_typ nco_rgr_cmd); /* I [enm] Tempest remap command enum */
+  (const nco_rgr_tps_cmd nco_tps_cmd); /* I [enm] Tempest remap command enum */
 
   double /* O [dgr] Longitude difference (lon_r-lon_l) */
   nco_lon_dff_brnch_dgr /* [fnc] Subtract longitudes with branch-cut rules */

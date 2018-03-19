@@ -3,7 +3,7 @@
 # Purpose: Template autoconf uses to generate NCO configure script
 # Newer convention names this file configure.ac, rather than configure.in
 
-# Copyright (C) 2003--2017 Charlie Zender
+# Copyright (C) 2003--2018 Charlie Zender
 # License: GNU General Public License (GPL) Version 3
 # See http://www.gnu.org/copyleft/gpl.html for full license text
 
@@ -42,7 +42,7 @@
 # AC_CHECK_LIB Find libXXX.a, prepend -lXXX to LIBS, define HAVE_LIBXXX
 # AC_CHECK_PROG Find whether prg_nm is on ${PATH}, define ${flg} accordingly
 # AC_DEFINE Define token TKN to value VAL with comment CMNT in config.h
-# AC_DEFINE_UNQUOTED Define token TKN to value VAL with comment CMNT in config.h. Use then when TKN or VAL are shell variables.
+# AC_DEFINE_UNQUOTED Define token TKN to value VAL with comment CMNT in config.h. Use when TKN or VAL are shell variables.
 # AC_EGREP_HEADER Search CPP output of header.h (NB: CPP outputs C-code only), define ${flg} accordingly
 # AC_MSG_NOTICE Print MSG to output
 # AC_MSG_WARN Print MSG to output
@@ -54,8 +54,7 @@
 # 20170808: Choose between traditional version and Git-based version
 # If Git, consider that Linux dynamic libraries will have full messy name, MacOSX will not
 # https://stackoverflow.com/questions/43526939/how-to-insert-git-based-version-in-autoconf-managed-project
-AC_INIT([NCO netCDF Operators],[4.6.9-alpha01],[nco-bugs@lists.sourceforge.net],[nco])
-#AC_INIT([NCO netCDF Operators],m4_esyscmd([git describe --abbrev=7 --dirty --always --tags | tr -d '\n']),[nco-bugs@lists.sourceforge.net],[nco])
+AC_INIT([NCO netCDF Operators],[4.7.4-alpha02],[nco-bugs@lists.sourceforge.net],[nco])
 
 # Print GNU copyright in configure script
 AC_COPYRIGHT
@@ -81,6 +80,9 @@ if test -r doc/VERSION; then
     NCO_VERSION=`git describe --abbrev=7 --dirty --always --tags`
     AC_SUBST(NCO_VERSION)
 fi
+
+# Set build-engine
+AC_DEFINE(NCO_BUILDENGINE,Autoconf,System used to build/install NCO)
 
 # Set egrep
 AC_PROG_EGREP
@@ -176,7 +178,7 @@ AC_PROG_CPP
 AC_PROG_CXXCPP
 AC_PROG_CC_STDC
 AM_PROG_LEX
-AC_PROG_YACC
+# AC_PROG_YACC
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_LIBTOOL
@@ -185,7 +187,7 @@ AC_PROG_LIBTOOL
 LIBTOOL="${LIBTOOL} --tag=CXX"
 #LIBTOOL="${LIBTOOL} --tag=ignore_tag_err"
 
-AM_CONDITIONAL(BUILD_YACC_SOURCE,[test "${YACC}" != "yacc" || test -f "src/nco/ncap_yacc.c"])
+# AM_CONDITIONAL(BUILD_YACC_SOURCE,[test "${YACC}" != "yacc" || test -f "src/nco/ncap_yacc.c"])
 
 # Disable maintainer-only options in generated Makefiles unless flag
 # --enable-maintainer-mode is given at configure time
@@ -309,6 +311,19 @@ if (test "x${enable_netcdf4}" = 'xyes' && test "x${header_defines_nc_chunked}" =
 	    ])
 fi
 
+# 20171218: nc_open_mem() is defined in netCDF >= 4.4.0, however ...
+# Ubuntu (Xenial at least) used broken netCDF CMake (not autoconf) to package 4.4.0 (it does not install netcdf_mem.h):
+# https://github.com/nco/nco/issues/44
+# Symptom of "missing netcdf_mem.h" and/or "unresolved nc_open_mem()" occurs with NCO 4.6.2+
+# Until 20171112 we used (Option 1): 
+# #if NC_LIB_VERSION >= 440 
+# which forces Ubuntu netCDF 4.4.0 users to build netCDF with autoconf and install, e.g., into /usr/local, or
+# to manually copy netcdf_mem.h into /usr/include (has anyone tested whether that really solves the problem?)
+# Option 2 is to add test/symbol in build-engine, e.g., 
+#  #if defined(HAVE_NETCDF_MEM_H)
+# which requires additional build tests in Autoconf/CMake/Makefile */
+AC_CHECK_HEADER([netcdf_mem.h],AC_DEFINE([HAVE_NETCDF_MEM_H],1,[Define to 1 if <netcdf_mem.h> is present]),nco_have_netcdf_mem_h=no)
+
 # Begin OpenMP
 AC_ARG_ENABLE(openmp,AS_HELP_STRING([--enable-openmp],[Build NCO with OpenMP [[default=yes]]]),enable_openmp=${enableval},enable_openmp=yes)
 # Enable OpenMP unless told not to
@@ -318,6 +333,9 @@ if ((test "x${enable_openmp}" != 'xno') && (test "x${enable_netcdf4}" = 'xyes'))
     AC_DEFINE([ENABLE_OPENMP],[1],[Compile operators with OpenMP support])
     AC_MSG_NOTICE([OpenMP support enabled])
     CFLAGS="${CFLAGS} ${OPENMP_CFLAGS}"
+    # Oddly, linker needs same OpenMP flag(s) as compiler
+    # 20170909 Linux clang on travis does not resolve __kmpc* symbols, apparently needs -lgomp or -lomp
+    # LDFLAGS="${LDFLAGS} ${OPENMP_CFLAGS}"
 fi
 # End OpenMP
 
@@ -370,7 +388,7 @@ esac
 # "#define HAVE_XXX 1" and "#undef NEED_XXX" when function xxx() is found and
 # "#undef HAVE_XXX" and "#define NEED_XXX 1" when function xxx() is not found
 # Purpose: CPP macros like "if(NEED_XXX)" are simpler to read than "if(!HAVE_xxx)"
-NCO_CHECK_FUNCS([nc_inq_format])
+NCO_CHECK_FUNCS([nc_inq_format nc_inq_path nc_set_log_level])
 NCO_CHECK_FUNCS([getopt getopt_long])
 NCO_CHECK_FUNCS([atan2])
 NCO_CHECK_FUNCS([acosf asinf atanf atan2f cosf expf fabsf fmodf log10f logf powf sinf sqrtf tanf])
@@ -1276,6 +1294,7 @@ echo "CXXFLAGS............. ${CXXFLAGS}"
 echo "ENABLE_DAP........... ${enable_dap}"
 echo "ENABLE_ESMF...........${enable_esmf}"
 echo "ENABLE_GSL........... ${enable_gsl}"
+echo "ENABLE_LOGGING....... ${enable_logging}"
 echo "ENABLE_NETCDF4....... ${enable_netcdf4}"
 echo "ENABLE_OPENMP........ ${enable_openmp}"
 echo "ENABLE_UDUNITS....... ${enable_udunits}"

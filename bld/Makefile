@@ -3,31 +3,30 @@
 # Purpose: GNU Makefile for NCO module nco
 # Requires GNU Make---AT&T Make chokes on GNU syntax
 
-# Copyright (C) 1994--2017 Charlie Zender
+# Copyright (C) 1994--2018 Charlie Zender
 # License: GNU General Public License (GPL) Version 3
 # See http://www.gnu.org/copyleft/gpl.html for full license text
 
 # Quickie test copies:
-# scp ~/nco/bld/Makefile tephra.ess.uci.edu:nco/bld
 # scp ~/nco/bld/Makefile dust.ess.uci.edu:nco/bld
 # scp ~/nco/bld/Makefile gplogin2.ps.uci.edu:nco/bld
+# scp ~/nco/bld/Makefile skyglow.ess.uci.edu:nco/bld
 
 # Machine build parameters
 #                         Source     Method   Packages Compiler
-# aerosol.ess.uci.edu: NCO          Configure All else LLVM
+# aerosol.ess.uci.edu: NCO          Configure All else clang
+# AppVeyor CI        : NCO          CMake     All else MSVC
+# cheyenne.ucar.edu  : NCO          Makefile  All else Intel
 # cooley.alcf.anl.g  : NCO          Configure All else GCC
 # edison.nersc.gov   : NCO          Configure All else Intel
-# firn.ess.uci.edu   : NCO          Configure All else LLVM
-# frazil.ess.uci.edu : NCO          Configure All else GCC
-# givre.ess.uci.edu  : NCO + netCDF Makefile  All else LLVM
-# glace.ess.uci.edu  : NCO          Configure All else GCC
+# firn.ess.uci.edu   : NCO          Configure All else clang
+# frazil.ess.uci.edu : NCO          Configure All else clang
+# glace.ess.uci.edu  : NCO          CMake     All else GCC
 # grele.ess.uci.edu  : NCO          Makefile  All else GCC
-# neige.ess.uci.edu  : NCO          Makefile  All else GCC
+# katabatic.ess.uci.e: NCO          CMake     All else clang
 # rhea.ccs.ornl.gov  : NCO          Makefile  All else GCC
-# roulee.ess.uci.edu : NCO + netCDF Makefile  All else GCC
 # skyglow.ess.uci.edu: NCO + netCDF Configure All else GCC
-# travis CI          : NCO          Configure All else gcc,clang,g++
-# yellowstone.ucar.e : NCO          Makefile  All else Intel
+# Travis CI          : NCO          Configure All else gcc,clang,g++
 
 # Usage (testing):
 # make tst                           # Vanilla regression test
@@ -76,7 +75,7 @@
 # cd ~/nco/bld;ANTLR=/sopt/ifort_icpc/bin/antlr ANTLR_ROOT=/sopt/ifort_icpc SZ_LIB=/sopt/lib UDUNITS_INC=/sopt/include UDUNITS_LIB=/sopt/lib make OMP=Y OPTS=D NETCDF4=Y SZ=Y UDUNITS=N allinone;cd - # greenplanet intel
 # cd ~/nco/bld;ANTLR=/sopt/pgf90_pgcc/bin/antlr ANTLR_ROOT=/sopt/pgf90_pgcc SZ_LIB=/sopt/lib UDUNITS_INC=/sopt/include UDUNITS_LIB=/sopt/lib make OMP=Y OPTS=D NETCDF4=N SZ=Y UDUNITS=N allinone;cd - # greenplanet pgi
 # cd ~/nco/bld;make OMP=Y OPTS=D NETCDF4=N UDUNITS=Y allinone;cd - # pbs
-# cd ~/nco/bld;make OMP=Y OPTS=D NETCDF4=N UDUNITS=Y allinone;cd - # grele
+# cd ~/nco/bld;make OMP=Y OPTS=D UDUNITS=Y UBUNTU_440=Y allinone # grele
 # cd ~/nco/bld;make NETCDF4=N all ncap2;cd - # tephra
 # cd ~/nco/bld;make OMP=Y OPTS=D NETCDF4=N UDUNITS=N allinone;cd - # silt, clay
 # cd ~/nco/bld;NETCDF_INC='/usr/include/netcdf-3' NETCDF_LIB='/usr/lib64' make GSL=N OMP=N OPTS=D NETCDF4=N UDUNITS=N allinone;cd - # snow
@@ -146,7 +145,6 @@ MY_DAT_DIR := ../data
 MY_DBN_DIR := ../debian
 MY_DOC_DIR := ../doc
 MY_DPN_DIR := ${MY_OBJ_DIR}
-MY_QT_DIR := ../qt
 MY_SRC_DIR := ../src/nco
 MY_INC_DIR := ${MY_SRC_DIR}
 NCO_CXX_SRC_DIR := ${MY_SRC_DIR}/../nco_c++
@@ -211,6 +209,9 @@ endif # endif MPI
 ifndef MPI_FAKE # MPI
  MPI_FAKE := N
 endif # endif MPI_FAKE
+ifndef NCO_BUILDENGINE
+ NCO_BUILDENGINE := Traditional \(nco/bld/Makefile\)
+endif # NCO_BUILDENGINE
 ifndef NCO_VRS
 # Used for RPM building
  NCO_VRS := $(shell cat ${MY_DOC_DIR}/VERSION)
@@ -277,7 +278,8 @@ endif # endif USR_TKN
 ifndef VRS_SNG
 # VRS_SNG := $(shell date +%Y%m%d)
 # 20150622
- VRS_SNG := $(shell git describe --abbrev=7 --dirty --always --tags)
+# VRS_SNG := $(shell git describe --abbrev=7 --dirty --always --tags)
+ VRS_SNG := $(shell cat ${MY_DOC_DIR}/VERSION)
 endif # endif VRS_SNG
 ifndef ZNETCDF # znetcdf support
  ZNETCDF := N
@@ -286,7 +288,7 @@ endif # endif ZNETCDF
 # These tokens should not be altered by hand
 
 # NB: CPP_TKN is recursively expanded variable, define only when components are ready
-CPP_TKN = ${USR_TKN} -D${PVM_ARCH} -DNO_NETCDF_2 -DNCO_VERSION='${VRS_SNG}' -DHOSTNAME='${HOST}' -DUSER='${USER}' -DNCO_ABORT_ON_ERROR
+CPP_TKN = ${USR_TKN} -DNCO_BUILDENGINE='${NCO_BUILDENGINE}' -D${PVM_ARCH} -DNO_NETCDF_2 -DNCO_VERSION='${VRS_SNG}' -DHOSTNAME='${HOST}' -DUSER='${USER}' -DNCO_ABORT_ON_ERROR
 ifndef LFLAGS # Flags for Flex (Lex)
  LFLAGS := -P${NCO_YY_PFX}
 endif
@@ -538,6 +540,7 @@ ifeq (${MPI},Y)
 endif # endif MPI
 MDL_BIN_STB := ${MDL_BIN_TRG} ${MDL_BIN_SPT} ${MDL_BIN_SYM_LNK} # All NCO files in MY_BIN_DIR
 MDL_BIN := $(addprefix ${MY_BIN_DIR}/,${MDL_BIN_STB}) # distclean removes these files
+MDL_SPT_SRC := $(addprefix ${MY_DAT_DIR}/,${MDL_BIN_SPT})
 
 # Variables having to do with header files created by module
 # List header targets alphabetically by "category":
@@ -553,7 +556,7 @@ MDL_DAT_STB := $(addsuffix .nc,${MDL_DAT_STB}) # `make data' creates these files
 MDL_DAT := $(addprefix ${MY_DAT_DIR}/,${MDL_DAT_STB}) # `make distclean' removes these files
 
 # Variables having to do with NCO documentation
-MDL_DOC_SRC := $(addprefix ../,acinclude.m4 configure.ac configure.eg Makefile.am) $(addprefix ${MY_DOC_DIR}/,nco.texi ANNOUNCE MANIFEST NEWS README TODO VERSION beta.txt debian.txt dods.sh index.shtml xmp_cesm.html man_end.txt man_srt.txt ncap.txt nco_news.shtml nco_src_frg.txt opendap.sh) $(addprefix ${MY_DBN_DIR}/,changelog compat control copyright files info rules doc-base) # `make tags' includes these files
+MDL_DOC_SRC := $(addprefix ../,acinclude.m4 CMakeLists.txt configure.ac configure.eg Makefile.am) $(addprefix ${MY_DOC_DIR}/,nco.texi ANNOUNCE MANIFEST NEWS README TODO VERSION beta.txt debian.txt dods.sh index.shtml xmp_cesm.html man_end.txt man_srt.txt ncap.txt nco_news.shtml nco_src_frg.txt opendap.sh) $(addprefix ${MY_DBN_DIR}/,changelog compat control copyright files info rules doc-base) # `make tags' includes these files
 MDL_DOC_TRG := nco.dvi nco.html nco.info nco.pdf nco.ps nco.txt nco.xml # `make doc' creates these files
 MDL_DOC := $(addprefix ${MY_DOC_DIR}/,${MDL_DOC_TRG}) # `make distclean' removes these files
 
@@ -570,19 +573,16 @@ MDL_BLD_SRC += $(addprefix ${MY_DAT_DIR}/,Makefile.am) $(addprefix ${MY_SRC_DIR}
 TAGS_FILTER_FILES := .//libnco_tst.c .//libnco_c++_tst.cc ../bld/lex.${NCO_YY_PFX}.c
 # TAGS_FILTER_FILES := .//libnco_tst.c .//libnco_c++_tst.cc
 
-# Variables having to do with Qt build system
-MDL_QT_SRC := $(addprefix ${MY_QT_DIR}/,nco.pro libnco/libnco.pro ncatted/ncatted.pro ncbo/ncbo.pro ncecat/ncecat.pro ncflint/ncflint.pro ncks/ncks.pro ncpdq/ncpdq.pro ncra/ncra.pro ncrename/ncrename.pro ncwa/ncwa.pro tst_nco_c++/tst_nco_c++.pro) # `make tags' includes these files
-
 # Variables having to do with ncap
-MDL_NCAP_SRC := $(addprefix ${MY_SRC_DIR}/,ncap_yacc.y ncap_lex.l ncap.h) # `make tags' includes these files
-MDL_NCAP_TRG := ncap_yacc.c ncap_yacc.h ncap_lex.c # `make ncap' creates these files
+MDL_NCAP_SRC := $(addprefix ${MY_SRC_DIR}/,ncap_lex.l ncap_utl.h) # `make tags' includes these files
+MDL_NCAP_TRG := ncap_lex.c # `make ncap' creates these files
 MDL_NCAP := $(addprefix ${MY_SRC_DIR}/,${MDL_NCAP_TRG}) # `make distclean' removes these files
 
 # Variables having to do with C++ source and documentation
 # fxm: auto-generate source code components of C++ lists
 MDL_CXX_SRC := $(addprefix ${NCOXX_SRC_DIR}/,libnco++.hh Makefile.am Makefile.old ncap2.cc ncap2.hh ncap2_utl.cc NcapVar.cc NcapVar.hh NcapVarVector.cc NcapVarVector.hh NcapVector.hh ncoGrammer.g nco_antlr_pst_prc.pl fmc_cls.cc fmc_cls.hh fmc_all_cls.cc fmc_all_cls.hh fmc_gsl_cls.cc fmc_gsl_cls.hh Invoke.cc Invoke.hh map_srt_tmp.hh nco_gsl.c nco_gsl.h prs_cls.cc prs_cls.hh sdo_utl.cc sdo_utl.hh sym_cls.cc sym_cls.hh VarOp.hh vtl_cls.hh) $(addprefix ${NCO_CXX_SRC_DIR}/,INSTALL libnco_c++.hh Makefile.am Makefile.old nco_att.cc nco_att.hh nco_dmn.cc nco_dmn.hh nco_fl.cc nco_fl.hh nco_hgh.cc nco_hgh.hh nco_utl.cc nco_utl.hh nco_var.cc nco_var.hh README TODO tst.cc) # `make tags' includes these files
 
-TAGS_FILES := ${MY_SRC_DIR}/*.h $(filter-out ${TAGS_FILTER_FILES},${SRC_LST}) ${MDL_DOC_SRC} ${MDL_MAN} ${MDL_BLD_SRC} ${MDL_CXX_SRC} ${MDL_NCAP_SRC} ${MDL_QT_SRC}
+TAGS_FILES := ${MY_SRC_DIR}/*.h $(filter-out ${TAGS_FILTER_FILES},${SRC_LST}) ${MDL_DOC_SRC} ${MDL_MAN} ${MDL_BLD_SRC} ${MDL_CXX_SRC} ${MDL_NCAP_SRC} ${MDL_SPT_SRC}
 
 # Redefine default C and C++ pattern rules
 ${MY_OBJ_DIR}/%.o : %.c
@@ -652,6 +652,14 @@ ${MY_DPN_DIR}/%.d : %.cc
 # Manually define autotools tokens normally defined with HAVE_CONFIG_H in config.h 
 # Initialize OS-specific tokens to empty
 CPP_TKN_OS := -DHAVE_REGEX_H -DNCO_HAVE_REGEX_FUNCTIONALITY -DHAVE_GETPAGESIZE -DHAVE_GETRUSAGE -DNEED_STRCASESTR
+# Assume netCDF >= 3.6.1
+CPP_TKN_OS += -DHAVE_NC_INQ_FORMAT
+# Assume netCDF >= 4.3.2
+CPP_TKN_OS += -DHAVE_NC_INQ_PATH
+# Assume netCDF >= 4.4.0, but Ubuntu 4.4.0 (e.g., on grele) fumbled netcdf_mem.h header
+ifndef UBUNTU_440
+ CPP_TKN_OS += -DHAVE_NETCDF_MEM_H
+endif # !grele
 # gcc 4.7.3 finally includes strcasestr() in string.h iff _GNU_SOURCE token is defined
 # NB: C++ (or at least g++ 4.7.3) always includes strcasestr()---work around this with tokens in nco_sng_utl.[ch]
 ifneq (${PVM_ARCH},CRAY)
@@ -935,7 +943,10 @@ else ifneq (${null},$(findstring titan,${HOSTNAME}))
  ARFLAGS := rsv
 else ifneq (${null},$(findstring ys,${HOSTNAME}))
  ARFLAGS := rsv
-endif # !rhea,titan,yellowston
+endif # !rhea,titan,yellowstone
+ifeq (${PVM_ARCH},MACOSX)
+ ARFLAGS := rsv
+endif # !aerosol,firn
 CXX := ${LINUX_CXX}
 CC := ${LINUX_CC}
 CPP := ${CC}
@@ -1672,8 +1683,8 @@ ${MY_BIN_DIR}/mpncra:	${MY_OBJ_DIR}/mpncra.o lib
 	cd ${MY_BIN_DIR}; rm -f mpnces; ln -s -f mpncra mpnces
 	cd ${MY_BIN_DIR}; rm -f mpncrcat; ln -s -f mpncra mpncrcat
 mpncwa:   ${MY_BIN_DIR}/mpncwa
-${MY_BIN_DIR}/mpncwa:	${MY_OBJ_DIR}/mpncwa.o ${MY_OBJ_DIR}/ncap_yacc.o ${MY_OBJ_DIR}/ncap_lex.o ${MY_OBJ_DIR}/ncap_utl.o lib
-	${MPICC} -o $@${BNR_SFX} $<  ${MY_OBJ_DIR}/ncap_yacc.o ${MY_OBJ_DIR}/ncap_lex.o ${MY_OBJ_DIR}/ncap_utl.o ${LDFLAGS}
+${MY_BIN_DIR}/mpncwa:	${MY_OBJ_DIR}/mpncwa.o ${MY_OBJ_DIR}/ncap_lex.o ${MY_OBJ_DIR}/ncap_utl.o lib
+	${MPICC} -o $@${BNR_SFX} $< ${MY_OBJ_DIR}/ncap_lex.o ${MY_OBJ_DIR}/ncap_utl.o ${LDFLAGS}
 	chmod 755 $@${BNR_SFX}
 ncatted:   ${MY_BIN_DIR}/ncatted
 ${MY_BIN_DIR}/ncatted:	${MY_OBJ_DIR}/ncatted.o lib
@@ -1720,11 +1731,11 @@ ${MY_BIN_DIR}/ncrename:	${MY_OBJ_DIR}/ncrename.o lib
 	${CC} -o $@${BNR_SFX} $< ${LDFLAGS}
 	chmod 755 $@${BNR_SFX}
 ncwa:   ${MY_BIN_DIR}/ncwa
-${MY_BIN_DIR}/ncwa:	${MY_OBJ_DIR}/ncwa.o ${MY_OBJ_DIR}/ncap_yacc.o ${MY_OBJ_DIR}/ncap_lex.o ${MY_OBJ_DIR}/ncap_utl.o lib
+${MY_BIN_DIR}/ncwa:	${MY_OBJ_DIR}/ncwa.o ${MY_OBJ_DIR}/ncap_lex.o ${MY_OBJ_DIR}/ncap_utl.o lib
 ifeq (${MSVC},TRUE)
 	${CC} -o $@${BNR_SFX} $< ${LDFLAGS}
 else
-	${CC} -o $@${BNR_SFX} $< ${MY_OBJ_DIR}/ncap_yacc.o ${MY_OBJ_DIR}/ncap_lex.o ${MY_OBJ_DIR}/ncap_utl.o ${LDFLAGS}
+	${CC} -o $@${BNR_SFX} $< ${MY_OBJ_DIR}/ncap_lex.o ${MY_OBJ_DIR}/ncap_utl.o ${LDFLAGS}
 endif
 	chmod 755 $@${BNR_SFX}
 bin: ${MDL_BIN_TRG} ${MDL_BIN_SPT}
@@ -1947,6 +1958,7 @@ ${libnco}.a: ${libnco}.a(${MY_OBJ_DIR}/nco_att_utl.o) \
 	${libnco}.a(${MY_OBJ_DIR}/nco_grp_utl.o) \
 	${libnco}.a(${MY_OBJ_DIR}/nco_lmt.o) \
 	${libnco}.a(${MY_OBJ_DIR}/nco_lst_utl.o) \
+	${libnco}.a(${MY_OBJ_DIR}/nco_map.o) \
 	${libnco}.a(${MY_OBJ_DIR}/nco_md5.o) \
 	${libnco}.a(${MY_OBJ_DIR}/nco_mmr.o) \
 	${libnco}.a(${MY_OBJ_DIR}/nco_msa.o) \
@@ -2118,7 +2130,7 @@ dst_cln: cln bin_cln dat_cln doc_cln root_cln
 	cd ${MY_DAT_DIR}; rm -f buggy.nc cmip5.nc dsm.nc obs.nc hdf.hdf mdl_1.nc mdl_2.nc mdl_3.nc in.nc in_4c.nc in_4.nc in_grp.nc in_grp_1.nc in_grp_2.nc in_grp_3.nc in_grp_4.nc in_grp_5.nc in_grp_6.nc in_grp_7.nc in_grp_8.nc in_rec_zero.nc *~
 tags: 
 	etags ${TAGS_FILES}
-#	etags ${MY_SRC_DIR}/*.h $(filter-out ${TAGS_FILTER_FILES},${SRC_LST}) ${MDL_DOC_SRC} ${MDL_MAN} ${MDL_BLD_SRC} ${MDL_CXX_SRC} ${MDL_NCAP_SRC} ${MDL_QT_SRC}
+#	etags ${MY_SRC_DIR}/*.h $(filter-out ${TAGS_FILTER_FILES},${SRC_LST}) ${MDL_DOC_SRC} ${MDL_MAN} ${MDL_BLD_SRC} ${MDL_CXX_SRC} ${MDL_NCAP_SRC}
 
 # Reset internal YACC and LEX patterns
 %.c : %.y
@@ -2165,18 +2177,12 @@ ncap : LDFLAGS += -lC
 endif # endif AIX VA Compiler Collection
 endif # endif AIX
 # For some reason, ncap_lex.c is not remade when I expect it to be, so I explicitly remove the object file every time
-ncap:	${MY_OBJ_DIR}/ncap_yacc.o ${MY_OBJ_DIR}/ncap_lex.o ncap_yacc.h ${MY_OBJ_DIR}/ncap.o ${MY_OBJ_DIR}/ncap_utl.o ${libnco}.a
-#        ${YACC} --name-prefix=nco_
-ifneq (${null},$(findstring ${PVM_ARCH},LINUXALPHALINUXAMD64LINUXARMFREEBSDWIN32SGIMP64))
-	${CC} ${CFLAGS} -o ${MY_BIN_DIR}/$@ ${MY_OBJ_DIR}/$@.o ${MY_OBJ_DIR}/ncap_utl.o ${MY_OBJ_DIR}/$@_yacc.o ${MY_OBJ_DIR}/$@_lex.o ${LDFLAGS}
-else	
-	${CC} ${CFLAGS} -o ${MY_BIN_DIR}/$@ ${MY_OBJ_DIR}/$@.o ${MY_OBJ_DIR}/ncap_utl.o ${MY_OBJ_DIR}/$@_yacc.o ${MY_OBJ_DIR}/$@_lex.o -ll -ly ${LDFLAGS}
-endif
-	chmod 755 ${MY_BIN_DIR}/$@${BNR_SFX}
+ncap:	${MY_OBJ_DIR}/ncap_lex.o ${MY_OBJ_DIR}/ncap_utl.o ${libnco}.a
+
 ncap2 :
 	-cd ../src/nco++; ${MAKE} -f Makefile.old DAP=${DAP} DBG=${DBG} GSL=${GSL} MPI=${MPI} NETCDF4=${NETCDF4} OMP=${OMP} OPTS=${OPTS} PNETCDF=${PNETCDF} SZ=${SZ} UDUNITS=${UDUNITS} all
 
-#	/bin/rm -f ${MDL_NCAP} ${MY_OBJ_DIR}/$@_lex.o ${MY_OBJ_DIR}/ncap_yacc.h ${MY_OBJ_DIR}/ncap_yacc.c
+#	/bin/rm -f ${MDL_NCAP} ${MY_OBJ_DIR}/$@_lex.o
 
 # Create dependency files only if they will not be immediately deleted
 INCLUDE_DPN := TRUE

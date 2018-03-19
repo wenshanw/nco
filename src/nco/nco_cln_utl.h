@@ -2,7 +2,7 @@
 
 /* Purpose: Calendar utilities */
 
-/* Copyright (C) 1995--2017 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -13,13 +13,9 @@
 #ifndef NCO_CLN_UTL_H
 #define NCO_CLN_UTL_H
 
-
 #ifdef HAVE_CONFIG_H
 #include <config.h> /* Autotools tokens */
 #endif /* !HAVE_CONFIG_H */
-
-// #include "../../config.h" /* Autotools tokens */
-// #define ENABLE_UDUNITS
 
 /* Standard header files */
 #include <ctype.h> /* isalnum(), isdigit(), tolower() */
@@ -49,8 +45,6 @@
 #include "nco.h" /* netCDF Operator (NCO) definitions */
 #include "nco_ctl.h" /* Program flow control functions */
 #include "nco_sng_utl.h" /* String utilities */
-
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -174,6 +168,12 @@ extern "C" {
    const char *unit_sng, /* I [sng] Units string */
    char *lgb_sng); /* O [sng] Legible version of input string */
 
+  int /* [flg] NCO_NOERR or NCO_ERR */
+  nco_cln_prs_tm /* Extract time stamp from a parsed udunits string */
+  (const char *unt_sng, /* I [ptr] units attribute string */  
+   tm_cln_sct *tm_in); /*  O [sct] struct to be populated */
+
+
 #ifdef ENABLE_UDUNITS
 # ifdef HAVE_UDUNITS2_H
 
@@ -196,10 +196,6 @@ extern "C" {
    double *rgn_val, /* I/O [ptr] time diff in units based on fl_bs_sng */ 
    var_sct *var);   /* I/O [ptr]  */ 
   
-  int /* [flg] NCO_NOERR or NCO_ERR */
-  nco_cln_prs_tm /* Extract time stamp from a parsed udunits string */
-  (const char *unt_sng, /* I [ptr] units attribute string */  
-   tm_cln_sct *tm_in); /*  O [sct] struct to be populated */
 
 # endif /* !HAVE_UDUNITS2_H */
 #endif /* !ENABLE_UDUNITS */

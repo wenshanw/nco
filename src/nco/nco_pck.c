@@ -2,7 +2,7 @@
 
 /* Purpose: NCO utilities for packing and unpacking variables */
 
-/* Copyright (C) 1995--2017 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -381,7 +381,7 @@ nco_pck_plc_typ_get /* [fnc] Determine type, if any, to pack input type to */
     break;
   } /* end nco_pck_map switch */ 
   
-  /* Only fill in nc_typ_pck_out if it is non-NULL */
+  /* Only fill-in nc_typ_pck_out if it is non-NULL */
   if(nc_typ_pck_out) *nc_typ_pck_out=nc_typ_pck_out_tmp;
   
   return nco_pck_plc_alw; /* O [flg] Packing policy allows packing nc_typ_in */

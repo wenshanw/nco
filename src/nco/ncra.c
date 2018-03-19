@@ -9,7 +9,7 @@
    specfied variables of multiple input netCDF files and output them 
    to a single file. */
 
-/* Copyright (C) 1995--2017 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3.
@@ -393,6 +393,8 @@ main(int argc,char **argv)
     {"glb_att_add",required_argument,0,0}, /* [sng] Global attribute add */
     {"hdr_pad",required_argument,0,0},
     {"header_pad",required_argument,0,0},
+    {"log_lvl",required_argument,0,0}, /* [enm] netCDF library debugging verbosity [0..5] */
+    {"log_level",required_argument,0,0}, /* [enm] netCDF library debugging verbosity [0..5] */
     {"ppc",required_argument,0,0}, /* [nbr] Precision-preserving compression, i.e., number of total or decimal significant digits */
     {"precision_preserving_compression",required_argument,0,0}, /* [nbr] Precision-preserving compression, i.e., number of total or decimal significant digits */
     {"quantize",required_argument,0,0}, /* [nbr] Precision-preserving compression, i.e., number of total or decimal significant digits */
@@ -558,6 +560,7 @@ main(int argc,char **argv)
 	(void)nco_usg_prn();
 	nco_exit(EXIT_SUCCESS);
       } /* endif "help" */
+      if(!strcmp(opt_crr,"log_lvl") || !strcmp(opt_crr,"log_level")){nc_set_log_level(optarg);} /* [enm] netCDF library debugging verbosity [0..5] */
       if(!strcmp(opt_crr,"md5_dgs") || !strcmp(opt_crr,"md5_digest")){
         if(!md5) md5=nco_md5_ini();
         md5->dgs=True;
@@ -598,14 +601,14 @@ main(int argc,char **argv)
     case '3': /* Request netCDF3 output storage format */
       fl_out_fmt=NC_FORMAT_CLASSIC;
       break;
-    case '4': /* Catch-all to prescribe output storage format */
-      if(!strcmp(opt_crr,"64bit_offset")) fl_out_fmt=NC_FORMAT_64BIT; else fl_out_fmt=NC_FORMAT_NETCDF4; 
+    case '4': /* Request netCDF4 output storage format */
+      fl_out_fmt=NC_FORMAT_NETCDF4; 
       break;
     case '5': /* Request netCDF3 64-bit offset+data storage (i.e., pnetCDF) format */
       fl_out_fmt=NC_FORMAT_CDF5;
       break;
     case '6': /* Request netCDF3 64-bit offset output storage format */
-      fl_out_fmt=NC_FORMAT_64BIT;
+      fl_out_fmt=NC_FORMAT_64BIT_OFFSET;
       break;
     case '7': /* Request netCDF4-classic output storage format */
       fl_out_fmt=NC_FORMAT_NETCDF4_CLASSIC;
@@ -622,7 +625,6 @@ main(int argc,char **argv)
     case 'D': /* Debugging level. Default is 0. */
       nco_dbg_lvl=(unsigned short int)strtoul(optarg,&sng_cnv_rcd,NCO_SNG_CNV_BASE10);
       if(*sng_cnv_rcd) nco_sng_cnv_err(optarg,"strtoul",sng_cnv_rcd);
-      nc_set_log_level(nco_dbg_lvl);
       break;
     case 'd': /* Copy limit argument for later processing */
       lmt_arg[lmt_nbr]=(char *)strdup(optarg);
@@ -761,7 +763,7 @@ main(int argc,char **argv)
   /* Set/report global chunk cache */
   rcd+=nco_cnk_csh_ini(cnk_csh_byt);
 
-  /* Process positional arguments and fill in filenames */
+  /* Process positional arguments and fill-in filenames */
   fl_lst_in=nco_fl_lst_mk(argv,argc,optind,&fl_nbr,&fl_out,&FL_LST_IN_FROM_STDIN);
 
   /* Initialize thread information */
@@ -937,7 +939,7 @@ main(int argc,char **argv)
 
       /* Input file must have either (but not both) time bounds or climatology bounds */
       if(cb->tm_bnd_in && cb->clm_bnd_in){
-	(void)fprintf(stderr,"%s: WARNING Climatology bounds invoked on time coordinate with both time bounds attribute \"%s\" and climatology bounds attribute \"%s\". Results would be ambiguous. Turning-off climatology bounds mode.\n",nco_prg_nm_get(),bnd_sng,clm_sng);
+	(void)fprintf(stderr,"%s: WARNING Climatology bounds invoked on time coordinate with both time bounds attribute \"%s\" (value = \"%s\") and climatology bounds attribute \"%s\" (value = \"%s\"). Results would be ambiguous. Turning-off climatology bounds mode.\n",nco_prg_nm_get(),bnd_sng,cb->tm_bnd_nm,clm_sng,cb->clm_bnd_nm);
 	flg_cb=False;
 	goto skp_cb;
       } /* !(cb->tm_bnd_in && cb->clm_bnd_in) */
@@ -957,7 +959,7 @@ main(int argc,char **argv)
     if(flg_c2b && cb->clm_bnd_in) cb->clm2bnd=True;
     if(cb->clm_bnd_in) cb->clm2clm=True;
     if(cb->tm_bnd_in) cb->bnd2clm=True;
-    
+
     if(cb->tm_bnd_in){
       rcd=nco_inq_varid_flg(in_id,cb->tm_bnd_nm,&cb->tm_bnd_id_in); 
       if(cb->tm_bnd_id_in == NC_MIN_INT){
@@ -1216,18 +1218,14 @@ main(int argc,char **argv)
         /* Fill record array */
         (void)nco_lmt_evl(grp_id,lmt_rec[idx_rec],rec_usd_cml[idx_rec],FORTRAN_IDX_CNV);
 
-        if(lmt_rec[idx_rec]->is_rec_dmn)
-        {
+        if(lmt_rec[idx_rec]->is_rec_dmn){
           int mid=-1;
-
-          if(nco_inq_varid_flg(grp_id, lmt_rec[idx_rec]->nm, &mid)==NC_NOERR  && mid>=0) {
-            fl_udu_sng = nco_lmt_get_udu_att(grp_id, mid, "units"); /* Units attribute of coordinate variable */
-
+          if(nco_inq_varid_flg(grp_id,lmt_rec[idx_rec]->nm,&mid) == NC_NOERR && mid >= 0){
+            fl_udu_sng=nco_lmt_get_udu_att(grp_id,mid,"units"); /* Units attribute of coordinate variable */
             ra_bnds_lst=nco_lst_cf_att(grp_id,"bounds",&ra_bnds_nbr);
             ra_climo_lst=nco_lst_cf_att(grp_id,"climatology",&ra_climo_nbr);
-          }
-
-        }
+          } /* !mid */
+        } /* !is_rec_dmn */
 
         if(REC_APN){
           /* Append records directly to output file */
@@ -1334,29 +1332,25 @@ main(int argc,char **argv)
             /* Re-base record coordinate and bounds if necessary (e.g., time, time_bnds) */
             /* if(var_prc[idx]->is_crd_var|| nco_is_spc_in_cf_att(grp_id,"bounds",var_prc[idx]->id) || nco_is_spc_in_cf_att(grp_id,"climatology",var_prc[idx]->id)) */
 
-            /*  This code rebases  the  coordinate var to the units of the coordinate var in the first input file */
-            /* if the record hyperslab indice(s) are double or strings then the coordinate var and limits are (re)read earlier by (void)nco_lmt_evl() */
-            /* so if the units between files are incompatible the ncra will bomb out in that call  and not in  nco_cln_clc_dbl_var_dff() below*/
-            if(var_prc[idx]->is_crd_var)
-            {
+            /* Re-base coordinate variable to units of coordinate in the first input file
+	       If record hyperslab indice(s) are double or strings then coordinate variable and limits
+	       are (re)-read earlier by nco_lmt_evl() and if units between files are incompatible 
+	       then ncra will die in that call and not in nco_cln_clc_dbl_var_dff() below */
+            if(var_prc[idx]->is_crd_var){
               nco_bool do_rebase=False;
-
-              if( !strcmp(var_prc[idx]->nm, lmt_rec[idx_rec]->nm) ||
-                  ra_lst_chk( ra_bnds_lst,ra_bnds_nbr, lmt_rec[idx_rec]->nm, var_prc[idx]->nm ) ||
-                  ra_lst_chk( ra_climo_lst, ra_climo_nbr, lmt_rec[idx_rec]->nm, var_prc[idx]->nm   )
-              ) do_rebase=True;
-
-
-              //(void)fprintf(fp_stderr,"%s: converting variable \"%s\" from units \"%s\" to \" %s\"\n",nco_prg_nm_get(), var_prc[idx]->nm, fl_udu_sng, lmt_rec[idx_rec]->rbs_sng);
-
-              if(do_rebase && fl_udu_sng && lmt_rec[idx_rec]->rbs_sng) {
-                if( nco_cln_clc_dbl_var_dff(fl_udu_sng,lmt_rec[idx_rec]->rbs_sng, lmt_rec[idx_rec]->lmt_cln, (double*)NULL, var_prc[idx]) !=NCO_NOERR) {
+              if(!strcmp(var_prc[idx]->nm,lmt_rec[idx_rec]->nm) ||
+		 ra_lst_chk(ra_bnds_lst,ra_bnds_nbr,lmt_rec[idx_rec]->nm,var_prc[idx]->nm) ||
+		 ra_lst_chk(ra_climo_lst,ra_climo_nbr,lmt_rec[idx_rec]->nm,var_prc[idx]->nm))
+		do_rebase=True;
+              //(void)fprintf(fp_stderr,"%s: converting variable \"%s\" from units \"%s\" to \" %s\"\n",nco_prg_nm_get(),var_prc[idx]->nm,fl_udu_sng,lmt_rec[idx_rec]->rbs_sng);
+              if(do_rebase && fl_udu_sng && lmt_rec[idx_rec]->rbs_sng){
+                if(nco_cln_clc_dbl_var_dff(fl_udu_sng,lmt_rec[idx_rec]->rbs_sng,lmt_rec[idx_rec]->lmt_cln,(double*)NULL,var_prc[idx]) != NCO_NOERR){
                   (void)fprintf(fp_stderr,"%s: problem converting variable \"%s\" from units \"%s\" to \" %s\"\n",nco_prg_nm_get(), var_prc[idx]->nm, fl_udu_sng, lmt_rec[idx_rec]->rbs_sng);
                   nco_exit(EXIT_FAILURE);
-                }
+                } /* !nco_cln_clc_dbl_var_dff() */
                 //nco_free(fl_udu_sng);
-              } /* end re-basing */
-            } 
+              } /* end !do_rebase */
+            } /* !crd_var */
               
             if(nco_prg_id == ncra){
               nco_bool flg_rth_ntl;

@@ -2,7 +2,7 @@
 
 /* Purpose: NCO utilities for Precision-Preserving Compression (PPC) */
 
-/* Copyright (C) 2015--2017 Charlie Zender
+/* Copyright (C) 2015--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -781,7 +781,7 @@ nco_ppc_bitmask_scl /* [fnc] Round input value significand by specified number o
 {
   /* Purpose: Mask-out bit_xpl_nbr_zro least most significant bits of a scalar double precision value
      Code originally from nco_ppc_bitmask() (bitmasking is my signature move)
-     Code used in nco_rgr_map() when diagnosing whether quadrature weights properly normalized */
+     Code used in nco_rgr_wgt() when diagnosing whether quadrature weights properly normalized */
 
   const int bit_xpl_nbr_sgn_dbl=53; /* [nbr] Bits 0-52 of DP significands are explicit. Bit 53 is implicit. */
   double val_rnd; /* [frc] Rounded version of exact value */

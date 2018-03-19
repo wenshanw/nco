@@ -1,3 +1,655 @@
+2018-03-13  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.7.4-alpha02 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.7.4-alpha02: AquaLung Look2 Impulse3';git push
+	git tag -a 4.7.4-alpha02 -m 'support absolute/relative OOG paths for CF attributes';git push --tags
+
+	* ncremap guesses unstructured dimension is first dimension with size n_a in input map file src_grid_dims[0]
+
+	* Add Unicode test file (ref_utf8.cdl) copied from netCDF source
+
+	* Support absolute and relative paths to out-of-group (OOG) variables in CF attributes as per CF2 Group specification
+
+	* Add ncremap versions of ncks HINTs in nco_rgr.c
+
+2018-03-11  Charlie Zender  <zender@uci.edu>
+
+	* Add gridcell to nco_rgr_wgt() guesses for unstructured dimension (fixes PJCS problem regridding ne30 surfdata)
+
+2018-03-09  Charlie Zender  <zender@uci.edu>
+
+	* Change NCO attribute from VERSION to "netCDF Operators version VERSION (http://nco.sf.net)"
+
+2018-03-02  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.7.4-alpha01 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.7.4-alpha01: Flo Rida';git push
+	git tag -a 4.7.4-alpha01 -m 'Functionally identical to 4.7.3';git push --tags
+
+	* NCO 4.7.3 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.7.3: Avid Poi';git push
+	git tag -a 4.7.3 -m 'sanitize, --a2o, --nm_typ, --fmt_val, --fl_prn, deprecate ncap';git push --tags
+
+2018-03-01  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.7.3-beta01 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.7.3-beta01: RFC water';git push
+	git tag -a 4.7.3-beta01 -m 'sanitize, --a2o, --nm_typ, --fmt_val, --fl_prn, deprecate ncap';git push --tags
+
+	* Merge sanitize_input branch so nco_sng_sntz() allows only white-listed characters in filenames
+
+	* Deprecate ncap from bld/Makefile
+
+	* Merge ncap deprecation branch for autoconf/CMake
+
+2018-02-27  Charlie Zender  <zender@uci.edu>
+
+	* White-list forward slash on Windows so URLs are acceptable (http://...)
+
+	* Make sure single file operator input is sanitized
+
+2018-02-22  Charlie Zender  <zender@uci.edu>
+
+	* Protect MSVC backslash
+
+	* Do not call sanitizer on system memory
+
+	* White-list percent sign (NCO regression test uses, e.g., %tmp_fl_00)
+
+	* Eliminate waiting on user input for regression tests
+
+	* Implement nco_sng_sntz(), notice 13 new ncks regressions
+
+	* Create sanitize_input branch
+
+2018-02-21  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.7.3-alpha05 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.7.3-alpha05: SW4';git push
+	git tag -a 4.7.3-alpha05 -m '--fl_prn, IFS';git push --tags
+
+	* Document --fl_prn
+
+	* Change remaining printf() to fprintf() and finish printing to fp_prn
+
+2018-02-20  Charlie Zender  <zender@uci.edu>
+
+	* Allow ncks to print to formatted file fp_prn rather than to stdout
+
+2018-02-15  Charlie Zender  <zender@uci.edu>
+
+	* Security: Explicitly unset IFS before wordsplitting, so Bash uses default IFS=<space><tab><newline>
+
+	* Security: Use /bin/mv and /bin/cp instead of mv and cp, respectively
+
+	* Add 'bilin' and 'aave' as synonyms to 'bilinear' and 'conserve', respectively
+
+2018-02-14  Charlie Zender  <zender@uci.edu>
+
+	* Fix compiler warnings when nc_set_log_level() is #undef'd
+
+2018-02-13  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.7.3-alpha04 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.7.3-alpha04: Breaded venison';git push
+	git tag -a 4.7.3-alpha04 -m 'fmt_val, set_log_level()';git push --tags
+
+	* Document --fmt_val, ensure it only applies to floating point values
+
+2018-02-12  Charlie Zender  <zender@uci.edu>
+
+	* Add --fmt_val, --val_fmt, --value_format for formatting variable values
+
+2018-02-08  Charlie Zender  <zender@uci.edu>
+
+	* Deprecate old/unused feature status from nco_cnf_prn()
+
+	* Remove 'var' from Invoke.cc OMP clause
+
+	* bld/Makefile allows for Ubuntu 4.4.0 exception with UBUNTU_440 argument
+
+2018-02-07  Charlie Zender  <zender@uci.edu>
+
+	* Add --enable-logging to autoconf
+
+	* Remove duplicate nc_set_log_level() call triggered by dbg_lvl
+
+2018-02-06  Charlie Zender  <zender@uci.edu>
+
+	* Clarify CF violation warning when attribute type is NC_STRING
+
+2018-02-05  Charlie Zender  <zender@uci.edu>
+
+	* Henry cleaned-up ncap2 which now builds warning-free with gcc, clang, g++, and MSVC
+
+2018-02-05 Henry Butowsky  <henryb@hush.com>
+
+	* Add shell script bm/cch_clr.sh to clear caches. Works with Linux and MacOS.
+
+2018-02-04  Charlie Zender  <zender@uci.edu>
+
+	* Fix three bugs introduced in 10 supposedly simple lines of changes from yesterday
+
+2018-02-03  Charlie Zender  <zender@uci.edu>
+
+	* Add nm_typ='yyyy-mm' and better document all nm_typ's
+
+2018-02-02  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.7.3-alpha03 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.7.3-alpha03: Super Blue Blood Moon';git push
+	git tag -a 4.7.3-alpha03 -m 'nc_set_log_level(), nm_typ yyyy-mm-01, fml_nm';git push --tags
+
+	* Ensure fml_nm works with rx nm_typ
+
+	* Change rx to allow filenames with multiple periods for nm_typ='yyyymm' and 'yyyy-mm-01'
+
+	* ncclimo distinguish mdl_typ from nm_typ, add 'yyyy-mm-01' rx
+
+2018-02-01  Charlie Zender  <zender@uci.edu>
+
+	* Alter regression output for 'make test > ~/foo 2>&1;cat ~/foo | grep FAILED | grep Unidata'
+
+	* Add nc_set_log_level() to all binaries
+
+	* Practice git feature-based workflow with new log_level branch
+
+	* Verify rename bug still exists in 4.6.0.1
+
+	* Update NCO_rgr.pl and nco_exit_lbr_rcd() for 4.6.0, 4.6.1, 4.6.2
+
+2018-01-30  Charlie Zender  <zender@uci.edu>
+
+	* Add HINT on --a2o for GenerateOverlapMesh failures
+
+	* NCO 4.7.3-alpha02 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.7.3-alpha02: Hedgy';git push
+	git tag -a 4.7.3-alpha02 -m 'AppVeyor, a2o, nco_def/inq_var_filter(), _Filter';git push --tags
+
+	* Fix and test a2o switch to work with transpose maps
+
+2018-01-28  Charlie Zender  <zender@uci.edu>
+
+	* Integrate --a2o with consistenly with GenerateOverlapMesh call for all options including monotr
+
+2018-01-26  Charlie Zender  <zender@uci.edu>
+
+	* Pedro, Filipe, Isuru, and Xylar fixed AppVeyor failure
+
+	* ncremap --a2o indicates large-to-small regridding, e.g., atmosphere-to-ocean, so reverse grids in GenerateOverlapMesh
+
+	* Cast "size_t" to "unsigned long" for %lu formats
+
+	* Give cmake -DNETCDF_INCLUDE:PATH=${NETCDF_INC} precedence over ${NETCDF_ROOT}/include, same for lib
+
+	* Modify code to eliminate MSVC compiler warnings
+
+2018-01-25  Charlie Zender  <zender@uci.edu>
+
+	* Add _Filter printing to nco_prn_att()
+
+	* Add timers to ncclimo
+
+	* Add nc[o]_def/inq_var_filter() stubs
+
+	* NCO 4.7.3-alpha01 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.7.3-alpha01: Coughy';git push
+	git tag -a 4.7.3-alpha01 -m 'Functionally identical to 4.7.2';git push --tags
+
+	* Add tm3_lat_flt to buggy.cdl to test _Filter attribute
+
+	* Add DSCOVR L2 dimensions number_of_lines, number_of_pixels to ncremap database
+
+	* ncclimo/ncremap: deprecate pileus
+
+	* nco.texi: Fix errors introduced by solar_zenith_angle() documentation
+
+	* NCO 4.7.2 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.7.2: Sapiens';git push
+	git tag -a 4.7.2 -m 'Sapiens: splitter ypf, tempest2 boutique, ncremap psn arg, cheyenne';git push --tags
+
+	* ncclimo: provisional, lackluster support for Theta
+
+2018-01-20  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.7.2-beta01 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.7.2-beta01: Flighty';git push
+	git tag -a 4.7.2-beta01 -m 'Flighty: splitter ypf, tempest2 boutique, ncremap psn arg, cheyenne';git push --tags
+
+	* ncclimo fully working on cheyenne
+
+2018-01-19  Charlie Zender  <zender@uci.edu>
+
+	* ncclimo fails on cheyenne non-interactive compute nodes due to mpirun issues
+
+	* Verified ncclimo bck mode works on cheyenne interactive compute nodes
+
+	* Include cheyenne compute nodes in list of hardcoded paths to add
+
+	* Tweak ncremap, ncclimo usage strings
+
+2018-01-18  Charlie Zender  <zender@uci.edu>
+
+	* Add and document ncremap --mss_val to support MPAS-LI datasets
+
+	* #include "nco_cln_utl.h" in fmc_all_cls.hh to prototype nco_cln_prs_tm() and fix compilation error on edison
+
+2018-01-12  Charlie Zender  <zender@uci.edu>
+
+	* Update ncremap/ncclimo to use latest cheyenne paths, deprecate yellowstone
+
+	* Successful Tempest2 builds on MacOS, now ncremap is cross-platform again
+
+	* Update CF references to version 1.7 in nco.texi
+
+	* Add latitude, longitude to empirical list of fixed variables in nco_var_is_fix()
+	This is necessary because JAWS will use these as scalar coordinate variables
+
+	* Tidy ncremap and ncclimo debug output when waiting for PIDs
+
+2018-01-11  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.7.2-alpha02 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.7.2-alpha02: Sucko Stucco';git push
+	git tag -a 4.7.2-alpha02 -m 'Sucko Stucco: splitter segments fixed, tempest2 boutique support';git push --tags
+
+	* Correct splitter file segmentation when sgm_rmd != 0. Fixes serious bug reported by Sterling Baldwin.
+	Until now, all subsets miss years when sgm_rmd != 0, i.e., when	yr_nbr%ypf_max != 0
+	Workaround for NCO pre-4.7.2 is to set ypf_max such that yr_nbr%ypf_max == 0
+
+	* Restore elapsed time to splitter output
+
+	* Correctly handle and document special case of NCO canonical format: ncremap -m map.nc in.nc out.nc
+
+	* ncremap check for and modify map_rsl_fl instead of map_fl
+
+	* Rename and implement char_var_nul and char_var_nul_c_format more precisely in accord with ncgen usage
+
+2018-01-10  Charlie Zender  <zender@uci.edu>
+
+	* Add GenerateTransposeMap to support fv2se_flx (monotr)
+
+	* Verify that ncremap se2fv_flx (mono) and fv2se_stt (highorder) work with Tempest2 (Tempest1 fv2se_stt is buggy)
+
+2018-01-10 Henry Butowsky  <henryb@hush.com>
+
+	* Print scalar char of NUL as "" only if it is defined in data section as ""
+	  if defined in data section as '\0' then "0" is printed (as per ncdump)
+
+2018-01-09  Charlie Zender  <zender@uci.edu>
+
+	* Print offending var/dim/group name when nco_rename_* returns NC_ENAMEINUSE
+
+2018-01-04  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.7.2-alpha01 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.7.2-alpha01: Orphan Black';git push
+	git tag -a 4.7.2-alpha01 -m 'Orphan Black: Functionally equivalent to Ajudar (4.7.1)';git push --tags
+
+	* Update copyright year to 2018, and version tags
+
+	* Update rationale and effects for --trd/--cdl defaults in nco.texi
+
+	* Pedro implemented CMake improvements and flexibility for Windows builds
+
+2017-12-21  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.7.1 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.7.1: Ajudar';git push
+	git tag -a 4.7.1 -m 'WIN64 ABI; Conda Windows; JSON tweaks; fix clm_md=dly,ann;';git push --tags
+
+2017-12-20  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.7.1-beta01 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.7.1-beta01: Neverwhere';git push
+	git tag -a 4.7.1-beta01 -m 'JSON NUL, brackets, Conda Windows';git push --tags
+
+	* Fix Travis build matrix to eliminate false negatives (thanks to @isuruf)
+
+	* Print scalar char of NUL as "" instead of 0 in JSON, CDL, XML
+
+	* Remove inner set of brackets when printing character arrays in JSON
+
+2017-12-18  Charlie Zender  <zender@uci.edu>
+
+	* Add detection of netcdf_mem.h to autoconf and #define	HAVE_NETCDF_MEM_H accordingly
+
+2017-12-16  Charlie Zender  <zender@uci.edu>
+
+	* Add AppVeyor to build conda recipe for Windows. Contributed by Filipe.
+
+2017-12-14  Charlie Zender  <zender@uci.edu>
+
+	* CMakefile.txt and nco_sng_utl.h changes for Conda Windows package
+
+2017-12-08  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.7.1-alpha03 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.7.1-alpha03: Red Velvet';git push
+	git tag -a 4.7.1-alpha03 -m 'ncclimo fix clm_md=dly,ann bugs and add prepend savvy';git push --tags
+
+	* ncclimo: for clm_md=dly and inp_std, prepend drc_in to fl_in iff stdin names are basenames
+
+2017-12-07  Charlie Zender  <zender@uci.edu>
+
+	* Stop ncclimo from setting csn_flg when clm_md='dly' or 'ann'
+
+	* Fix ncclimo E3SM instruction on how to override default PATH at HPCs
+
+2017-12-03  Charlie Zender  <zender@uci.edu>
+
+	* Warn when input file contains non-atomic variables
+
+2017-11-15  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.7.1-alpha02 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.7.1-alpha02: Raspberry-infused vodka';git push
+	git tag -a 4.7.1-alpha02 -m 'long/size_t workaround for WIN64';git push --tags
+
+	* long/size_t workaround for var1 routines
+
+	* Change most NC_MAX_DIMS to NC_MAX_VAR_DIMS
+
+	* long/size_t workaround for srt,cnt and long/ptrdiff_t workaround for srd,map
+
+	* WIN64 workaround for sizeof(long) = 4 != 8 = sizeof(size_t) with dmn_sz, att_sz
+
+2017-11-12  Charlie Zender  <zender@uci.edu>
+
+	* Modify how netcdf_mem.h and nc_open_mem() are detected/provided
+
+2017-11-10  Charlie Zender  <zender@uci.edu>
+
+	* ncremap: Use gll_fl only when supplied, do not require it
+
+	* ncremap: Implement all boutique Tempest algorithms except for transpose
+
+	* ncrename: report collective rename bugs in https://github.com/Unidata/netcdf-c/issues/597
+
+2017-11-08  Charlie Zender  <zender@uci.edu>
+
+	* ncremap: Add hooks for more elaborate TempestRemap options
+
+	* NCO 4.7.1-alpha01 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.7.1-alpha01: 1.3 lb salad';git push
+	git tag -a 4.7.1-alpha01 -m 'Identical to 4.7.0 except for version info';git push --tags
+
+	* NCO 4.7.0 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.7.0: Ta Nehisi';git push
+	git tag -a 4.7.0 -m 'ncremap/ncclimo dfl_lvl, fl_fmt;ncclimo ppc;nco_map/msh_mk();ncra/ncrcat neg hyp;quiet CDF5, ncrename';git push --tags
+
+	* Protect CDF5 bug check by #ifdef NCO_CDF5_BUG_CHK to quiet Luke Van Roekel's hi-res MPAS-O Analysis output
+
+2017-11-07  Charlie Zender  <zender@uci.edu>
+
+	* Add pre-emptive numeric codes for netCDF library versions 4.5.2--4.5.3
+
+	* NCO 4.7.0-beta01 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.7.0-beta01: Hairy Yoda';git push
+	git tag -a 4.7.0-beta01 -m 'Verified CMake on Windows';git push --tags
+
+2017-11-01  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.7.0-alpha04 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.7.0-alpha04: Mag-unsafe';git push
+	git tag -a 4.7.0-alpha04 -m 'ncrename quiet, ncremap dfl_lvl, ncclimo ppc';git push --tags
+
+	* Fix ncrename regressions caused by 20171029 change
+
+	* Update documentation and homepage and nco_netcdf.c regarding CDF5 bug and netCDF 4.5.0
+
+	* Implement but do not document ppc in ncremap, option currently does nothing
+	Would not be too hard to finish, but unclear that PPC is appropriate for ncremap
+
+	* Test and document ncclimo --ppc
+
+2017-10-31  Charlie Zender  <zender@uci.edu>
+
+	* Add ppc option to ncclimo
+
+2017-10-29  Charlie Zender  <zender@uci.edu>
+
+	* Quiet ncrename: As per PJCS request, summary renaming only prints with dbg_lvl > 0
+
+2017-10-25  Charlie Zender  <zender@uci.edu>
+
+	* Add, document, and test -L dfl_lvl option to ncremap
+
+2017-10-22  Charlie Zender  <zender@uci.edu>
+
+	* Add att_var_jsn to in.cdl in_grp.cdl to demonstrate JSON formats
+
+2017-10-20  Charlie Zender  <zender@uci.edu>
+
+	* Add CF2 Out-of-Group search algorithm figure alg_cf2_oog.pptx
+
+2017-10-15  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.7.0-alpha03 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.7.0-alpha03: Ultrasonic Curtains';git push
+	git tag -a 4.7.0-alpha03 -m 'nco_map/msh_mk() routines;ncclimo deflate';git push --tags
+
+2017-10-13  Charlie Zender  <zender@uci.edu>
+
+	* Create nco_msh_mk() to compute overlap mesh
+
+	* Ensure input and output coordinates all in degrees
+
+	* Milestone: Supplied grid information is read-in, and mapfile information is written-out
+
+2017-10-12  Charlie Zender  <zender@uci.edu>
+
+	* Read coordinates from source grid in nco_map_mk()
+
+	* Modify in.cdl to include three_dmn_rec_var_pck to test masking weighted averages of packed variables for Antonio Rodrigues
+
+2017-10-11  Charlie Zender  <zender@uci.edu>
+
+	* Correct NC_NOERR checks
+
+	* Read, error-correct, and write src/dst grid rank and dimensions in nco_map_mk()
+
+	* Fix/change --weight et al. to option_type=required_argument in ncwa.c, ncflint.c
+
+2017-10-09  Charlie Zender  <zender@uci.edu>
+
+	* Add nco_map.[ch] to build engines
+
+2017-10-07  Charlie Zender  <zender@uci.edu>
+
+	* Re-arrange/rename weight-application logic to make room for nco_map_mk() stub in nco_map.c
+
+2017-10-01  Charlie Zender  <zender@uci.edu>
+
+	* Add, document, and test -L dfl_lvl option to ncclimo
+
+2017-09-25  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.7.0-alpha02 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.7.0-alpha02 final changes';git push
+	git tag -a 4.7.0-alpha02 -m 'ncra/ncrcat negative record hyp fix,';git push --tags
+
+2017-09-21  Charlie Zender  <zender@uci.edu>
+
+	* Fix bug where ncra, ncrcat treated negative record hyperslab indices
+	with old (pre-2014) convention, and off-by-one relative to non-record hyperslabs
+
+	* Add var_nm to diagnostic when all put/get functions fail
+
+2017-09-20  Charlie Zender  <zender@uci.edu>
+
+	* Add doc/conda.txt for Conda notes
+
+2017-09-19  Charlie Zender  <zender@uci.edu>
+
+	* Correct --trd and --cdl usage in manual
+
+	* NCO 4.7.0-alpha01 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.7.0-alpha01 final changes';git push
+	git tag -a 4.7.0-alpha01 -m 'ncclimo fl_fmt,quiet CDF5 sniffing';git push --tags
+
+	* Only print CDF5 sniffing message when large variable found
+
+	* Add [-3, -4, -5, -6, -7] options to ncclimo
+
+2017-09-18  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.9 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.9 final changes';git push
+	git tag -a 4.6.9 -m 'CDF5, CMake, MPAS-O/I';git push --tags
+
+	* Document NCO_PATH_OVERRIDE in ncclimo/ncremap screen output
+
+2017-09-17  Charlie Zender  <zender@uci.edu>
+
+	* Load ncl modules for cori, edison, rhea, titan only in ncremap not ncclimo
+
+2017-09-16  Charlie Zender  <zender@uci.edu>
+
+	* Update and auto-load ncl modules for cori, edison, rhea, titan
+
+	* Fix ncremap bracket error
+
+2017-09-15  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.9-beta01 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.9-beta01 final changes';git push
+	git tag -a 4.6.9-beta01 -m 'Documentation for release';git push --tags
+
+	* Fix printing of CDL summary strings and RAM sizes
+
+	* Turn-off var_lst_rx_xtr so ncclimo 4.6.9-alphaXX works with 4.6.8 binaries
+
+	* Echo hardpath/NCO_PATH_OVERRIDE status as Config:
+
+2017-09-14  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.9-alpha05 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.9-alpha05 final changes';git push
+	git tag -a 4.6.9-alpha05 -m 'CMake hardening;CDF5 bug diagnosis;NCO_PATH_OVERRIDE';git push --tags
+
+	* De-activate CDF5 workaround
+
+	* If NCO_PATH_OVERRIDE is set to 'No' do not override user PATH with database of HPCC machine-dependent paths
+
+	* Workaround fails because nc_close() hangs. Dang.
+
+	* Implement CDF5 bug-workaround to use descending qsort on -v timeMonthly_avg_vertVelocityTop,timeMonthly_avg_normalVelocity
+
+	* Deprecate ncks --get_grp_info, --get_file_info, -z (GET_LIST)
+
+	* Modify trv_tbl_srt() to allow ascending and descending qsort()
+
+2017-09-13  Charlie Zender  <zender@uci.edu>
+
+	* Refine and test CDF5 diagnostics
+
+	* CDL output ID = xxx in comments when dbg_lvl >= 2
+
+	* Add/use nco_inq_path() to improve CDF5 diagnostics
+
+2017-09-12  Charlie Zender  <zender@uci.edu>
+
+	* Passes all expected regression tests
+
+	* Allow ncks thr_nbr > 1 only when regridder is activated
+
+	* Automatically detect and warn about possibly corrupt CDF5 files in nco_close()
+
+2017-09-09  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.9-alpha04 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.9-alpha04 final changes';git push
+	git tag -a 4.6.9-alpha04 -m 'CMake hardening;Fix Traditional bld/Makefile';git push --tags
+
+	* Travis Linux clang build of ncap2 fails after upgrade to Ubuntu Trusty due to unresolved
+	link errors to __kmpc_*() (OpenMP) because ncap2 erroneously links with g++ instead of clang
+
+	* Change custom build to use simple VERSION string
+
+	* Fix Custom build on MacOSX by modifying ARFLAGS
+
+	* Distinguish MD5 output with different debugging levels
+
+	* Add nco_fl_sz_est() and print smr_fl_sz_sng to CDL
+
+	* clang builds on Linux does not build ncap2 because NCO_GSL_VERSION not defined
+
+	* Add ncks --bld, --build_engine to print NCO_BUILDENGINE
+
+	* Define NCO_BUILDENGINE for all three build types
+
+2017-09-07  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.9-alpha03 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.9-alpha03 final changes';git push
+	git tag -a 4.6.9-alpha03 -m 'CMake implementation;data size estimates with ncks -D 2;--lst_xtr';git push --tags
+
+	* Fix calculation of ram_sz_crr in nco_prn()
+
+2017-09-05  Charlie Zender  <zender@uci.edu>
+
+	* Add CDF5 presence to ncks -r report
+
+	* Refine CMake templates
+
+	* CMake implementation from Pedro
+
+	* round() filesize estimates instead of truncating them
+
+2017-09-04  Charlie Zender  <zender@uci.edu>
+
+	* fnc_nm (only!) must be explicit shared for g++ 4.8.4 (travis)
+
+	* Update travis to work with Ubuntu 14.04, move from libnetcdf6 to libnetcdfc7
+
+	* Discriminate between KiB and KB (kibibytes and kilobytes) in diagnostics
+
+2017-09-01  Charlie Zender  <zender@uci.edu>
+
+	* ncks report computed data size when dbg_lvl >= 2
+
+2017-08-31  Charlie Zender  <zender@uci.edu>
+
+	* Add stubs to compute/report total expected uncompressed data size
+
+2017-08-30  Charlie Zender  <zender@uci.edu>
+
+	* Clean-up MD5 messages and nco_fl_utl.c INFO messages
+
+2017-08-29  Charlie Zender  <zender@uci.edu>
+
+	* ncclimo -v var_lst_rx finally works as intended!
+
+	* ncclimo fix --lst_xtr to exclude bounds coordinates so, e.g., time_bnds not explicitly
+	passed to seasonal climos that have replaced it	with climatology_bounds
+
+2017-08-25  Charlie Zender  <zender@uci.edu>
+
+	* Add --lst_xtr stubs to ncclimo to expand var_lst rx
+
+	* Add ncks --lst_xtr to print extraction list for ncremap and ncclimo
+
+	* ncremap/ncclimo correct ERWG location for module load ncl/6.3.0 on rhea
+
+	* Use appropriate fl_out_fmt to print ncgen hint in CDL
+
+2017-08-24  Charlie Zender  <zender@uci.edu>
+
+	* Add/clarify syntax to some regridder HINTs
+
+	* Put MD5 in operator self-help for ncks
+
+2017-08-23  Charlie Zender  <zender@uci.edu>
+
+	* NCO 4.6.9-alpha02 release procedure:
+	cd ~/nco;git commit -a -m 'Version 4.6.9-alpha02 final changes';git push
+	git tag -a 4.6.9-alpha02 -m 'support CDF5 autoconversion in ncks;CDF5 in all operators';git push --tags
+
+2017-08-22  Charlie Zender  <zender@uci.edu>
+
+	* Implement auto-conversion for CDF5 destination files
+
 2017-08-20  Charlie Zender  <zender@uci.edu>
 
 	* Skip autoconversion of atomic types to CDF5 destination files

@@ -2,7 +2,7 @@
 
 /* Purpose: Average variables */
 
-/* Copyright (C) 1995--2017 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -49,10 +49,10 @@ nco_var_avg /* [fnc] Reduce given variable over specified dimensions */
   dmn_sct **dmn_avg;
   dmn_sct **dmn_fix;
 
-  int idx_avg_var[NC_MAX_DIMS];
-  /*  int idx_var_avg[NC_MAX_DIMS];*/ /* Variable is unused but instructive anyway */
-  int idx_fix_var[NC_MAX_DIMS];
-  /*  int idx_var_fix[NC_MAX_DIMS];*/ /* Variable is unused but instructive anyway */
+  int idx_avg_var[NC_MAX_VAR_DIMS];
+  /*  int idx_var_avg[NC_MAX_VAR_DIMS];*/ /* Variable is unused but instructive anyway */
+  int idx_fix_var[NC_MAX_VAR_DIMS];
+  /*  int idx_var_fix[NC_MAX_VAR_DIMS];*/ /* Variable is unused but instructive anyway */
   int idx;
   int idx_dmn;
   int dmn_avg_nbr;
@@ -249,10 +249,10 @@ nco_var_avg /* [fnc] Reduce given variable over specified dimensions */
       long avg_lmn;
       long fix_lmn;
       long var_lmn;
-      long dmn_ss[NC_MAX_DIMS];
-      long dmn_var_map[NC_MAX_DIMS];
-      long dmn_avg_map[NC_MAX_DIMS];
-      long dmn_fix_map[NC_MAX_DIMS];
+      long dmn_ss[NC_MAX_VAR_DIMS];
+      long dmn_var_map[NC_MAX_VAR_DIMS];
+      long dmn_avg_map[NC_MAX_VAR_DIMS];
+      long dmn_fix_map[NC_MAX_VAR_DIMS];
 
       dmn_var_nbr_m1=dmn_var_nbr-1;
       typ_sz=nco_typ_lng(fix->type);

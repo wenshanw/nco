@@ -1,6 +1,6 @@
 /* Purpose: netCDF arithmetic processor class methods */
 
-/* Copyright (C) 1995--2017 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -19,6 +19,7 @@
 #include "ncoTree.hpp"
 #include "ncap2_utl.hh"
 #include "vtl_cls.hh"
+#include "nco_cln_utl.h" /* Calendar utilities */
 #include "nco_rth_flt.h" /* Float-precision arithmetic, MSVC macros */
 
 #include "sym_cls.hh" // holder for float/double math function pointers
@@ -30,7 +31,8 @@
   /* Basic math: acos, asin, atan, cos, exp, fabs, log, log10, sin, sqrt, tan */
   
   /* GNU g++ barfs at these float declartions -- remove if g++ used */
-#ifndef __GNUG__
+  /* MSVC complains because dllimport is not used */
+#if !defined(__GNUG__) && !defined(_MSC_VER)
   extern float acosf(float);
   extern float asinf(float);
   extern float atanf(float);
@@ -133,11 +135,13 @@ public:
 //Maths2 - Maths functions that take 2 args /*********/
 class mth2_cls: public vtl_cls {
 private:
-   enum {PPOW,PATAN2,PCONVERT};
+  enum {PPOW,PATAN2,PCONVERT, PXRATIO, PSOLARZENITHANGLE};
    bool _flg_dbg;
 public:
   mth2_cls(bool flg_dbg);
   var_sct *fnd(RefAST expr, RefAST fargs,fmc_cls &fmc_obj, ncoTree &walker);
+  void solar_geometry(float latitude_rad, float calendar_day_of_year, int num_longitudes, float *local_time, float *cosSZA, float *eccentricity_factor);
+
 };
 
 //PDQ Functions /****************************************/

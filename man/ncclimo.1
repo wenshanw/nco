@@ -7,7 +7,7 @@
 ncclimo \- netCDF Climatology Generator
 .SH SYNTAX
 ncclimo
-[\-a
+[\-3] [\-4] [\-5] [\-6] [\-7] [\-a
 .IR dec_md ]
 [\-C
 .IR clm_md ]
@@ -20,13 +20,15 @@ ncclimo
 [\-e
 .IR yr_end ] 
 [\-f
-.IR fml_nm ] 
-[\-h
+.IR fml_nm ]
+[\-\-fl_fmt=fmt] [\-h
 .IR hst_nm ] 
 [\-i
 .IR drc_in ] 
 [\-j
 .IR job_nbr ] 
+[\-L
+.IR dfl_lvl ] 
 [\-l
 .IR lnk_flg ] 
 [\-m
@@ -39,18 +41,19 @@ ncclimo
 [\-o
 .IR drc_out ] 
 [\-p
-.IR par_typ ] 
+.IR par_typ ] [\-\-ppc=
+.IR ppc_prc ]
 [\-R
 .IR rgr_opt ] 
 [\-r
-.IR rgr_map ] [\--rm_ntv
+.IR rgr_map ] [\--rm_ntv=
 .IR rm_ntv ] [\-S
 .IR yr_prv ] 
 [\-s
 .IR yr_srt ] 
-[\--std_flg ] [\--seasons
+[\--std_flg ] [\--seasons=
 .IR csn_lst ] [\-t
-.IR thr_nbr ] [\--tpd_out
+.IR thr_nbr ] [\--tpd_out=
 .IR tpd_out ] [\-v
 .IR var_lst ] 
 [\--version ] [\-X
@@ -84,7 +87,7 @@ manual pages written by Charlie Zender and originally formatted by Brian Mays.
 Report bugs to <http://sf.net/bugs/?group_id=3331>.
 
 .SH COPYRIGHT
-Copyright \(co 1995-2017 Charlie Zender
+Copyright \(co 1995-2018 Charlie Zender
 .br
 This is free software; see the source for copying conditions.  There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.

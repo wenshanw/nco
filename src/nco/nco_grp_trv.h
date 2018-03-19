@@ -2,7 +2,7 @@
 
 /* Purpose: netCDF4 traversal storage */
 
-/* Copyright (C) 1995--2017 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -18,6 +18,7 @@
 #endif /* !HAVE_CONFIG_H */
 
 /* Standard header files */
+#include <math.h> /* sin cos cos sin 3.14159 */
 #include <string.h> /* strcmp() */
 
 /* 3rd party vendors */
@@ -26,6 +27,7 @@
 /* Personal headers */
 #include "nco.h" /* netCDF Operator (NCO) definitions */
 #include "nco_cnf_typ.h" /* Conform variable types */
+#include "nco_lst_utl.h" /* List utilities */
 #include "nco_mmr.h" /* Memory management */
 
 void                         
@@ -103,9 +105,20 @@ trv_tbl_prn_xtr                        /* [fnc] Print extraction flag of travers
 (const trv_tbl_sct * const trv_tbl,    /* I [sct] Traversal table */
  const char * const fnc_nm);           /* I [sng] Function name of the calling function */
 
+int                                    /* O [enm] Comparison result [<,=,>] 0 iff val_1 [<,==,>] val_2 */
+trv_tbl_cmp_asc_nm_fll                 /* [fnc] Compare two trv_sct's by full name member, return ascending order */
+(const void *val_1,                    /* I [sct] trv_sct to compare */
+ const void *val_2);                   /* I [sct] trv_sct to compare */
+
+int                                    /* O [enm] Comparison result [<,=,>] 0 iff val_1 [>,==,<] val_2 */
+trv_tbl_cmp_dsc_nm_fll                 /* [fnc] Compare two trv_sct's by full name member, return descending order */
+(const void *val_1,                    /* I [sct] trv_sct to compare */
+ const void *val_2);                   /* I [sct] trv_sct to compare */
+
 void 
 trv_tbl_srt                            /* [fnc] Sort traversal table */
-(trv_tbl_sct * const trv_tbl);         /* I/O [sct] Traversal table */
+(const int srt_mth,                    /* [enm] Sort method */
+ trv_tbl_sct * const trv_tbl);         /* I/O [sct] Traversal table */
 
 int                                    /* O [nbr] Number of depth 1 groups (root = 0) */
 trv_tbl_inq_dpt                        /* [fnc] Return number of depth 1 groups */

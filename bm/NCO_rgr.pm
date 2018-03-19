@@ -108,6 +108,10 @@ sub tst_rgr {
     # 440 (for library 4.4.0)
     # 441 (for library 4.4.1.x)
     # 450 (for library 4.5.0)
+    # 451 (for library 4.5.1) (development-only)
+    # 460 (for library 4.6.0.x)
+    # 461 (for library 4.6.1)
+    # 462 (for library 4.6.2)
 
   if($exit_value == 410){print "netCDF version 4.1.x detected\n";}
   if($exit_value == 431){print "netCDF version 4.3.1 detected\n";}
@@ -116,7 +120,10 @@ sub tst_rgr {
   if($exit_value == 440){print "netCDF version 4.4.0 detected\n";}
   if($exit_value == 441){print "netCDF version 4.4.1 detected\n";}
   if($exit_value == 450){print "netCDF version 4.5.0 detected\n";}
-  if($exit_value == 451){print "netCDF version 4.5.1 detected\n";}
+  if($exit_value == 451){print "netCDF version 4.5.1 detected\n";} # development-only
+  if($exit_value == 460){print "netCDF version 4.6.0 detected\n";}
+  if($exit_value == 461){print "netCDF version 4.6.1 detected\n";}
+  if($exit_value == 462){print "netCDF version 4.6.2 detected\n";}
 
   if($exit_value >= 400){$RUN_NETCDF4_TESTS=1;}
   if($exit_value >= 431){$RUN_NETCDF4_TESTS_VERSION_GE_431=1;}
@@ -286,7 +293,7 @@ if($USER eq 'zender'){
 # ncks -O --rgr skl=~/skl_t42.nc --rgr grid=~/grd_t42.nc --rgr latlon=64,128 --rgr lat_typ=gss --rgr lon_typ=Grn_ctr ~/nco/data/in.nc ~/foo.nc
 # ncks -O --rgr grid=~/grd_2x2.nc --rgr latlon=90,180 --rgr lat_typ=eqa --rgr lon_typ=Grn_wst ~/nco/data/in.nc ~/foo.nc
 # ncap2 -O -s 'tst[lat,lon]=1.0f' ~/skl_t42.nc ~/dat_t42.nc
-# /bin/rm -f ~/foo_map_t42_to_2x2.nc
+# /bin/rm -f ~/map_t42_to_2x2.nc
 # ncremap -a conserve -s ~/grd_t42.nc -g ~/grd_2x2.nc -m ~/map_t42_to_2x2.nc
 # ncremap -i ~/dat_t42.nc -m ~/map_t42_to_2x2.nc -o ~/dat_2x2.nc
 # ncwa -O ~/dat_2x2.nc ~/dat_avg.nc
@@ -329,6 +336,7 @@ if($USER eq 'zender'){
 # printf("paused @ [%s:%d] - hit return to continue\n", __FILE__, __LINE__); my $wait = <STDIN>;
     } # endif false
 
+# ncap2 #1
 # ncap2 -O -v -s 'tpt_mod=tpt%273.0f' ~/nco/data/in.nc ~/foo.nc
 # ncks -C -H --trd -v tpt_mod -s '%.1f' ~/foo.nc
     $dsc_sng="Testing float modulo float";
@@ -339,63 +347,72 @@ if($USER eq 'zender'){
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
     
+# ncap2 #2
     $dsc_sng="Testing foo=log(e_flt)^1 (may fail on old AIX TODO ncap57)";
     $tst_cmd[0]="ncap2 -h -O $fl_fmt $nco_D_flg -C -v -s 'foo=log(e_flt)^1' $in_pth_arg in.nc %tmp_fl_00%";
-    $tst_cmd[1]="ncks -C -H --trd -v foo -s '%.6f\\n' %tmp_fl_00%";
+    $tst_cmd[1]="ncks -C -H --trd -v foo -s '%.6f' %tmp_fl_00%";
     $tst_cmd[2]="1.000000";
     $tst_cmd[3]="SS_OK";
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
     
+# ncap2 #3
     $dsc_sng="Testing foo=log(e_dbl)^1";
     $tst_cmd[0]="ncap2 -h -O $fl_fmt $nco_D_flg -C -v -s 'foo=log(e_dbl)^1' $in_pth_arg in.nc %tmp_fl_00%";
-    $tst_cmd[1]="ncks -C -H --trd -s '%.12f\\n' %tmp_fl_00%";
+    $tst_cmd[1]="ncks -C -H --trd -s '%.12f' %tmp_fl_00%";
     $tst_cmd[2]="1.000000000000";
     $tst_cmd[3]="SS_OK";
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
     
+# ncap2 #4
     $dsc_sng="Testing foo=4*atan(1)";
     $tst_cmd[0]="ncap2 -h -O $fl_fmt $nco_D_flg -C -v -s 'foo=4*atan(1)' $in_pth_arg in.nc %tmp_fl_00%";
-    $tst_cmd[1]="ncks -C -H --trd -s '%.12f\\n' %tmp_fl_00%";
+    $tst_cmd[1]="ncks -C -H --trd -s '%.12f' %tmp_fl_00%";
     $tst_cmd[2]="3.141592741013";
     $tst_cmd[3]="SS_OK";
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
     
+# ncap2 #5
+# ncap2 -h -O $fl_fmt $nco_D_flg -C -v -s 'foo=erf(1)' ~/nco/data/in.nc ~/foo.nc
+# ncks -C -H --trd -s '%.12f' ~/foo.nc
     $dsc_sng="Testing foo=erf(1) (may fail on old AIX TODO ncap57)";
     $tst_cmd[0]="ncap2 -h -O $fl_fmt $nco_D_flg -C -v -s 'foo=erf(1)' $in_pth_arg in.nc %tmp_fl_00%";
-    $tst_cmd[1]="ncks -C -H --trd -s '%.12f\\n' %tmp_fl_00%";
-    $tst_cmd[2]="0.842701";
+    $tst_cmd[1]="ncks -C -H --trd -s '%.12f' %tmp_fl_00%";
+    $tst_cmd[2]="0.842700779438";
     $tst_cmd[3]="SS_OK";
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
     
-    #fails - wrong result ???
+# ncap2 #6
     $dsc_sng="Testing foo=gamma(0.5) (may fail on old AIX TODO ncap57)";
     $tst_cmd[0]="ncap2 -h -O $fl_fmt $nco_D_flg -C -v -s 'foo=gamma(0.5)' $in_pth_arg in.nc %tmp_fl_00%";
-    $tst_cmd[1]="ncks -C -H --trd -s '%.12f\\n' %tmp_fl_00%";
+    $tst_cmd[1]="ncks -C -H --trd -s '%.12f' %tmp_fl_00%";
     $tst_cmd[2]="1.772453851";
     $tst_cmd[3]="SS_OK";
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
     
+# ncap2 #7
     $dsc_sng="Testing foo=sin(pi/2)";
     $tst_cmd[0]="ncap2 -h -O $fl_fmt $nco_D_flg -C -v -s 'pi=4*atan(1);foo=sin(pi/2)' $in_pth_arg in.nc %tmp_fl_00%";
-    $tst_cmd[1]="ncks -C -H --trd -v foo -s '%.12f\\n' %tmp_fl_00%";
+    $tst_cmd[1]="ncks -C -H --trd -v foo -s '%.12f' %tmp_fl_00%";
     $tst_cmd[2]="1.000000000000";
     $tst_cmd[3]="SS_OK";
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
     
+# ncap2 #8
     $dsc_sng="Testing foo=cos(pi)";
     $tst_cmd[0]="ncap2 -h -O $fl_fmt $nco_D_flg -C -v -s 'pi=4*atan(1);foo=cos(pi)' $in_pth_arg in.nc %tmp_fl_00%";
-    $tst_cmd[1]="ncks -C -H --trd -v foo -s '%.12f\\n' %tmp_fl_00%";
+    $tst_cmd[1]="ncks -C -H --trd -v foo -s '%.12f' %tmp_fl_00%";
     $tst_cmd[2]="-1.000000000000";
     $tst_cmd[3]="SS_OK";
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array\
     
+# ncap2 #9
     $dsc_sng="Casting variable with same name as dimension (ncap81 failed with netCDF4 until netCDF 4.3.x)";
     $tst_cmd[0]="ncap2 -h -O $fl_fmt $nco_D_flg -C -v -s 'defdim(\"a\",3);defdim(\"b\",4); a[\$a,\$b]=10;c=a(1,1);' $in_pth_arg in.nc %tmp_fl_00%";
     $tst_cmd[1]="ncks -C -H --trd -v c -s '%i' %tmp_fl_00%";
@@ -404,6 +421,7 @@ if($USER eq 'zender'){
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
 
+# ncap2 #10
     $dsc_sng="Casting variable with a single dim of sz=1 (ncap81 failed with netCDF4 until netCDF 4.3.x)";
     $tst_cmd[0]="ncap2 -h -O $fl_fmt $nco_D_flg -C -v -s 'defdim(\"a\",1); b[\$a]=10;c=b(0:0);' $in_pth_arg in.nc %tmp_fl_00%";
     $tst_cmd[1]="ncwa -h -O $fl_fmt $nco_D_flg -C -a a %tmp_fl_00% %tmp_fl_01%";
@@ -413,6 +431,7 @@ if($USER eq 'zender'){
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
 
+# ncap2 #11
 # ncap2 -O -v -s 'lat_min=min(lat)' ~/nco/data/in.nc ~/foo.nc
 # ncks -C -H --trd -v lat_min -s '%g' ~/foo.nc
     $dsc_sng="Verify non-averaging functions min/max on coordinate variables";
@@ -423,6 +442,7 @@ if($USER eq 'zender'){
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
 
+# ncap2 #12
     $dsc_sng="Run script to to test gsl functions -FAILS IF NOT linked to gsl lib";
     $tst_cmd[0]="ncap2 -h -O $fl_fmt $nco_D_flg -v -S '../data/gsl_sf.in' $in_pth_arg in.nc %tmp_fl_00%";
     $tst_cmd[1]="ncks -C -H --trd -v nbr_err_ttl -s '%d' %tmp_fl_00%";
@@ -431,7 +451,10 @@ if($USER eq 'zender'){
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
 
-    $dsc_sng="Run script to to test casting, hyperslabbing and intrinsic functions";
+# ncap2 #13
+# ncap2 -h -O -v -S ~/nco/data/bsc_tst.nco ~/nco/data/in.nc ~/foo.nc
+# ncks -C -H --trd -v nbr_err_ttl -s '%d' ~/foo.nc
+    $dsc_sng="Run script to to test casting, hyperslabbing and intrinsic functions (Requires GSL)";
     $tst_cmd[0]="ncap2 -h -O $fl_fmt $nco_D_flg -v -S '../data/bsc_tst.nco' $in_pth_arg in.nc %tmp_fl_00%";
     $tst_cmd[1]="ncks -C -H --trd -v nbr_err_ttl -s '%d' %tmp_fl_00%";
     $tst_cmd[2]="0";
@@ -439,6 +462,7 @@ if($USER eq 'zender'){
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
 
+# ncap2 #14
 # ncap2 -O -v -S ~/nco/data/vpointer-tst.nco ~/nco/data/in.nc ~/foo.nc
    $dsc_sng="Run script to test conversion of input vars to type NC_DOUBLE using var-pointers";
     $tst_cmd[0]="ncap2 -h -O $fl_fmt $nco_D_flg -v -S '../data/vpointer-tst.nco' $in_pth_arg in.nc %tmp_fl_00%";
@@ -448,6 +472,7 @@ if($USER eq 'zender'){
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
 
+# ncap2 #15
    $dsc_sng="Run script to test udunits code";
     $tst_cmd[0]="ncap2 -h -O $fl_fmt $nco_D_flg -v -S '../data/tst-udunits.nco' $in_pth_arg in.nc %tmp_fl_00%";
     $tst_cmd[1]="ncks -C -H --trd -v nbr_err -s '%d' %tmp_fl_00%";
@@ -456,7 +481,9 @@ if($USER eq 'zender'){
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
 
-
+# ncap2 #16
+# ncap2 -h -O -v -S ~/nco/data/string.nco ~/nco/data/in_4.nc ~/foo.nc
+# ncks -C -H --trd -v nbr_err_ttl -s '%d' ~/foo.nc
     $dsc_sng="Run script to to test ncap2 NC_STRING handling (failure expected 2017-06-21)";
     $tst_cmd[0]="ncap2 -h -O $fl_fmt $nco_D_flg -v -S '../data/string.nco' $in_pth_arg in_4.nc %tmp_fl_00%";
     $tst_cmd[1]="ncks -C -H --trd -v nbr_err_ttl -s '%d' %tmp_fl_00%";
@@ -465,8 +492,14 @@ if($USER eq 'zender'){
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
 
-
-
+# ncap2 #17
+   $dsc_sng="Run script to test sort functions";
+    $tst_cmd[0]="ncap2 -h -O $fl_fmt $nco_D_flg -v -S '../data/sort.nco' $in_pth_arg in.nc %tmp_fl_00%";
+    $tst_cmd[1]="ncks -C -H --trd -v nbr_err -s '%d' %tmp_fl_00%";
+    $tst_cmd[2]="0";
+    $tst_cmd[3]="SS_OK";
+    NCO_bm::tst_run(\@tst_cmd);
+    $#tst_cmd=0; # Reset array
     
     if($dodap eq "FALSE"){
 ####################
@@ -1228,7 +1261,7 @@ if($USER eq 'zender'){
     $#tst_cmd=0; # Reset array
 
 #nces #19 (check coordinate variables)
-# ncra -Y ncge -h -O mdl_1.nc ~/foo.nc
+# ncra -Y ncge -h -O ~/nco/data/mdl_1.nc ~/foo.nc
 # ncks -g cesm -v time ~/foo.nc
 # NB: This test succeeds when it fails, i.e., the NCO command fails as it should because the input files do not conform
     $dsc_sng="(Groups) Ensemble record coordinate variables";
@@ -1640,6 +1673,8 @@ if($USER eq 'zender'){
     $#tst_cmd=0; # Reset array
     
 #ncks #03
+# ncks -h -O -v lev ~/nco/data/in.nc ~/foo.nc
+# ncks -C -H --trd -s '%f,' -v lev ~/foo.nc
     $dsc_sng="extract a dimension";
     $tst_cmd[0]="ncks -h -O $fl_fmt $nco_D_flg -v lev $in_pth_arg in.nc %tmp_fl_00%";
     $tst_cmd[1]="ncks -C -H --trd -s '%f,' -v lev %tmp_fl_00%";
@@ -1798,11 +1833,11 @@ if($USER eq 'zender'){
 # ncks -O ~/foo.nc ~/foo2.nc
 # ncap2 -v -O -s 'n2=global@_FillValue;' ~/foo2.nc ~/foo3.nc
 # ncks -C -H --trd -s '%d' -v n2 ~/foo3.nc
+    $dsc_sng="Create/copy global _FillValue";
     $tst_cmd[0]="ncatted -O $fl_fmt $nco_D_flg -a _FillValue,global,c,l,222 $in_pth_arg in.nc %tmp_fl_00%";
     $tst_cmd[1]="ncks -O %tmp_fl_00% %tmp_fl_01%";
     $tst_cmd[2]="ncap2 -v -O -s 'n2=global\@_FillValue;' %tmp_fl_01% %tmp_fl_02%";
     $tst_cmd[3]="ncks -C -H --trd -s '%d' -v n2 %tmp_fl_02%";
-    $dsc_sng="Create/copy of global _FillValue";
     $tst_cmd[4]="222";
     $tst_cmd[5]="SS_OK";
     NCO_bm::tst_run(\@tst_cmd);
@@ -1875,11 +1910,13 @@ if($USER eq 'zender'){
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
     
-#ncks #25 groups: Extract global attributes
-    $dsc_sng="Extract global attributes";
+# ncks -O ~/nco/data/in_grp.nc ~/foo.nc
+# ncks -M --trd ~/foo.nc | grep Conventions | cut -d ' ' -f 11
+#ncks #25 groups: Extract global attribute
+    $dsc_sng="Extract global attribute";
     $tst_cmd[0]="ncks -O $fl_fmt $nco_D_flg $in_pth_arg in_grp.nc %tmp_fl_00%";
-    $tst_cmd[1]="ncks --trd %tmp_fl_00% | grep Conventions";
-    $tst_cmd[2]="Global attribute 0: Conventions, size = 6 NC_CHAR, value = CF-1.0";
+    $tst_cmd[1]="ncks -M --trd %tmp_fl_00% | grep Conventions | cut -d ' ' -f 11";
+    $tst_cmd[2]="CF-1.0";
     $tst_cmd[3]="SS_OK";
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
@@ -1916,10 +1953,11 @@ if($USER eq 'zender'){
 # 
     
 #ncks #29 groups: Sort output alphabetically
-# ncks -z ~/nco/data in_grp.nc | tail -1
+# ncks -z ~/nco/data/in_grp.nc | tail -1 (deprecated 20170914)
+# ncks --trd -m ~/nco/data/in_grp.nc | grep ": type" | tail -1 | cut -d ' ' -f 1
     $dsc_sng="(Groups) Sort output alphabetically";
-    $tst_cmd[0]="ncks -z $in_pth_arg in_grp.nc | tail -1";
-    $tst_cmd[1]="var: /val_one_mss";
+    $tst_cmd[0]="ncks --trd -m $in_pth_arg in_grp.nc | grep ': type' | tail -1 | cut -d ' ' -f 1";
+    $tst_cmd[1]="val_one_mss:";
     $tst_cmd[2]="SS_OK";
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
@@ -2432,6 +2470,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
 
 #ncks #75
 # ncks -O -c ~/nco/data/in_grp.nc ~/foo.nc
+# ncks --trd -v lat ~/foo.nc | grep 'lat size'
     $dsc_sng="(Groups) -c Extract all coordinate variables";
     $tst_cmd[0]="ncks -O $nco_D_flg $in_pth_arg -c in_grp.nc %tmp_fl_00%";
     $tst_cmd[1]="ncks --trd -v lat %tmp_fl_00% | grep 'lat size'";
@@ -2883,7 +2922,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
 	
 #ncks #113 wrapped limit with an additional limit (with --msa) pvn20160211 -- bug found that happens in nco 4.2.0 also
 # ncks -O -C --msa -g g19 -v time -d time,9,0 -d time,1,2 ~/nco/data/in_grp_3.nc ~/foo.nc
-    $dsc_sng="(Groups) Test wrapped limit with additonal limit and msa user order (expect failure TODO nco1134)";
+    $dsc_sng="(Groups) Test wrapped limit with additional limit and msa user order (expect failure TODO nco1134)";
     $tst_cmd[0]="ncks -O $nco_D_flg -C --msa -g g19 -v time -d time,9,0 -d time,1,2 $in_pth_arg in_grp_3.nc %tmp_fl_00";
     $tst_cmd[1]="ncks -H --trd %tmp_fl_00 | grep '=3'";
     $tst_cmd[2]="time[3]=3"; 
@@ -2958,6 +2997,8 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
     $#tst_cmd=0; # Reset array
 	
 # ncks #120 
+# ncks -O -d time,'1979-01-01 0:0:0','1981-01-01 0:0:0' -v time,time_bnds ~/nco/data/split.nc ~/foo.nc
+# ncap2 -O -v -C -s 'time_ttl=time.total();print(time_ttl);' ~/foo.nc ~/foo1.nc
     $dsc_sng="Test UDUNITS with dates as limits - fails without UDUNITS";
     $tst_cmd[0]="ncks -O $nco_D_flg -d time,'1979-01-01 0:0:0','1981-01-01 0:0:0' -v time,time_bnds $in_pth_arg split.nc %tmp_fl_00%";
     $tst_cmd[1]="ncap2 -O -v -C -s 'time_ttl=time.total();print(time_ttl);' %tmp_fl_00% %tmp_fl_01%";
@@ -2988,6 +3029,18 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
 
+# ncks #123
+    $dsc_sng="NetCDF4 test extraction of CF2 vars declared in  lon4_var:bounds" ;
+    $tst_cmd[0]="ncks -h -O $fl_fmt $nco_D_flg -v lon4_var,lat4_var $in_pth_arg in_grp_3.nc %tmp_fl_01%";
+    $tst_cmd[1]="ncks -h -O $nco_D_flg -v 'blon?','blat?' -G : %tmp_fl_01% %tmp_fl_02%";
+    $tst_cmd[2]="ncap2 -h -O $fl_fmt $nco_D_flg -s 'if(exists(blon1) && exists(blon2) && exists(blon3) && exists(blon4) &&  exists(blat1) && exists(blat2) && exists(blat3) && exists(blat4)) err=1 ;else err=0;' %tmp_fl_02% %tmp_fl_03%";
+    $tst_cmd[3]="ncks -O -C -H --trd -v err -s '%d' %tmp_fl_03%";
+    $tst_cmd[4]=1;
+    $tst_cmd[5]="SS_OK";
+    NCO_bm::tst_run(\@tst_cmd);
+    $#tst_cmd=0; # Reset array
+
+    
 #####################
 #### ncpdq tests #### -OK !
 #####################
@@ -5096,7 +5149,7 @@ if(0){
 #ncwa -O -w gw_lat -d lat,1,2 -d lon,0,1 -a lat,lon -g g26 ~/nco/data/in_grp_3.nc ~/foo.nc
     $dsc_sng="(Groups) Weights and hyperslabs";
     $tst_cmd[0]="ncwa $omp_flg -O $fl_fmt $nco_D_flg -w gw_lat -d lat,1,2 -d lon,0,1 -a lat,lon -g g26 $in_pth_arg in_grp_3.nc %tmp_fl_00%";
-    $tst_cmd[1]="ncks -v a %tmp_fl_00%";;
+    $tst_cmd[1]="ncks --trd -v a %tmp_fl_00%";;
     $tst_cmd[2]="a = 35.5803";
     $tst_cmd[3]="SS_OK";
     NCO_bm::tst_run(\@tst_cmd);
@@ -5456,10 +5509,10 @@ if(0){
 #################### Attributes
 
 #ncrename #1
-#ncrename -O -a .nothing,new_nothing ~/nco/data/in_grp.nc ~/foo.nc 
+#ncrename -O -D 1 -a .nothing,new_nothing ~/nco/data/in_grp.nc ~/foo.nc 
 #optional relative rename nothing to new_nothing (print warning)
     $dsc_sng="Attributes: Optional relative rename '.nothing' to 'new_nothing'";
-    $tst_cmd[0]="ncrename -O $fl_fmt $nco_D_flg -a .nothing,new_nothing $in_pth_arg in_grp.nc %tmp_fl_00%";
+    $tst_cmd[0]="ncrename -O $fl_fmt $nco_D_flg -D 1 -a .nothing,new_nothing $in_pth_arg in_grp.nc %tmp_fl_00%";
     $tst_cmd[1]="ncrename: In total renamed 0 attributes, 0 dimensions, 0 groups, and 0 variables";
     $tst_cmd[2]="SS_OK";
     NCO_bm::tst_run(\@tst_cmd);
@@ -5597,7 +5650,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
 # Absolute non existing absolute rename
 
     $dsc_sng="Dimensions: Optional non-existing absolute rename './lat_non_existing,new_lat' to 'new_lat'";
-    $tst_cmd[0]="ncrename -O $fl_fmt $nco_D_flg -d ./lat_non_existing,new_lat $in_pth_arg in_grp.nc %tmp_fl_00%";
+    $tst_cmd[0]="ncrename -O $fl_fmt $nco_D_flg -D 1 -d ./lat_non_existing,new_lat $in_pth_arg in_grp.nc %tmp_fl_00%";
     $tst_cmd[1]="ncrename: In total renamed 0 attributes, 0 dimensions, 0 groups, and 0 variables";
     $tst_cmd[2]="SS_OK";
     NCO_bm::tst_run(\@tst_cmd);
@@ -5659,7 +5712,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
 #Optional non-existing absolute rename '/g1/v1_not'
 
     $dsc_sng="Variables: Optional non-existing absolute rename './g1/v1_not' to '/g1/new_v1'";
-    $tst_cmd[0]="ncrename -O $fl_fmt $nco_D_flg -v ./g1/v1_not,new_v1 $in_pth_arg in_grp.nc %tmp_fl_00%";
+    $tst_cmd[0]="ncrename -O $fl_fmt $nco_D_flg -D 1 -v ./g1/v1_not,new_v1 $in_pth_arg in_grp.nc %tmp_fl_00%";
     $tst_cmd[1]="ncrename: In total renamed 0 attributes, 0 dimensions, 0 groups, and 0 variables";
     $tst_cmd[2]="SS_OK";
     NCO_bm::tst_run(\@tst_cmd);
@@ -5712,7 +5765,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
 # optional relative rename gfoo to new_g1 (print warning)
 
     $dsc_sng="Groups: Optional relative rename '.gfoo' to 'new_g1'";
-    $tst_cmd[0]="ncrename -O $fl_fmt $nco_D_flg -g .gfoo,new_g1 $in_pth_arg in_grp.nc %tmp_fl_00%";
+    $tst_cmd[0]="ncrename -O $fl_fmt $nco_D_flg -D 1 -g .gfoo,new_g1 $in_pth_arg in_grp.nc %tmp_fl_00%";
     $tst_cmd[1]="ncrename: In total renamed 0 attributes, 0 dimensions, 0 groups, and 0 variables";
     $tst_cmd[2]="SS_OK";
     NCO_bm::tst_run(\@tst_cmd);
@@ -5762,7 +5815,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
 #Fail when required attribute not present
 
     $dsc_sng="Attributes: Fail when required attribute not present";
-    $tst_cmd[0]="ncrename -O $fl_fmt $nco_D_flg -a xyz,abc $in_pth_arg in.nc %tmp_fl_00%";
+    $tst_cmd[0]="ncrename -O $fl_fmt $nco_D_flg -D 1 -a xyz,abc $in_pth_arg in.nc %tmp_fl_00%";
     $tst_cmd[1]="In total renamed 0 attributes, 0 dimensions, 0 groups, and 0 variables";
     $tst_cmd[2]="SS_OK";
     NCO_bm::tst_run(\@tst_cmd);
@@ -5892,7 +5945,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
 #ncrename -O -d lev,z -d lat,y -d lon,x ~/nco/data/in_grp.nc ~/foo.nc
 #ncks -H --trd -s %d -v one ~/foo.nc
 # Check for corruption after simultaneously renaming multiple dimensions in netCDF4 file
-    $dsc_sng="netCDF4: Simultaneously rename multiple dimensions (netCDF bug, will require netCDF 4.5.???)";
+    $dsc_sng="netCDF4: Simultaneously rename multiple dimensions (netCDF bug, will require Unidata to fix)";
     $tst_cmd[0]="ncrename -O $fl_fmt $nco_D_flg -d lev,z -d lat,y -d lon,x $in_pth_arg in_grp.nc %tmp_fl_00%";
     $tst_cmd[1]="ncks -H --trd -s %d -v one %tmp_fl_00%";
     $tst_cmd[2]="1";

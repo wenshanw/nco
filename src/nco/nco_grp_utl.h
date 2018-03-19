@@ -2,7 +2,7 @@
 
 /* Purpose: Group utilities */
 
-/* Copyright (C) 1995--2017 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -154,6 +154,10 @@ nco_xtr_xcl                          /* [fnc] Convert extraction list to exclusi
 void
 nco_xtr_crd_add                       /* [fnc] Add all coordinates to extraction list */
 (trv_tbl_sct * const trv_tbl);        /* I/O [sct] Traversal table */
+
+void
+nco_xtr_lst /* [fnc] Print extraction list and exit */
+(trv_tbl_sct * const trv_tbl); /* I [sct] GTT (Group Traversal Table) */
 
 void
 nco_xtr_ND_lst /* [fnc] Print extraction list of N>=D variables and exit */

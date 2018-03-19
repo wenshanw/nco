@@ -2,7 +2,7 @@
 
 /* Purpose: Calendar utilities */
 
-/* Copyright (C) 1995--2017 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -536,6 +536,17 @@ nco_cln_var_prs
 {
   return NCO_ERR;
 } /*  !nco_cln_var_prs() */
+
+int /* [rcd] Successful conversion returns NCO_NOERR */
+nco_cln_prs_tm /* UDUnits2 Extract time stamp from parsed UDUnits string */
+(const char *unt_sng, /* I [ptr] units attribute string */
+ tm_cln_sct *tm_in) /* O [sct] Time structure to be populated */
+{
+
+  (void)fprintf(stderr,"%s: WARNING NCO was built without UDUnits. NCO is therefore unable to interpret the string \"%s\".\n:  HINT Re-build or re-install NCO enabled with UDUnits.\n",nco_prg_nm_get(),unt_sng);
+
+  return NCO_ERR;
+}
 
 #endif /* !ENABLE_UDUNITS */
 

@@ -2,7 +2,7 @@
 
 // Implementation (declaration) of C++ interface utilities for netCDF routines
 
-/* Copyright (C) 1995--2017 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -141,7 +141,7 @@ nco_inq_varsz // [fnc] Compute size of variable
 {
   // Purpose: Compute size (number of elements) in specified variable
   int dmn_nbr; // [nbr] Number of dimensions
-  //  int dmn_id[NC_MAX_DIMS]; // [id] Dimension IDs
+  //  int dmn_id[NC_MAX_VAR_DIMS]; // [id] Dimension IDs
   size_t dmn_sz; // [nbr] Dimension size
   int rcd=nco_inq_varndims(nc_id,var_id,dmn_nbr);
   int *dmn_id=new int[dmn_nbr]; // [id] Dimension IDs

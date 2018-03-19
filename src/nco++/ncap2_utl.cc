@@ -2,7 +2,7 @@
 
 /* Purpose: netCDF arithmetic processor */
 
-/* Copyright (C) 1995--2017 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3 with exceptions described in the LICENSE file */
@@ -14,7 +14,7 @@
 std::vector<std::string> /* [O] [vector] array of files paths to be used to locate include files */
 ncap_make_include_paths(const char *spaths)       /* list of file path(s) delimited by ':' */
 {
-  int vdx;
+  unsigned long vdx;
   size_t srt; 
   size_t idx; 
   std::vector<std::string> str_vtr;  
@@ -78,7 +78,7 @@ ncap_var_is_op_doable( var_sct *var1, var_sct *var2)
   if( var1->sz==var2->sz) 
     return True; 
   
-  if( var1->sz >1 && var2->sz==1 || var1->sz==1 && var2->sz>1)
+  if( (var1->sz >1 && var2->sz==1) || (var1->sz==1 && var2->sz>1))
     return True;
 
   return False;
@@ -751,14 +751,14 @@ ncap_var_stretch /* [fnc] Stretch variables */
     char *var_lsr_cp;
     char *var_lsr_out_cp;
     
-    int idx_var_lsr_var_gtr[NC_MAX_DIMS];
+    int idx_var_lsr_var_gtr[NC_MAX_VAR_DIMS];
     int var_lsr_nbr_dim;
     int var_gtr_nbr_dmn_m1;
     
     long *var_gtr_cnt;
-    long dmn_ss[NC_MAX_DIMS];
-    long dmn_var_gtr_map[NC_MAX_DIMS];
-    long dmn_var_lsr_map[NC_MAX_DIMS];
+    long dmn_ss[NC_MAX_VAR_DIMS];
+    long dmn_var_gtr_map[NC_MAX_VAR_DIMS];
+    long dmn_var_lsr_map[NC_MAX_VAR_DIMS];
     long var_gtr_lmn;
     long var_lsr_lmn;
     long var_gtr_sz;
@@ -1021,8 +1021,8 @@ var_sct* var2)
   int sz1=0;
   int sz2=0;
 
-  long cnt1[NC_MAX_DIMS];
-  long cnt2[NC_MAX_DIMS];
+  long cnt1[NC_MAX_VAR_DIMS];
+  long cnt2[NC_MAX_VAR_DIMS];
   
   for(idx=0; idx<var1->nbr_dim; idx++)
     if( var1->cnt[idx]>1 )
@@ -1132,7 +1132,7 @@ var_sct* var_var_op(var_sct* var1 , var_sct* var2, int op)
       default: nco_dfl_case_nc_type_err(); break;
       }
   }
-   else if( var1->sz ==1 && var2->sz>1 || var1->sz>1 && var2->sz==1 ) 
+  else if( (var1->sz ==1 && var2->sz>1) || (var1->sz>1 && var2->sz==1) ) 
    {
      switch (var1->type) 
       {
@@ -1946,17 +1946,15 @@ ncap_cst_mk  /* [fnc] create casting var from a list of dims */
     // Search dmn_in_vtr for dimension
     dmn_item=prs_arg->dmn_in_vtr.find(lst_nm);
     // die if not in list
-    if(dmn_item == NULL_CEWI) {
-      err_prn(fnc_nm,"Unrecognized dimension \""+std::string(lst_nm)+ "\"in LHS subscripts");
-    }
-    if(!bdef) { 
+    if(dmn_item == NULL_CEWI) err_prn(fnc_nm,"Unrecognized dimension \""+std::string(lst_nm)+"\" in LHS subscripts");
 
+    if(!bdef){
 #ifdef _OPENMP
-       if(omp_in_parallel())
-	 err_prn(fnc_nm,"Attempt to go into netCDF define mode while in OpenMP parallel mode");
+      if(omp_in_parallel())
+	err_prn(fnc_nm,"Attempt to go into netCDF define mode while in OpenMP parallel mode");
 #endif
-       bdef=true;  
-       (void)nco_redef(prs_arg->out_id);
+      bdef=true;  
+      (void)nco_redef(prs_arg->out_id);
     }
 
     dmn_new=nco_dmn_dpl(dmn_item);

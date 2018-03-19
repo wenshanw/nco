@@ -1,113 +1,47 @@
 $Header$ -*-text-*-
 
-The netCDF Operators NCO version 4.6.9 are released. 
+The netCDF Operators NCO version 4.7.4 have hatched.
 
-http://nco.sf.net (Homepage, Mailing lists)
-http://github.com/nco (Source Code, Releases, Developers)
+http://nco.sf.net (Homepage, Mailing lists, Help)
+http://github.com/nco (Source Code, Issues, Releases, Developers)
 
 What's new?
-Version 4.6.9 fixes a few issues has no new major features.
+Version 4.7.4 contains
 
-PLEASE READ THIS IF YOU USE NCKS TO PRINT DATA:
-The ncks default printing will change to CDL in NCO 4.7.0.
-For 20+ years ncks has, by default, printed the text representation
-of a file in what we now call "traditional" mode. This mode best
-facilitates meticulous data examination in line-by-line format.
-ncdump produces CDL format that is more useful for most NCO users.
-ncdump has always printed clean CDL and for many years there was
-little point in defaulting ncks printed output to CDL.
-However, ncks CDL mode now rivals ncdump in many ways.
-In particular, ncks --cln now prints times as human-readable calendar
-dates, the last ncdump feature that I used which ncks lacked. 
-Hence in NCO 4.7.0 ncks default printed output will change to CDL. 
-Then one will type simply "ncks" instead of "ncks --cdl". 
-We just added a new "--trd" option to print traditional output.
-Add --trd to your scripts and their behavior will not change.
-Otherwise your printing scripts will start to print CDL.
-You have been warned :)
-
-Work on NCO 4.7.0 has commenced. Planned changes include printing
-CDL by default, and planned improvements include support for conda
-installs on MS Windows, and more ncclimo and ncremap features.
+Work on NCO 4.7.5 has commenced. Planned changes include
+better diagnosis and workarounds for the netCDF CDF5 bug,
+parallel weight generation by ncremap, and possibly workarounds for 
+using quotation marks with ncap2 in Windows.
 
 Enjoy,
 Charlie
 
 NEW FEATURES (full details always in ChangeLog):
 
-A. ncap2 now fully implements NCO chunking maps and policies.
-   Previously ncap2 preserved existing chunking in variables,
-   but could not be told to do anythin different. Now all command-line
-   chunking behavior supported by NCO works in ncap2.
-   ncap2 --cnk_plc=unchunk -S cnk.nco in.nc4 out.nc4
-   http://nco.sf.net/nco.html#cnk
+A. Support absolute and relative paths to out-of-group (OOG) variables
+   in CF attributes as per CF2 Group draft specification:
+   https://docs.google.com/document/d/1KK6IZ2ZmpaUTVgrw-GlFd6almppjvGz6D7nxVTO3BtI/edit
+   This feature completes NCO support for the CF2-Group extension.
+   Sentinel-5P TROPOMI datasets, for example, require this feature.
+   ncks -O -v aerosol_index_340_380 ~/S5P.nc
+   Thanks to ESA, KNMI, and NILU folks for reporting this issue.
 
-B. ncks CDL printing supports finer-grained control of date formats,
-   including an ISO 8601 "T" option. Previously ncks printed
-   UDUnits-compliant times as dates when invoked with the --cdl and
-   --cal options. A third option, --dt_fmt, now exposes finer
-   control of the format with short, regular, and ISO8601 options:
-   ncks -H -m -v time_bnds -C --cdl --dt_fmt=1 ~/nco/data/in.nc
-   ncks -H -m -v time_bnds -C --cdl --dt_fmt=2 ~/nco/data/in.nc
-   ncks -H -m -v time_bnds -C --cdl --dt_fmt=3 ~/nco/data/in.nc
-   dt_fmt:   Output:
-   0,1       1964-03-13 09:08:16 (Default, short format)
-   2	     1964-03-13 09:08:16.000000 (regular format)
-   3         1964-03-13T09:08:16.000000 (ISO8601 "T" format)
-   Note that --dt_fmt automatically implies --cal.
-   http://nco.sf.net/nco.html#cln
+B. ncremap guesses unstructured dimension is first dimension with size
+   n_a in input map file src_grid_dims[0]. Previously ncremap required
+   that the unstructured dimension, if any, be pre-stored in an
+   internal database of common dimension names, or be specified on the
+   command line. Now, if neither of these is done, ncremap tries the
+   first dimension in the input data file with the same size that the
+   supplied input mapping file, if any, expects. 
+   ncremap -m map.nc unstructured.nc out.nc
+   http://nco.sf.net/nco.html#ncremap   
+   Thanks to Philip Cameron-Smith for suggesting this feature.
 
-C. Some data are best evaluated with custom-defined seasons, e.g., JFM
-   instead of DJF, or two-month seasons such as FM or ON. ncclimo now
-   supports up to eleven (and counting) seasons, although by default it
-   only computes MAM, JJA, SON, and DJF. As of NCO 4.6.9, use the
-   seasons option to specify additional or alternate seasons: 
-   ncclimo --seasons=jfm,jas,ann -s 1980 -e 1983 -i drc_in -o drc_out
-   Use "–seasons=none" to completely turn-off seasonal and annual-mean
-   climatologies:
-   ncclimo --seasons=none -s 1980 -e 1983 -i drc_in -o drc_out
-   http://nco.sf.net/nco.html#ncclimo
-
-D. ncremap --msk_src and --msk_dst options now accept the value 'none'
-   to prevent the regridder from interpreting any variable as a mask
-   in files from which source or destination grids are inferred.
-   ncremap -i ~/ed.nc --msk_src=none -d ~/ed.nc -o ~/foo.nc
-   ncremap -i ~/ed.nc -d ~/ed.nc --msk_dst=none -o ~/foo.nc
-   http://nco.sf.net/nco.html#ncremap
-
-E. ncremap now accepts standard NCO arguments for output file type.
-   The -3, -4, -5, -6, and -7 flags, or their long-option equivalents
-   --fl_fmt=fmt or --file_format=fmt where fmt is classic, netcdf4,
-   64bit_data, 64bit_offset, or netcdf4_classic (or some synonyms)
-   causes the output files created by ncremap, e.g., the regridded
-   files and the grid files, to have the requested format.
-   The ERWG and TempestRemap weight-generators support only a subset
-   of these formats.
-   ncremap -7 -i ~/deepthroat.nc -d ~/wapo.nc -o ~/foo.nc
-   http://nco.sf.net/nco.html#fl_fmt_ncremap
+C. fxm
 
 BUG FIXES:
 
-A. The ncap2 implementation of mibs()/mabs()/mebs() is fixed.
-   Thanks to Dominique Briand for reporting this.
-
-B. JSON now prints "null" instead of "NaN" for non-normal
-   floating-point values like NaN and Infinity.
-   This makes output fully JSON-compliant, although it simultaneously 
-   makes it impossible for JSON parsers to determine whether a "null"
-   floating-point value is NaN, or +/-Infinity.
-   Thanks to Bob Simons for noticing this.
-
-C. Fix longstanding (since ~4.2.3) ncwa issue where hyperslabs
-   were not correctly handled for masks and weights. Hyperslabs
-   that started after the first array element could lead to incorrect
-   answers. Thanks to Tony Leboissetier for reporting the problem,
-   and to Pedro Vicente for fixing it.   	    
-   http://nco.sf.net#bug_ncwa_hyp_msk_wgt
-
-D. Ensure ncclimo and ncremap load netCDF libraries 4.4.x+ on
-   certain clusters so that CDF5 capabilities always available.
-   Thanks to Milena Veneziani for reporting this.
+A. Hi
 
 Full release statement at http://nco.sf.net/ANNOUNCE
 
@@ -115,9 +49,9 @@ KNOWN PROBLEMS DUE TO NCO:
 
    This section of ANNOUNCE reports and reminds users of the
    existence and severity of known, not yet fixed, problems. 
-   These problems occur with NCO 4.6.9 built/tested under
-   MacOS 10.12.6 with netCDF 4.4.1.1 on HDF5 1.10.1 and with
-   Linux with netCDF 4.5.1-development (20170811) on HDF5 1.8.19.
+   These problems occur with NCO 4.7.4 built/tested under
+   MacOS 10.13.2 with netCDF 4.4.1.1 on HDF5 1.10.1 and with
+   Linux with netCDF 4.6.1-development (20180110) on HDF5 1.8.19.
 
 A. NOT YET FIXED (NCO problem)
    Correctly read arrays of NC_STRING with embedded delimiters in ncatted arguments
@@ -173,7 +107,8 @@ B. NOT YET FIXED (netCDF4 library bug)
    20161028: Verified problem still exists with netCDF 4.4.1
    20170323: Verified problem still exists with netCDF 4.4.2-development
    20170323: https://github.com/Unidata/netcdf-c/issues/381
-
+   20171102: Verified problem still exists with netCDF 4.5.1-development
+   20171107: https://github.com/Unidata/netcdf-c/issues/597
    Bug tracking: https://www.unidata.ucar.edu/jira/browse/fxm
    More details: http://nco.sf.net/nco.html#ncrename_crd
 
@@ -185,6 +120,8 @@ C. NOT YET FIXED (netCDF4 library bug)
 
    20170323: Confirmed problem reported by Paolo Oliveri, reported to Unidata
    20170323: https://github.com/Unidata/netcdf-c/issues/381
+   20171102: Verified problem still exists with netCDF 4.5.1-development
+   20171107: https://github.com/Unidata/netcdf-c/issues/597
 
    Bug tracking: https://www.unidata.ucar.edu/jira/browse/fxm
    More details: http://nco.sf.net/nco.html#ncrename_crd

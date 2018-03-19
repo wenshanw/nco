@@ -40,7 +40,6 @@ int kdx;
 int mdx;
 int lcl_sz;
 int nbr_sz;
-var_sct *var;
 RefAST tr;
 
  static int wlk_nbr; // Same as number of threads
@@ -92,7 +91,7 @@ RefAST tr;
    } 
    */
 #ifdef _OPENMP
-#pragma omp parallel for default(none) private(kdx,wlk_lcl,var,tr) shared(wlk_ptr,idx,nbr_sz,inn_vtr )
+#pragma omp parallel for default(none) private(kdx,wlk_lcl,tr) shared(wlk_ptr,idx,nbr_sz,inn_vtr )
 #endif
    for(kdx=0 ;kdx< nbr_sz; kdx++) {      
      wlk_lcl= wlk_ptr[omp_get_thread_num()];

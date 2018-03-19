@@ -5,7 +5,7 @@
 /* Purpose: Compute averages of specified hyperslabs of specfied variables
    in a single input netCDF file and output them to a single file. */
 
-/* Copyright (C) 1995--2017 Charlie Zender
+/* Copyright (C) 1995--2018 Charlie Zender
    This file is part of NCO, the netCDF Operators. NCO is free software.
    You may redistribute and/or modify NCO under the terms of the 
    GNU General Public License (GPL) Version 3.
@@ -48,6 +48,9 @@
 #include <sys/stat.h> /* stat() */
 #include <time.h> /* machine time */
 #ifndef _MSC_VER
+# if !defined(HAVE_BISON_FLEX)
+#  define HAVE_BISON_FLEX /* 21070906 pvn add this definition to automake, currently in CMake */
+# endif /* HAVE_BISON_FLEX */
 # include <unistd.h> /* POSIX stuff */
 #endif /* _MSC_VER */
 #ifndef HAVE_GETOPT_LONG
@@ -81,17 +84,18 @@
 
 /* #define MAIN_PROGRAM_FILE MUST precede #include libnco.h */
 #define MAIN_PROGRAM_FILE
-#ifndef _MSC_VER
-# include "ncap.h" /* netCDF arithmetic processor-specific definitions (symbol table, ...) */
-#endif /* _MSC_VER */
+#ifdef HAVE_BISON_FLEX
+//# include "ncap.h" /* netCDF arithmetic processor-specific definitions (symbol table, ...) */
+  # include "ncap_utl.h" /* netCDF arithmetic processor-specific definitions (symbol table, ...) */
+#endif /* !HAVE_BISON_FLEX */
 #include "libnco.h" /* netCDF Operator (NCO) library */
 
-#ifndef _MSC_VER
+#ifdef HAVE_BISON_FLEX
 /* Global variables (keep consistent with global variables declared in ncap.c) */ 
 size_t ncap_ncl_dpt_crr=0UL; /* [nbr] Depth of current #include file (incremented in ncap.l) */
 size_t *ncap_ln_nbr_crr; /* [cnt] Line number (incremented in ncap.l) */
 char **ncap_fl_spt_glb; /* [fl] Script file */
-#endif /* _MSC_VER */
+#endif /* !HAVE_BISON_FLEX */
 
 int 
 main(int argc,char **argv)
@@ -242,9 +246,9 @@ main(int argc,char **argv)
 
   gpe_sct *gpe=NULL; /* [sng] Group Path Editing (GPE) structure */
 
-#ifndef _MSC_VER
+#ifdef HAVE_BISON_FLEX
   prs_sct prs_arg;  /* I/O [sct] Global information required in ncwa parser */
-#endif /* _MSC_VER */
+#endif /* !HAVE_BISON_FLEX */
 
 #ifdef ENABLE_MPI
   /* Declare all MPI-specific variables here */
@@ -315,6 +319,8 @@ main(int argc,char **argv)
     {"glb_att_add",required_argument,0,0}, /* [sng] Global attribute add */
     {"hdr_pad",required_argument,0,0},
     {"header_pad",required_argument,0,0},
+    {"log_lvl",required_argument,0,0}, /* [enm] netCDF library debugging verbosity [0..5] */
+    {"log_level",required_argument,0,0}, /* [enm] netCDF library debugging verbosity [0..5] */
     {"ppc",required_argument,0,0}, /* [nbr] Precision-preserving compression, i.e., number of total or decimal significant digits */
     {"precision_preserving_compression",required_argument,0,0}, /* [nbr] Precision-preserving compression, i.e., number of total or decimal significant digits */
     {"quantize",required_argument,0,0}, /* [nbr] Precision-preserving compression, i.e., number of total or decimal significant digits */
@@ -381,9 +387,9 @@ main(int argc,char **argv)
     {"normalize-by-tally",no_argument,0,'W',},
     {"exclude",no_argument,0,'x'},
     {"xcl",no_argument,0,'x'},
-    {"weight",no_argument,0,'w'},
-    {"wgt",no_argument,0,'w'},
-    {"wgt_var",no_argument,0,'w'},
+    {"weight",required_argument,0,'w'},
+    {"wgt",required_argument,0,'w'},
+    {"wgt_var",required_argument,0,'w'},
     {"operation",required_argument,0,'y'},
     {"op_typ",required_argument,0,'y'},
     {0,0,0,0}
@@ -481,6 +487,7 @@ main(int argc,char **argv)
 	(void)nco_usg_prn();
 	nco_exit(EXIT_SUCCESS);
       } /* endif "help" */
+      if(!strcmp(opt_crr,"log_lvl") || !strcmp(opt_crr,"log_level")){nc_set_log_level(optarg);} /* [enm] netCDF library debugging verbosity [0..5] */
       if(!strcmp(opt_crr,"ppc") || !strcmp(opt_crr,"precision_preserving_compression") || !strcmp(opt_crr,"quantize")){
         ppc_arg[ppc_nbr]=(char *)strdup(optarg);
         ppc_nbr++;
@@ -501,14 +508,14 @@ main(int argc,char **argv)
     case '3': /* Request netCDF3 output storage format */
       fl_out_fmt=NC_FORMAT_CLASSIC;
       break;
-    case '4': /* Catch-all to prescribe output storage format */
-      if(!strcmp(opt_crr,"64bit_offset")) fl_out_fmt=NC_FORMAT_64BIT; else fl_out_fmt=NC_FORMAT_NETCDF4; 
+    case '4': /* Request netCDF4 output storage format */
+      fl_out_fmt=NC_FORMAT_NETCDF4; 
       break;
     case '5': /* Request netCDF3 64-bit offset+data storage (i.e., pnetCDF) format */
       fl_out_fmt=NC_FORMAT_CDF5;
       break;
     case '6': /* Request netCDF3 64-bit offset output storage format */
-      fl_out_fmt=NC_FORMAT_64BIT;
+      fl_out_fmt=NC_FORMAT_64BIT_OFFSET;
       break;
     case '7': /* Request netCDF4-classic output storage format */
       fl_out_fmt=NC_FORMAT_NETCDF4_CLASSIC;
@@ -528,10 +535,10 @@ main(int argc,char **argv)
       break;
     case 'B': /* Mask string to be parsed */
       msk_cnd_sng=(char *)strdup(optarg);
-#ifdef _MSC_VER
-      (void)fprintf(fp_stdout,"%s: ERROR -B and --mask_condition options unsupported on Windows, which lacks a standard parser and lexer that are free. HINT: Break condition into component -m -T -M switches, e.g., use -m ORO -T lt -M 1.0 instead of -B \"ORO < 1\"\n",nco_prg_nm);
+#ifndef HAVE_BISON_FLEX
+      (void)fprintf(fp_stdout,"%s: ERROR -B and --mask_condition options unsupported because configuration could not find a parser (e.g., Bison) and lexer (e.g., Flex). HINT: Break condition into component -m -T -M switches, e.g., use -m ORO -T lt -M 1.0 instead of -B \"ORO < 1\"\n",nco_prg_nm);
       nco_exit(EXIT_FAILURE);
-#endif /* !_MSC_VER */
+#endif /* HAVE_BISON_FLEX */
       break;
     case 'b': /* [flg] Retain degenerate dimensions */
       flg_rdd=True;
@@ -545,7 +552,6 @@ main(int argc,char **argv)
     case 'D': /* Debugging level. Default is 0. */
       nco_dbg_lvl=(unsigned short int)strtoul(optarg,&sng_cnv_rcd,NCO_SNG_CNV_BASE10);
       if(*sng_cnv_rcd) nco_sng_cnv_err(optarg,"strtoul",sng_cnv_rcd);
-      nc_set_log_level(nco_dbg_lvl);
       break;
     case 'd': /* Copy limit argument for later processing */
       lmt_arg[lmt_nbr]=(char *)strdup(optarg);
@@ -671,7 +677,7 @@ main(int argc,char **argv)
   trv_tbl_init(&trv_tbl);
 
   /* Parse mask string */
-#ifndef _MSC_VER
+#ifdef HAVE_BISON_FLEX
   if(msk_cnd_sng){
     int cst_zero=0;
     /* Set arguments for scan */
@@ -696,12 +702,12 @@ main(int argc,char **argv)
     ncap_ln_nbr_crr[ncap_ncl_dpt_crr]=1UL; /* [cnt] Line number incremented in ncap.l */
     if(ncap_ncwa_scn(&prs_arg,msk_cnd_sng,&msk_nm,&msk_val,&op_typ_rlt) != NCO_NOERR) nco_exit(EXIT_FAILURE); 
   } /* endif msk_cnd_sng */ 
-#endif /* _MSC_VER */
+#endif /* !HAVE_BISON_FLEX */
 
   /* Ensure we do not attempt to normalize by non-existent weight */
   if(!wgt_nm) NORMALIZE_BY_WEIGHT=False;
 
-  /* Process positional arguments and fill in filenames */
+  /* Process positional arguments and fill-in filenames */
   fl_lst_in=nco_fl_lst_mk(argv,argc,optind,&fl_nbr,&fl_out,&FL_LST_IN_FROM_STDIN);
 
   /* Initialize thread information */
