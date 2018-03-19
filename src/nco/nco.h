@@ -344,7 +344,7 @@ extern "C" {
 # define NCO_VERSION_MINOR 7
 #endif /* !NCO_VERSION_MINOR */
 #ifndef NCO_VERSION_PATCH
-# define NCO_VERSION_PATCH 3
+# define NCO_VERSION_PATCH 4
 #endif /* !NCO_VERSION_PATCH */
 #ifndef NCO_VERSION_NOTE
 # define NCO_VERSION_NOTE "-alpha02" /* Blank for final versions, non-blank (e.g., "-beta37") for pre-release versions */
@@ -354,7 +354,7 @@ extern "C" {
 # define NCO_LIB_VERSION ( NCO_VERSION_MAJOR * 100 + NCO_VERSION_MINOR * 10 + NCO_VERSION_PATCH )
 #endif /* !NCO_LIB_VERSION */
 #ifndef NCO_VERSION
-# define NCO_VERSION "4.7.3-alpha02"
+# define NCO_VERSION "4.7.4-alpha02"
 #endif /* !NCO_VERSION */
 
 /* Compatibility tokens new to netCDF4 netcdf.h: */
@@ -953,10 +953,12 @@ extern "C" {
     char *dlm_sng; /* [sng] User specified delimiter string for printed output */
     char *fl_in; /* [sng] Input filename */
     char *fl_stb; /* [sng] Input filename stub */
+    char *fmt_val; /* [sng] Format string for variable values */
     char *smr_sng; /* [sng] Summary string */
     char *smr_fl_sz_sng; /* [sng] String describing estimated file size */
     char *spr_chr; /* [sng] Separator string for character types */
     char *spr_nmr; /* [sng] Separator string for numeric types */
+    FILE *fp_out; /* [fl] Formatted text output file handle */
     gpe_sct *gpe; /* I [sng] GPE structure */
     md5_sct *md5; /* [flg] MD5 configuration */
     nco_bool cdl; /* [flg] Print CDL */

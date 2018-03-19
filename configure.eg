@@ -230,16 +230,17 @@ Start LINUX
 Status: Works
 Commands for LINUX are the only ones "regularly" used after ~2010
 ************************************************************************
-# Post upgrade requests to sysadmins at ALCF, LCRC, NCAR, NCSA, NERSC, OLCF
+# Post upgrade requests to sysadmins at ALCF, LCRC, LLNL, NCAR, NCSA, NERSC, OLCF
 # support@alcf.anl.gov # ALCF Maintainer = 
 # conda update nco # Anaconda Maintainer = Filipe Fernandes (github: ocefpaf)
 # support@lcrc.anl.gov # LCRC Maintainer = Adam
+# Tony Hoang <hoang1@llnl.gov> # LLNL
 # cislhelp@ucar.edu # NCAR
 # Yan Liu <yanliu@illinois.edu> # NCSA Maintainer = Yan Liu (github: yanliu-chn)
 # https://nersc.service-now.com/navpage.do # NERSC Maintainer = Yun (Helen) He
 # https://www.olcf.ornl.gov/support/submit-ticket # OLCF
-# Subject: Please upgrade NCO module to 4.6.9
-# Request: NCO 4.6.9 was released 9/18 and contains many features of interest to your ACME users. Please upgrade the system NCO module to 4.6.9 and make that the default NCO module. Thanks!
+# Subject: Please upgrade NCO module to 4.7.4
+# Request: NCO 4.7.4 was released 9/18 and contains many features of interest to your ACME users. Please upgrade the system NCO module to 4.7.4 and make that the default NCO module. Thanks!
 
 zender@dust:~/nco$ pvmgetarch;uname -a;~/nco/autobld/config.guess
 LINUX
@@ -327,7 +328,7 @@ scp nco.configure.${GNU_TRP}.foo nco.config.log.${GNU_TRP}.foo nco.libtool.${GNU
 # Latest ticket: AREQ0159277 on 20170526
 # Latest sysadmin-compiled module usage: soft add +nco-4.6.7 # 20170526
 # Personal recipe last modified: 20161223
-# Personal recipe last used successfully: 20171221
+# Personal recipe last used successfully: 20180302
 # fails to link to udunits...why?
 # nm -a /soft/udunits/2.1.21/lib/libudunits2.a | grep ut_read_xml
 # First use: 20161223 Latest use: 20161223
@@ -350,7 +351,7 @@ scp nco.configure.${GNU_TRP}.foo nco.config.log.${GNU_TRP}.foo nco.libtool.${GNU
 # Latest ticket: fxm on fxm
 # Latest sysadmin-compiled module usage: module load nco/4.6.9 # 20171002
 # Personal recipe last modified: 20180112
-# Personal recipe last used successfully: 20180112 (except ncap2, which would require backporting to intel 16.0.3 to get gsl)
+# Personal recipe last used successfully: 20180302 (except ncap2, which would require backporting to intel 16.0.3 to get gsl)
 module purge
 module load ncarenv intel ncarcompilers mpt netcdf
 module add intel
@@ -384,7 +385,7 @@ scp nco.configure.${GNU_TRP}.foo nco.config.log.${GNU_TRP}.foo nco.libtool.${GNU
 # Sysadmin upgrade request: https://nersc.service-now.com/navpage.do
 # Latest sysadmin-compiled module usage: module load nco/4.6.7 # 20170612 (without ncap2)
 # Personal recipe last modified: 20180125
-# Personal recipe last used successfully: 20171221
+# Personal recipe last used successfully: 20180302
 module load szip
 module load gsl
 module load udunits
@@ -405,7 +406,7 @@ scp nco.configure.${GNU_TRP}.foo nco.config.log.${GNU_TRP}.foo nco.libtool.${GNU
 # Latest ticket: INC0106410 on 20170804
 # Latest sysadmin-compiled module usage: module load nco/4.6.7 # 20170809 (with ncap2)
 # Personal recipe last modified: 20170807
-# Personal recipe last used successfully: 20171221
+# Personal recipe last used successfully: 20170302
 module load szip
 module load gsl
 module load udunits2
@@ -440,7 +441,7 @@ scp nco.configure.${GNU_TRP}.foo nco.config.log.${GNU_TRP}.foo nco.libtool.${GNU
 # Latest ticket: 358890 on 20170526
 # Latest sysadmin-compiled module usage: module load nco/4.6.6 # 20170515
 # Personal recipe last modified: 20170814
-# Personal recipe last used successfully: 20171221
+# Personal recipe last used successfully: 20180302
 export LINUX_CC='gcc -std=c99 -pedantic -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_SOURCE'
 export LINUX_CXX='g++ -std=c++11'
 export LINUX_FC='gfortran'
@@ -477,6 +478,8 @@ scp nco.configure.${GNU_TRP}.foo nco.config.log.${GNU_TRP}.foo nco.libtool.${GNU
 # Personal recipe last modified: 20180124
 # Problem is that .bashrc resets PATH so cannot find icc/gcc ...
 # Personal recipe last used successfully: fxm
+# module use /projects/ClimateEnergy_2/software/modulefiles/all
+# module load e3sm-unified/1.1.2-py2-x
 export GNU_TRP=`~/nco/autobld/config.guess`
 cd ~/nco;/bin/rm -f *.${GNU_TRP}.foo;make distclean
 module load cray-netcdf
@@ -496,7 +499,7 @@ scp nco.configure.${GNU_TRP}.foo nco.config.log.${GNU_TRP}.foo nco.libtool.${GNU
 # Latest ticket: 347675 on 20170316
 # Latest sysadmin-compiled module usage: module load nco/4.6.6 # 20170411
 # Personal recipe last modified: 20170814
-# Personal recipe last used successfully: 20171221
+# Personal recipe last used successfully: 20180302
 export LINUX_CC='gcc -std=c99 -pedantic -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_POSIX_SOURCE'
 module add gcc # change GCC from v 4.3.4 to 4.9.0
 #module add gsl # not used yet
@@ -745,7 +748,7 @@ make check >> nco.make.${GNU_TRP}.foo 2>&1
 make install >> nco.make.${GNU_TRP}.foo 2>&1
 scp nco.configure.${GNU_TRP}.foo nco.config.log.${GNU_TRP}.foo nco.libtool.${GNU_TRP}.foo nco.make.${GNU_TRP}.foo dust.ess.uci.edu:Sites/nco/rgr
 
-# gcc/g++ Zender uses this to debug NCO with custom-install netCDF (and ESMF) binaries in /usr/local (givre, roulee, grele, skyglow)
+# gcc/g++ Zender uses this to debug NCO with custom-install netCDF (and ESMF) binaries in /usr/local (givre, roulee, grele)
 export GNU_TRP=`~/nco/autobld/config.guess`
 cd ~/nco;/bin/rm -f *.${GNU_TRP}.foo;make distclean
 CC='gcc' CXX='g++' NETCDF_INC='/usr/local/include' NETCDF_LIB='/usr/local/lib' ./configure --enable-debug-custom --prefix=${HOME} --bindir=${MY_BIN_DIR} --datadir=${HOME}/nco/data --libdir=${MY_LIB_DIR} --mandir=${HOME}/nco/man > nco.configure.${GNU_TRP}.foo 2>&1
@@ -774,19 +777,7 @@ scp nco.configure.${GNU_TRP}.foo nco.config.log.${GNU_TRP}.foo nco.libtool.${GNU
 export GNU_TRP=`~/nco/autobld/config.guess`
 cd ~/nco;/bin/rm -f *.${GNU_TRP}.foo;make distclean
 # 20170810 Produce core dumps and symbols, turn-on -Wall, without using --enable-debug-custom
-CC='clang' CFLAGS='-Wall -DNCO_ABORT_ON_ERROR' CXX='clang -std=c++11' CXXFLAGS='-Wall' NETCDF_INC='/usr/include' NETCDF_LIB='/usr/lib' ./configure --enable-debug-symbols --prefix=${HOME} --bindir=${MY_BIN_DIR} --datadir=${HOME}/nco/data --libdir=${MY_LIB_DIR} --mandir=${HOME}/nco/man > nco.configure.${GNU_TRP}.foo 2>&1
-/bin/cp -f config.log nco.config.log.${GNU_TRP}.foo
-/bin/cp -f libtool nco.libtool.${GNU_TRP}.foo
-make clean;make > nco.make.${GNU_TRP}.foo 2>&1
-make check >> nco.make.${GNU_TRP}.foo 2>&1
-make install >> nco.make.${GNU_TRP}.foo 2>&1
-scp nco.configure.${GNU_TRP}.foo nco.config.log.${GNU_TRP}.foo nco.libtool.${GNU_TRP}.foo nco.make.${GNU_TRP}.foo dust.ess.uci.edu:Sites/nco/rgr
-
-# gcc/g++ Zender uses this to debug NCO with pre-built netCDF (and ESMF) binaries in /opt/local (this works on MACOSX with MacPorts, e.g., aerosol, firn)
-export GNU_TRP=`~/nco/autobld/config.guess`
-cd ~/nco;/bin/rm -f *.${GNU_TRP}.foo;make distclean
-CC='gcc' CFLAGS='' CXX='g++' CXXFLAGS='' ESMF_INC='/opt/local/include' ESMF_LIB='/opt/local/lib/gcc49' ./configure --enable-debug-custom --prefix=${HOME} --bindir=${MY_BIN_DIR} --datadir=${HOME}/nco/data --libdir=${MY_LIB_DIR} --mandir=${HOME}/nco/man > nco.configure.${GNU_TRP}.foo 2>&1
-CC='gcc' CFLAGS='' CXX='g++' CXXFLAGS='' ESMF_INC='/opt/local/include' ESMF_LIB='/opt/local/lib' ./configure --enable-debug-custom --prefix=${HOME} --bindir=${MY_BIN_DIR} --datadir=${HOME}/nco/data --libdir=${MY_LIB_DIR} --mandir=${HOME}/nco/man > nco.configure.${GNU_TRP}.foo 2>&1
+CC='clang' CFLAGS='-Wall -DNCO_ABORT_ON_ERROR' CXX='clang -std=c++11' CXXFLAGS='-Wall' NETCDF_INC='/usr/local/include' NETCDF_LIB='/usr/local/lib' ./configure --enable-debug-symbols --prefix=${HOME} --bindir=${MY_BIN_DIR} --datadir=${HOME}/nco/data --libdir=${MY_LIB_DIR} --mandir=${HOME}/nco/man > nco.configure.${GNU_TRP}.foo 2>&1
 /bin/cp -f config.log nco.config.log.${GNU_TRP}.foo
 /bin/cp -f libtool nco.libtool.${GNU_TRP}.foo
 make clean;make > nco.make.${GNU_TRP}.foo 2>&1

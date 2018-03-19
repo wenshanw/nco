@@ -99,7 +99,7 @@ nco_fl_sz_est /* [fnc] Estimate RAM size == uncompressed file size */
  const trv_tbl_sct * const trv_tbl) /* I [sct] Traversal table */
 {
   /* Purpose: Estimate RAM size == uncompressed file size */
-  const char fnc_nm[]="nco_fl_sz_est()"; /* [sng] Function name  */
+  const char fnc_nm[]="nco_fl_sz_est()"; /* [sng] Function name */
 
   size_t ram_sz_crr;
   size_t ram_sz_ttl=0L;
@@ -263,7 +263,7 @@ nco_fl_cp /* [fnc] Copy first file to second */
 #ifdef _MSC_VER
   const char cmd_cp_fmt[]="copy %s %s";
 #else /* !_MSC_VER */
-  const char cmd_cp_fmt[]="cp %s %s";
+  const char cmd_cp_fmt[]="/bin/cp %s %s";
 #endif /* !_MSC_VER */
 
   int rcd;
@@ -357,6 +357,8 @@ nco_fl_lst_mk /* [fnc] Create file list from command line positional arguments *
      Multi-file operators take input filenames from positional arguments, if any
      Otherwise, multi-file operators try to get input filenames from stdin */
 
+  const char fnc_nm[]="nco_fl_lst_mk()"; /* [sng] Function name */
+
   nco_bool FL_OUT_FROM_PSN_ARG=True; /* [flg] fl_out comes from positional argument */
 
   char **fl_lst_in=NULL_CEWI; /* [sng] List of user-specified filenames */
@@ -403,8 +405,15 @@ nco_fl_lst_mk /* [fnc] Create file list from command line positional arguments *
     } /* end if */
     fl_lst_in=(char **)nco_malloc(sizeof(char *)); /* fxm: free() this memory sometime */
     fl_lst_in[(*fl_nbr)++]=(char *)strdup(argv[arg_crr++]);
+
+    /* Sanitize input list from stdin and from positional arguments */
+    for(int fl_idx=0;fl_idx<*fl_nbr;fl_idx++) (void)nco_sng_sntz(fl_lst_in[fl_idx]);
+
     /* Output file is optional for these operators */
-    if(arg_crr == argc-1) *fl_out=(char *)strdup(argv[arg_crr]);
+    if(arg_crr == argc-1){
+      *fl_out=(char *)strdup(argv[arg_crr]);
+      *fl_out=nco_sng_sntz(*fl_out);
+    } /* !arg_crr */
     return fl_lst_in;
     /* break; *//* NB: break after return in case statement causes SGI cc warning */
   case ncbo:
@@ -536,9 +545,15 @@ nco_fl_lst_mk /* [fnc] Create file list from command line positional arguments *
     nco_exit(EXIT_FAILURE);
   } /* end if */
 
-  /* Assign output file from positional argument */
-  if(FL_OUT_FROM_PSN_ARG) *fl_out=(char *)strdup(argv[argc-1]);
+  /* Sanitize input list from stdin and from positional arguments */
+  for(int fl_idx=0;fl_idx<*fl_nbr;fl_idx++) (void)nco_sng_sntz(fl_lst_in[fl_idx]);
 
+  /* Assign output file from positional argument */
+  if(FL_OUT_FROM_PSN_ARG){
+    *fl_out=(char *)strdup(argv[argc-1]);
+    *fl_out=nco_sng_sntz(*fl_out);
+  } /* !FL_OUT_FROM_PSN_ARG */
+ 
   return fl_lst_in;
 
 } /* end nco_fl_lst_mk() */
@@ -550,8 +565,8 @@ nco_fl_mk_lcl /* [fnc] Retrieve input file and return local filename */
  nco_bool * const FL_RTR_RMT_LCN) /* O [flg] File was retrieved from remote location */
 {
   /* Purpose: Locate input file, retrieve it from remote storage system if necessary,
-  create local storage directory if neccessary, check file for read-access,
-  return name of file on local system */
+     create local storage directory if neccessary, check file for read-access,
+     return name of file on local system */
 
 #ifdef _MSC_VER
   /* TODO nco1068 The stat function retuns -1 for large files; assume success */
@@ -1209,7 +1224,7 @@ nco_fl_mv /* [fnc] Move first file to second */
 #ifdef _MSC_VER
   const char cmd_mv_fmt[]="move %s %s";
 #else /* !_MSC_VER */
-  const char cmd_mv_fmt[]="mv -f %s %s";
+  const char cmd_mv_fmt[]="/bin/mv -f %s %s";
 #endif /* !_MSC_VER */
 
   int rcd_sys; /* [rcd] Return code from system() */

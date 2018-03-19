@@ -109,8 +109,9 @@ sub tst_rgr {
     # 441 (for library 4.4.1.x)
     # 450 (for library 4.5.0)
     # 451 (for library 4.5.1) (development-only)
-    # 460 (for library 4.6.0)
+    # 460 (for library 4.6.0.x)
     # 461 (for library 4.6.1)
+    # 462 (for library 4.6.2)
 
   if($exit_value == 410){print "netCDF version 4.1.x detected\n";}
   if($exit_value == 431){print "netCDF version 4.3.1 detected\n";}
@@ -122,6 +123,7 @@ sub tst_rgr {
   if($exit_value == 451){print "netCDF version 4.5.1 detected\n";} # development-only
   if($exit_value == 460){print "netCDF version 4.6.0 detected\n";}
   if($exit_value == 461){print "netCDF version 4.6.1 detected\n";}
+  if($exit_value == 462){print "netCDF version 4.6.2 detected\n";}
 
   if($exit_value >= 400){$RUN_NETCDF4_TESTS=1;}
   if($exit_value >= 431){$RUN_NETCDF4_TESTS_VERSION_GE_431=1;}
@@ -450,7 +452,9 @@ if($USER eq 'zender'){
     $#tst_cmd=0; # Reset array
 
 # ncap2 #13
-    $dsc_sng="Run script to to test casting, hyperslabbing and intrinsic functions";
+# ncap2 -h -O -v -S ~/nco/data/bsc_tst.nco ~/nco/data/in.nc ~/foo.nc
+# ncks -C -H --trd -v nbr_err_ttl -s '%d' ~/foo.nc
+    $dsc_sng="Run script to to test casting, hyperslabbing and intrinsic functions (Requires GSL)";
     $tst_cmd[0]="ncap2 -h -O $fl_fmt $nco_D_flg -v -S '../data/bsc_tst.nco' $in_pth_arg in.nc %tmp_fl_00%";
     $tst_cmd[1]="ncks -C -H --trd -v nbr_err_ttl -s '%d' %tmp_fl_00%";
     $tst_cmd[2]="0";
@@ -477,11 +481,21 @@ if($USER eq 'zender'){
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
 
-
 # ncap2 #16
+# ncap2 -h -O -v -S ~/nco/data/string.nco ~/nco/data/in_4.nc ~/foo.nc
+# ncks -C -H --trd -v nbr_err_ttl -s '%d' ~/foo.nc
     $dsc_sng="Run script to to test ncap2 NC_STRING handling (failure expected 2017-06-21)";
     $tst_cmd[0]="ncap2 -h -O $fl_fmt $nco_D_flg -v -S '../data/string.nco' $in_pth_arg in_4.nc %tmp_fl_00%";
     $tst_cmd[1]="ncks -C -H --trd -v nbr_err_ttl -s '%d' %tmp_fl_00%";
+    $tst_cmd[2]="0";
+    $tst_cmd[3]="SS_OK";
+    NCO_bm::tst_run(\@tst_cmd);
+    $#tst_cmd=0; # Reset array
+
+# ncap2 #17
+   $dsc_sng="Run script to test sort functions";
+    $tst_cmd[0]="ncap2 -h -O $fl_fmt $nco_D_flg -v -S '../data/sort.nco' $in_pth_arg in.nc %tmp_fl_00%";
+    $tst_cmd[1]="ncks -C -H --trd -v nbr_err -s '%d' %tmp_fl_00%";
     $tst_cmd[2]="0";
     $tst_cmd[3]="SS_OK";
     NCO_bm::tst_run(\@tst_cmd);
@@ -1247,7 +1261,7 @@ if($USER eq 'zender'){
     $#tst_cmd=0; # Reset array
 
 #nces #19 (check coordinate variables)
-# ncra -Y ncge -h -O mdl_1.nc ~/foo.nc
+# ncra -Y ncge -h -O ~/nco/data/mdl_1.nc ~/foo.nc
 # ncks -g cesm -v time ~/foo.nc
 # NB: This test succeeds when it fails, i.e., the NCO command fails as it should because the input files do not conform
     $dsc_sng="(Groups) Ensemble record coordinate variables";
@@ -3015,6 +3029,18 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
     NCO_bm::tst_run(\@tst_cmd);
     $#tst_cmd=0; # Reset array
 
+# ncks #123
+    $dsc_sng="NetCDF4 test extraction of CF2 vars declared in  lon4_var:bounds" ;
+    $tst_cmd[0]="ncks -h -O $fl_fmt $nco_D_flg -v lon4_var,lat4_var $in_pth_arg in_grp_3.nc %tmp_fl_01%";
+    $tst_cmd[1]="ncks -h -O $nco_D_flg -v 'blon?','blat?' -G : %tmp_fl_01% %tmp_fl_02%";
+    $tst_cmd[2]="ncap2 -h -O $fl_fmt $nco_D_flg -s 'if(exists(blon1) && exists(blon2) && exists(blon3) && exists(blon4) &&  exists(blat1) && exists(blat2) && exists(blat3) && exists(blat4)) err=1 ;else err=0;' %tmp_fl_02% %tmp_fl_03%";
+    $tst_cmd[3]="ncks -O -C -H --trd -v err -s '%d' %tmp_fl_03%";
+    $tst_cmd[4]=1;
+    $tst_cmd[5]="SS_OK";
+    NCO_bm::tst_run(\@tst_cmd);
+    $#tst_cmd=0; # Reset array
+
+    
 #####################
 #### ncpdq tests #### -OK !
 #####################
@@ -5919,7 +5945,7 @@ if($RUN_NETCDF4_TESTS_VERSION_GE_431){
 #ncrename -O -d lev,z -d lat,y -d lon,x ~/nco/data/in_grp.nc ~/foo.nc
 #ncks -H --trd -s %d -v one ~/foo.nc
 # Check for corruption after simultaneously renaming multiple dimensions in netCDF4 file
-    $dsc_sng="netCDF4: Simultaneously rename multiple dimensions (netCDF bug, will require Unidata to fix in netCDF 4.5.???)";
+    $dsc_sng="netCDF4: Simultaneously rename multiple dimensions (netCDF bug, will require Unidata to fix)";
     $tst_cmd[0]="ncrename -O $fl_fmt $nco_D_flg -d lev,z -d lat,y -d lon,x $in_pth_arg in_grp.nc %tmp_fl_00%";
     $tst_cmd[1]="ncks -H --trd -s %d -v one %tmp_fl_00%";
     $tst_cmd[2]="1";

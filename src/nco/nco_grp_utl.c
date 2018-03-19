@@ -1224,7 +1224,7 @@ nco_xtr_cf_var_add /* [fnc] Add variables associated (via CF) with specified var
       /* Yes, get list of specified attributes */
       (void)nco_inq_att(grp_id,var_id,att_nm,&att_typ,&att_sz);
       if(att_typ != NC_CHAR){
-        (void)fprintf(stderr,"%s: WARNING \"%s\" attribute for variable %s is type %s, not %s. This violates the CF convention for specifying additional attributes. Therefore %s will skip this attribute. If you want CF to support NC_STRING attributes, please tell them and CC: NCO.\n",nco_prg_nm_get(),att_nm,var_trv->nm_fll,nco_typ_sng(att_typ),nco_typ_sng(NC_CHAR),fnc_nm);
+        (void)fprintf(stderr,"%s: WARNING \"%s\" attribute for variable %s is type %s, not %s. This violates the CF convention for allowed datatypes (http://cfconventions.org/cf-conventions/cf-conventions.html#_data_types). Therefore %s will skip this attribute. If you want CF to support NC_STRING attributes, please tell CF and CC: NCO.\n",nco_prg_nm_get(),att_nm,var_trv->nm_fll,nco_typ_sng(att_typ),nco_typ_sng(NC_CHAR),fnc_nm);
         return;
       } /* end if */
       att_val=(char *)nco_malloc((att_sz+1L)*sizeof(char));
@@ -1267,18 +1267,70 @@ nco_xtr_cf_var_add /* [fnc] Add variables associated (via CF) with specified var
         char *cf_lst_var=cf_lst[idx_cf];
         if(!cf_lst_var) continue;
 
-        char *cf_lst_var_nm_fll;  /* [sng] Built full name of 'CF' variable to find */
-        const char sls_chr='/';   /* [chr] Slash character */
-        const char sls_sng[]="/"; /* [sng] Slash string */
-        char *ptr_chr;            /* [sng] Pointer to character '/' in full name */
-        int psn_chr;              /* [nbr] Position of character '/' in in full name */
+        char *cf_lst_var_nm_fll;       /* [sng] Built full name of 'CF' variable to find */
+        const char sls_chr='/';        /* [chr] Slash character */
+        const char sls_sng[]="/";      /* [sng] Slash string */
+	const char cur_dir_sng[]="./"; /* [sng] current dir */  
+	const char up_dir_sng[]="../"; /* [sng] current dir */  					 
+        char *ptr_chr;                 /* [sng] Pointer to character '/' in full name */
+        int psn_chr;                   /* [nbr] Position of character '/' in in full name */
 
-        /* Construct full name of CF variable */
+	
+
+	/* create memory for full name of CF variable */
         cf_lst_var_nm_fll=(char *)nco_malloc(strlen(var_trv->grp_nm_fll)+strlen(cf_lst_var)+2L);
-        strcpy(cf_lst_var_nm_fll,var_trv->grp_nm_fll);
-        if(strcmp(var_trv->grp_nm_fll,sls_sng)) strcat(cf_lst_var_nm_fll,sls_sng);
-        strcat(cf_lst_var_nm_fll,cf_lst_var);
+        cf_lst_var_nm_fll[0]='\0'; 
+	
+        /* does cf_lst_var have a  path of some kind */
+	ptr_chr=strchr(cf_lst_var,sls_chr);
+        if(ptr_chr){
 
+          /* does cf_lst start with '/' an absolute path */      
+	  if(cf_lst_var[0]=='/') {
+	    strcpy(cf_lst_var_nm_fll, cf_lst_var);
+	  }  
+          /* does cf_lst_var start with './' */
+	  else if(strncmp(cf_lst_var, cur_dir_sng, strlen(cur_dir_sng) )==0){
+            if(strcmp(var_trv->grp_nm_fll,sls_sng))    
+                strcpy(cf_lst_var_nm_fll,var_trv->grp_nm_fll);
+
+	    strcat(cf_lst_var_nm_fll, cf_lst_var+(size_t)1);
+	  }
+	  /* does cf_lst_var start with '../' */
+          else if(strncmp(cf_lst_var, up_dir_sng, strlen(up_dir_sng) )==0){
+	      /* remove last dirname from var_trv->grp_nm_fll */
+	      strcpy(cf_lst_var_nm_fll,var_trv->grp_nm_fll);
+	      /* search for final '/' */
+              ptr_chr=strrchr(cf_lst_var_nm_fll,sls_chr);      
+	      if(ptr_chr) *ptr_chr='\0';
+              strcat(cf_lst_var_nm_fll, cf_lst_var+(size_t)2);     
+	  }
+	  /* '/' some-where in middle of string */
+          else
+	  {    
+              strcpy(cf_lst_var_nm_fll,var_trv->grp_nm_fll);
+              if(strcmp(var_trv->grp_nm_fll,sls_sng))
+		  strcat(cf_lst_var_nm_fll,sls_sng);
+              strcat(cf_lst_var_nm_fll,cf_lst_var);
+          } 	  
+          /* If variable is on list */
+          if(trv_tbl_fnd_var_nm_fll(cf_lst_var_nm_fll,trv_tbl))
+            /* Mark it for extraction */
+            (void)trv_tbl_mrk_xtr(cf_lst_var_nm_fll,True,trv_tbl);
+
+	  cf_lst_var_nm_fll=(char *)nco_free(cf_lst_var_nm_fll);
+	  
+          continue;
+	}  
+	
+	
+        strcpy(cf_lst_var_nm_fll,var_trv->grp_nm_fll);
+        if(strcmp(var_trv->grp_nm_fll,sls_sng))
+	  strcat(cf_lst_var_nm_fll,sls_sng);
+	
+        strcat(cf_lst_var_nm_fll,cf_lst_var);
+ 
+	
         /* Find last occurence of '/' */
         ptr_chr=strrchr(cf_lst_var_nm_fll,sls_chr);
         psn_chr=ptr_chr-cf_lst_var_nm_fll;
@@ -2099,12 +2151,12 @@ nco_prn_dmn_grp /* [fnc] Print dimensions for a group  */
     for(int dnm_ult_idx=0;dnm_ult_idx<nbr_dmn_ult;dnm_ult_idx++){ 
       if(dmn_ids[dnm_idx] == dmn_ids_ult[dnm_ult_idx]){ 
         is_rec_dim=True;
-        (void)fprintf(stdout," #%d record dimension: '%s'(%li)\n",dmn_ids[dnm_idx],dmn_nm,dmn_sz);
+        (void)fprintf(stdout,"Record dimension name, size, ID = %s, %li, %d\n",dmn_nm,dmn_sz,dmn_ids[dnm_idx]);
       } /* end if */
     } /* end dnm_ult_idx dimensions */
 
     /* An unlimited ID was not matched, so dimension is a plain vanilla dimension */
-    if(!is_rec_dim) (void)fprintf(stdout," #%d dimension: '%s'(%li)\n",dmn_ids[dnm_idx],dmn_nm,dmn_sz);
+    if(!is_rec_dim) (void)fprintf(stdout,"Fixed dimension name, size, ID = %s, %li, %d\n",dmn_nm,dmn_sz,dmn_ids[dnm_idx]);
 
   } /* end dnm_idx dimensions */
 
@@ -2191,7 +2243,7 @@ nco_bld_dmn_ids_trv                   /* [fnc] Build dimension info for all vari
 	  */
 	  
           (void)fprintf(stdout,"%s: INFO %s reports variable <%s> with duplicate dimensions\n",nco_prg_nm_get(),fnc_nm,var_trv.nm_fll);
-          (void)fprintf(stdout,"%s: ERROR netCDF file with duplicate dimension IDs detected. Please use netCDF version at least 4.3.0. NB: Simultaneously renaming multiple dimensions with ncrename can trigger this bug with netCDF versions up to 4.5.1 (current as of 20180119).\n",nco_prg_nm_get());
+          (void)fprintf(stdout,"%s: ERROR netCDF file with duplicate dimension IDs detected. Please use netCDF version at least 4.3.0. NB: Simultaneously renaming multiple dimensions with ncrename can trigger this bug with netCDF versions up to 4.6.0.1 (current as of 20180201).\n",nco_prg_nm_get());
           (void)nco_prn_trv_tbl(nc_id,trv_tbl);
           nco_exit(EXIT_FAILURE);
         }
@@ -7663,7 +7715,7 @@ nco_var_has_cf /* [fnc] Variable has CF-compliant attributes ("ancillary_variabl
       /* Yes, get list of specified attributes */
       (void)nco_inq_att(grp_id,var_id,att_nm,&att_typ,&att_sz);
       if(att_typ != NC_CHAR){
-        (void)fprintf(stderr,"%s: WARNING \"%s\" attribute for variable %s is type %s, not %s. This violates the CF convention for specifying additional attributes. Therefore %s will skip this attribute.\n",nco_prg_nm_get(),att_nm,var_trv->nm_fll,nco_typ_sng(att_typ),nco_typ_sng(NC_CHAR),fnc_nm);
+        (void)fprintf(stderr,"%s: WARNING \"%s\" attribute for variable %s is type %s, not %s. This violates the CF convention for allowed datatypes (http://cfconventions.org/cf-conventions/cf-conventions.html#_data_types). Therefore %s will skip this attribute.\n",nco_prg_nm_get(),att_nm,var_trv->nm_fll,nco_typ_sng(att_typ),nco_typ_sng(NC_CHAR),fnc_nm);
         return NULL;
       } /* end if */
       att_val=(char *)nco_malloc((att_sz+1L)*sizeof(char));

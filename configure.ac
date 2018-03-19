@@ -42,7 +42,7 @@
 # AC_CHECK_LIB Find libXXX.a, prepend -lXXX to LIBS, define HAVE_LIBXXX
 # AC_CHECK_PROG Find whether prg_nm is on ${PATH}, define ${flg} accordingly
 # AC_DEFINE Define token TKN to value VAL with comment CMNT in config.h
-# AC_DEFINE_UNQUOTED Define token TKN to value VAL with comment CMNT in config.h. Use then when TKN or VAL are shell variables.
+# AC_DEFINE_UNQUOTED Define token TKN to value VAL with comment CMNT in config.h. Use when TKN or VAL are shell variables.
 # AC_EGREP_HEADER Search CPP output of header.h (NB: CPP outputs C-code only), define ${flg} accordingly
 # AC_MSG_NOTICE Print MSG to output
 # AC_MSG_WARN Print MSG to output
@@ -54,8 +54,7 @@
 # 20170808: Choose between traditional version and Git-based version
 # If Git, consider that Linux dynamic libraries will have full messy name, MacOSX will not
 # https://stackoverflow.com/questions/43526939/how-to-insert-git-based-version-in-autoconf-managed-project
-AC_INIT([NCO netCDF Operators],[4.7.3-alpha02],[nco-bugs@lists.sourceforge.net],[nco])
-#AC_INIT([NCO netCDF Operators],m4_esyscmd([git describe --abbrev=7 --dirty --always --tags | tr -d '\n']),[nco-bugs@lists.sourceforge.net],[nco])
+AC_INIT([NCO netCDF Operators],[4.7.4-alpha02],[nco-bugs@lists.sourceforge.net],[nco])
 
 # Print GNU copyright in configure script
 AC_COPYRIGHT
@@ -179,7 +178,7 @@ AC_PROG_CPP
 AC_PROG_CXXCPP
 AC_PROG_CC_STDC
 AM_PROG_LEX
-AC_PROG_YACC
+# AC_PROG_YACC
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_LIBTOOL
@@ -188,7 +187,7 @@ AC_PROG_LIBTOOL
 LIBTOOL="${LIBTOOL} --tag=CXX"
 #LIBTOOL="${LIBTOOL} --tag=ignore_tag_err"
 
-AM_CONDITIONAL(BUILD_YACC_SOURCE,[test "${YACC}" != "yacc" || test -f "src/nco/ncap_yacc.c"])
+# AM_CONDITIONAL(BUILD_YACC_SOURCE,[test "${YACC}" != "yacc" || test -f "src/nco/ncap_yacc.c"])
 
 # Disable maintainer-only options in generated Makefiles unless flag
 # --enable-maintainer-mode is given at configure time
@@ -389,7 +388,7 @@ esac
 # "#define HAVE_XXX 1" and "#undef NEED_XXX" when function xxx() is found and
 # "#undef HAVE_XXX" and "#define NEED_XXX 1" when function xxx() is not found
 # Purpose: CPP macros like "if(NEED_XXX)" are simpler to read than "if(!HAVE_xxx)"
-NCO_CHECK_FUNCS([nc_inq_format nc_inq_path])
+NCO_CHECK_FUNCS([nc_inq_format nc_inq_path nc_set_log_level])
 NCO_CHECK_FUNCS([getopt getopt_long])
 NCO_CHECK_FUNCS([atan2])
 NCO_CHECK_FUNCS([acosf asinf atanf atan2f cosf expf fabsf fmodf log10f logf powf sinf sqrtf tanf])
@@ -1295,6 +1294,7 @@ echo "CXXFLAGS............. ${CXXFLAGS}"
 echo "ENABLE_DAP........... ${enable_dap}"
 echo "ENABLE_ESMF...........${enable_esmf}"
 echo "ENABLE_GSL........... ${enable_gsl}"
+echo "ENABLE_LOGGING....... ${enable_logging}"
 echo "ENABLE_NETCDF4....... ${enable_netcdf4}"
 echo "ENABLE_OPENMP........ ${enable_openmp}"
 echo "ENABLE_UDUNITS....... ${enable_udunits}"
